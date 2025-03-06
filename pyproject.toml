@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "onpy"
+version = "0.0.6"
+requires-python = ">=3.12"
+authors = [
+  {name = "Kyle Tennison", email = "kyletennison@gmail.com"},
+]
+maintainers = [
+    {name = "Kyle Tennison", email = "kyletennison@gmail.com"},
+]
+description = "A Python API for building models in OnShape"
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+  "Programming Language :: Python"
+]
+dependencies = [
+    "loguru",
+    "requests",
+    "pydantic",
+    "numpy",
+    "prettytable"
+]
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "pyright",
+    "types-requests",
+    "nbconvert",
+]
+
+[tool.ruff]
+include = ["src/*"]
+line-length = 100
+
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "D205",     # overly verbose to make docstrings like this
+  "D203",     # overly verbose to make docstrings like this
+  "D213",     # overly verbose to make docstrings like this
+  "SLF001",   # private apis are only used internally, which is okay
+  "PLR0913",  # complexity is unavoidable for math-intensive methods
+  "PLR0912",  # complexity is unavoidable for math-intensive methods
+  "PLR0915",  # complexity is unavoidable for math-intensive methods
+  "C901",     # complexity is unavoidable for math-intensive methods
+  "FIX002",   # allow TODO notes
+  "TD003",    # don't require tickets for TODO notes
+  "N815",     # onshape api schema is not controlled by onpy
+  "COM812",   # issues with formatter
+]
+per-file-ignores = {"src/onpy/entities/queries.py" = ["N801"]}
