@@ -30,11 +30,15 @@ class RestApi {
    * @private
    */
   async _request(method, endpoint, payload = null, queryParams = {}) {
-    if (!endpoint.startsWith('/')) {
-      throw new Error(`Endpoint '${endpoint}' missing '/' prefix`);
-    }
+    // Remove this check that forces a slash prefix
+    // if (!endpoint.startsWith('/')) {
+    //   throw new Error(`Endpoint '${endpoint}' missing '/' prefix`);
+    // }
 
-    const url = this.baseUrl + endpoint;
+    // Make sure we don't have double slashes
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    
+    const url = `${this.baseUrl}/${normalizedEndpoint}`;
     const headers = await this.getAuthHeaders();
     const params = new URLSearchParams();
     
@@ -45,7 +49,7 @@ class RestApi {
       }
     });
 
-    console.log(`${method} ${endpoint}`);
+    console.log(`${method} ${url}`);
     
     try {
       const response = await axios({
@@ -63,6 +67,7 @@ class RestApi {
       return response.data;
     } catch (error) {
       if (error.response) {
+        console.error('Onshape API Error:', error.response.data);
         throw new OnshapeApiError(
           `Error ${error.response.status}: ${error.response.statusText}`,
           error.response

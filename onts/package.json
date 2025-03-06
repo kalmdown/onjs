@@ -1,0 +1,71 @@
+{
+  "name": "onshape-ts-drawing-client",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Examples of Onshape Drawing APIs in typescript",
+  "scripts": {
+    "build": "npm install && tsc",
+    "cleanoutputdirectory": "rimraf ./output && rimraf ./exports && rimraf ./reports && rimraf logs",
+    "create-aligned-linear-dimension": "node .compilejs/create-aligned-linear-dimension.js",
+    "create-callout": "node .compiledjs/create-callout.js",
+    "create-callout-with-leader": "node .compiledjs/create-callout-with-leader.js",
+    "create-centerline": "node .compiledjs/create-centerline.js",
+    "create-diameter-dimension": "node .compiledjs/create-diameter-dimension.js",
+    "create-geometric-tolerance": "node .compiledjs/create-geometric-tolerance.js",
+    "create-inspection-symbols": "node .compiledjs/create-inspection-symbols.js",
+    "create-line-to-line-angular-dimension": "node .compiledjs/create-line-to-line-angular-dimension.js",
+    "create-line-to-line-linear-dimension": "node .compiledjs/create-line-to-line-linear-dimension.js",
+    "create-note": "node .compiledjs/create-note.js",
+    "create-note-with-leader": "node .compiledjs/create-note-with-leader.js",
+    "create-point-to-line-linear-dimension": "node .compiledjs/create-point-to-line-linear-dimension.js",
+    "create-point-to-point-linear-dimension": "node .compiledjs/create-point-to-point-linear-dimension.js",
+    "create-radial-dimension": "node .compiledjs/create-radial-dimension.js",
+    "create-table": "node .compiledjs/create-table.js",
+    "create-three-point-angular-dimension": "node .compiledjs/create-three-point-angular-dimension.js",
+    "detect-if-single-drawing-needs-update": "node .compiledjs/detect-if-single-drawing-needs-update.js",
+    "detect-if-workspace-contains-drawings-needing-update": "node .compiledjs/detect-if-workspace-contains-drawings-needing-update.js",
+    "edit-notes": "node .compiledjs/edit-notes.js",
+    "edit-dimension-attachments": "node .compiledjs/edit-dimension-attachments.js",
+    "edit-dimension-text-positions": "node .compiledjs/edit-dimension-text-positions.js",
+    "find-errors-in-drawing": "node .compiledjs/find-errors-in-drawing.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onshape-public/onshape-ts-drawing-client.git"
+  },
+  "author": "rminer",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/onshape-public/onshape-ts-drawing-client/issues"
+  },
+  "homepage": "https://github.com/onshape-public/onshape-ts-drawing-client#readme",
+  "dependencies": {
+    "death": "^1.1.0",
+    "debug": "^4.3.4",
+    "express": "^4.18.2",
+    "log4js": "^6.7.1",
+    "minimist": "^1.2.7",
+    "mkdirp": "^3.0.1",
+    "ngrok": "^4.3.3",
+    "randomstring": "^1.2.3",
+    "rimraf": "^5.0.5",
+    "sanitize-filename": "^1.6.3",
+    "time-span": "^5.1.0",
+    "typescript": "^4.9.5 ",
+    "unirest": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.2",
+    "@types/death": "^1.1.2",
+    "@types/debug": "^4.1.7",
+    "@types/express": "^4.17.17",
+    "@types/localtunnel": "^2.0.1",
+    "@types/minimist": "^1.2.2",
+    "@types/node": "^18.11.19",
+    "@types/randomstring": "^1.1.8",
+    "@typescript-eslint/eslint-plugin": "^7.6.0",
+    "@typescript-eslint/parser": "^7.6.0",
+    "eslint": "^8.57.0",
+    "eslint-config-google": "^0.14.0"
+  }
+}

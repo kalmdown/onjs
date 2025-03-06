@@ -1,4 +1,4 @@
-// src\src\features\extrude.js
+// src\features\extrude.js
 /**
  * Interface to the Extrude Feature
  */

@@ -7,8 +7,8 @@ const RestApi = require('./api/rest-api');
 const EndpointContainer = require('./api/endpoints');
 const { createWorkspaceVersion } = require('./api/schema');
 const { UnitSystem, findByNameOrId } = require('./utils/misc');
-const { OnshapeParameterError } = require('../utils/errors');
-const { DefaultPlane, DefaultPlaneOrientation } = require('../features/plane');
+const { OnshapeParameterError } = require('./utils/errors');
+const { DefaultPlane, DefaultPlaneOrientation } = require('./features/planes');
 
 /**
  * Main Onshape client class
@@ -86,6 +86,37 @@ class OnshapeClient {
       createdAt: document.createdAt,
       owner: document.owner?.name || 'Unknown',
       defaultWorkspace: document.defaultWorkspace
+    };
+  }
+
+  /**
+   * Create a document
+   * 
+   * @param {string} name Document name
+   * @returns {Promise<Object>} Created document
+   */
+  async createDocument(name) {
+    const result = await this._api.post('documents', { name });
+    return {
+      id: result.id,
+      name: result.name,
+      defaultWorkspace: result.defaultWorkspaceId
+    };
+  }
+
+  /**
+   * Get a document by ID
+   * 
+   * @param {Object} options
+   * @param {string} options.documentId Document ID
+   * @returns {Promise<Object>} Document
+   */
+  async getDocument({ documentId }) {
+    const result = await this._api.get(`documents/d/${documentId}`);
+    return {
+      id: result.id,
+      name: result.name,
+      defaultWorkspace: result.defaultWorkspaceId
     };
   }
 
@@ -226,6 +257,131 @@ class OnshapeClient {
     }
     
     return studioObj;
+  }
+
+  /**
+   * Get workspaces for a document
+   * 
+   * @param {Object} options
+   * @param {string} options.documentId Document ID
+   * @returns {Promise<Array>} Workspaces
+   */
+  async getWorkspaces({ documentId }) {
+    try {
+      const result = await this._api.get(`documents/d/${documentId}/workspaces`);
+      return result;
+    } catch (error) {
+      console.error('Error fetching workspaces:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get elements in a document
+   * @param {Object} options
+   * @param {string} options.documentId Document ID
+   * @returns {Promise<Array>} List of elements
+   */
+  async getElements({ documentId }) {
+    // First get the workspaces
+    const workspaces = await this.getWorkspaces({ documentId });
+    if (!workspaces || !workspaces.length) {
+      throw new Error("No workspaces found for document");
+    }
+    
+    // Use the first workspace (usually the default one)
+    const workspaceId = workspaces[0].id;
+    
+    // Now get elements with the correct URL format
+    const response = await this._api.get(`documents/d/${documentId}/w/${workspaceId}/elements`);
+    return response;
+  }
+
+  /**
+   * Create a new element
+   * @param {Object} options
+   * @param {string} options.documentId Document ID
+   * @param {string} options.workspaceId Workspace ID
+   * @param {string} options.name Element name
+   * @param {string} options.elementType Element type (e.g., 'PARTSTUDIO')
+   * @returns {Promise<Object>} Created element
+   */
+  async createElement({ documentId, workspaceId, name, elementType }) {
+    console.log(`Creating element: ${name}, type: ${elementType}`);
+    
+    // For part studios, use the partstudio-specific endpoint
+    if (elementType === 'PARTSTUDIO') {
+      try {
+        const response = await this._api.post(
+          `partstudios/d/${documentId}/w/${workspaceId}`,
+          { name }
+        );
+        
+        console.log('Element creation response:', response);
+        return response;
+      } catch (error) {
+        console.error('Error creating part studio:', error);
+        throw error;
+      }
+    } else {
+      // For other element types (assemblies, drawings, etc.)
+      throw new Error(`Creation of element type ${elementType} not yet implemented`);
+    }
+  }
+
+  /**
+   * Create a feature
+   * @param {Object} options
+   * @param {string} options.documentId Document ID
+   * @param {string} options.workspaceId Workspace ID
+   * @param {string} options.elementId Element ID
+   * @param {Object} options.feature Feature definition
+   * @returns {Promise<Object>} Created feature
+   */
+  async createFeature({ documentId, workspaceId, elementId, feature }) {
+    console.log('Creating feature:', feature);
+    
+    const response = await this._api.post(
+      `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`,
+      { feature }
+    );
+    
+    return response;
+  }
+
+  /**
+   * Add an entity to a sketch
+   * @param {Object} options
+   * @param {string} options.documentId Document ID
+   * @param {string} options.workspaceId Workspace ID
+   * @param {string} options.elementId Element ID
+   * @param {string} options.sketchId Sketch ID
+   * @param {Object} options.entity Entity definition
+   * @returns {Promise<Object>} Created entity
+   */
+  async addSketchEntity({ documentId, workspaceId, elementId, sketchId, entity }) {
+    const response = await this._api.post(
+      `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}/entities`,
+      entity
+    );
+    return response;
+  }
+
+  /**
+   * Close a sketch
+   * @param {Object} options
+   * @param {string} options.documentId Document ID
+   * @param {string} options.workspaceId Workspace ID
+   * @param {string} options.elementId Element ID
+   * @param {string} options.sketchId Sketch ID
+   * @returns {Promise<Object>} Response
+   */
+  async closeSketch({ documentId, workspaceId, elementId, sketchId }) {
+    const response = await this._api.post(
+      `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}`,
+      { action: 'close' }
+    );
+    return response;
   }
 }
 

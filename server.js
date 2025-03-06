@@ -4,6 +4,7 @@
  *
  * Express server that handles API requests and communicates with Onshape
  */
+require('dotenv').config();
 
 const express = require("express");
 const path = require("path");
@@ -12,6 +13,8 @@ const session = require("express-session");
 const passport = require("passport");
 const { Strategy: OAuth2Strategy } = require("passport-oauth2");
 const OnshapeClient = require("./src");
+const fs = require('fs');
+const https = require('https');
 
 // Configuration - would be loaded from environment variables in production
 const config = {
@@ -20,13 +23,13 @@ const config = {
     clientId: process.env.OAUTH_CLIENT_ID,
     clientSecret: process.env.OAUTH_CLIENT_SECRET,
     callbackUrl:
-      process.env.OAUTH_CALLBACK_URL || "https://localhost:3000/oauthRedirect",
+      process.env.OAUTH_CALLBACK_URL || "http://localhost:3000/oauthRedirect",
     authorizationUrl: `${process.env.OAUTH_URL}/oauth/authorize`,
     tokenUrl: `${process.env.OAUTH_URL}/oauth/token`,
     baseUrl: `${process.env.API_URL}/api/v6`,
   },
   session: {
-    secret: process.env.SESSION_SECRET === "true",
+    secret: process.env.SESSION_SECRET || "development_secret_do_not_use_in_production",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -61,8 +64,9 @@ passport.use(
       clientSecret: config.onshape.clientSecret,
       callbackURL: config.onshape.callbackUrl,
     },
-    (accessToken, refreshToken, profile, done) => {
-      // In a production app, you might look up the user in a database
+    function (accessToken, refreshToken, profile, done) {
+      console.log('OAuth tokens received:', !!accessToken, !!refreshToken);
+      // Store tokens with the user profile
       return done(null, {
         accessToken,
         refreshToken,
@@ -102,12 +106,22 @@ function createOnshapeClient(req) {
 // OAuth routes
 app.get("/oauth/login", passport.authenticate("oauth2"));
 
-app.get('/oauthRedirect', 
-  passport.authenticate('oauth2', { failureRedirect: '/' }),
-  (req, res) => {
-    res.redirect('/');
+app.get('/oauthRedirect', function(req, res, next) {
+  console.log('OAuth callback received, code present:', !!req.query.code);
+  console.log('Query parameters:', req.query);
+  next();
+}, passport.authenticate('oauth2', { failureRedirect: '/?error=auth_failed' }), function(req, res) {
+  console.log('OAuth successful, user:', !!req.user);
+  
+  // Make sure req.user contains the tokens
+  if (req.user && req.user.accessToken) {
+    // Pass tokens back to client
+    res.redirect(`/?token=${req.user.accessToken}&refresh=${req.user.refreshToken || ''}`);
+  } else {
+    console.error('Missing tokens in user object:', req.user);
+    res.redirect('/?error=missing_tokens');
   }
-);
+});
 
 app.get("/oauth/logout", (req, res) => {
   req.logout(() => {
@@ -115,20 +129,21 @@ app.get("/oauth/logout", (req, res) => {
   });
 });
 
-// API routes
-app.get("/api/auth/status", (req, res) => {
-  res.json({ authenticated: req.isAuthenticated() });
-});
-
-app.get("/api/documents", isAuthenticated, async (req, res) => {
+// Document listing API
+app.get('/api/documents', isAuthenticated, async (req, res) => {
   try {
     const client = createOnshapeClient(req);
     const documents = await client.listDocuments();
     res.json(documents);
   } catch (error) {
-    console.error("Error fetching documents:", error);
+    console.error('API error:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// API routes
+app.get("/api/auth/status", (req, res) => {
+  res.json({ authenticated: req.isAuthenticated() });
 });
 
 app.post('/api/webhooks', (req, res) => {
@@ -160,16 +175,16 @@ app.post("/api/examples/cylinder", isAuthenticated, async (req, res) => {
     const client = createOnshapeClient(req);
 
     // Get or create document
-    let document;
+    let onshapeDocument;  // Changed from 'document' to 'onshapeDocument'
     if (documentId) {
-      document = await client.getDocument({ documentId });
+      onshapeDocument = await client.getDocument({ documentId });
     } else {
-      document = await client.createDocument("Cylinder Example");
+      onshapeDocument = await client.createDocument("Cylinder Example");
     }
 
     // Get part studio
     const partStudio = await client.getPartStudio({
-      document,
+      document: onshapeDocument,  // Update this parameter name too
       wipe: true,
     });
 
@@ -193,8 +208,8 @@ app.post("/api/examples/cylinder", isAuthenticated, async (req, res) => {
 
     res.json({
       success: true,
-      document,
-      link: `https://cad.onshape.com/documents/${document.id}`,
+      document: onshapeDocument,  // Update this property too
+      link: `https://cad.onshape.com/documents/${onshapeDocument.id}`,
     });
   } catch (error) {
     console.error("Error creating cylinder:", error);
@@ -209,16 +224,16 @@ app.post("/api/examples/lamp", isAuthenticated, async (req, res) => {
     const client = createOnshapeClient(req);
 
     // Get or create document
-    let document;
+    let onshapeDocument;
     if (documentId) {
-      document = await client.getDocument({ documentId });
+      onshapeDocument = await client.getDocument({ documentId });
     } else {
-      document = await client.createDocument("Lamp Example");
+      onshapeDocument = await client.createDocument("Lamp Example");
     }
 
     // Get part studio
     const partStudio = await client.getPartStudio({
-      document,
+      document: onshapeDocument,
       wipe: true,
     });
 
@@ -227,8 +242,8 @@ app.post("/api/examples/lamp", isAuthenticated, async (req, res) => {
 
     res.json({
       success: true,
-      document,
-      link: `https://cad.onshape.com/documents/${document.id}`,
+      document: onshapeDocument,
+      link: `https://cad.onshape.com/documents/${onshapeDocument.id}`,
     });
   } catch (error) {
     console.error("Error creating lamp:", error);
@@ -247,16 +262,16 @@ app.post("/api/convert-svg", isAuthenticated, async (req, res) => {
     const client = createOnshapeClient(req);
 
     // Get or create document
-    let document;
+    let onshapeDocument;  // Changed from 'document' to 'onshapeDocument'
     if (documentId) {
-      document = await client.getDocument({ documentId });
+      onshapeDocument = await client.getDocument({ documentId });
     } else {
-      document = await client.createDocument("SVG Conversion");
+      onshapeDocument = await client.createDocument("SVG Conversion");
     }
 
     // Get part studio
     const partStudio = await client.getPartStudio({
-      document,
+      document: onshapeDocument,  // Update parameter name
       wipe: true,
     });
 
@@ -265,8 +280,8 @@ app.post("/api/convert-svg", isAuthenticated, async (req, res) => {
 
     res.json({
       success: true,
-      document,
-      link: `https://cad.onshape.com/documents/${document.id}`,
+      document: onshapeDocument,  // Update property name
+      link: `https://cad.onshape.com/documents/${onshapeDocument.id}`,
     });
   } catch (error) {
     console.error("Error converting SVG:", error);
@@ -274,7 +289,118 @@ app.post("/api/convert-svg", isAuthenticated, async (req, res) => {
   }
 });
 
-// Start server
+// Add these routes before your app.listen() call
+
+// Get document workspaces
+app.get('/api/documents/:documentId/workspaces', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    const documentId = req.params.documentId;
+    
+    const workspaces = await client.getWorkspaces({ documentId });
+    res.json(workspaces);
+  } catch (error) {
+    console.error('Error fetching workspaces:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get document elements
+app.get('/api/documents/:documentId/elements', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    const documentId = req.params.documentId;
+    
+    const elements = await client.getElements({ documentId });
+    res.json(elements);
+  } catch (error) {
+    console.error('Error fetching elements:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create element
+app.post('/api/documents/:documentId/w/:workspaceId/elements', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    const { documentId, workspaceId } = req.params;
+    const { name, elementType } = req.body;
+    
+    const element = await client.createElement({ documentId, workspaceId, name, elementType });
+    res.json(element);
+  } catch (error) {
+    console.error('Error creating element:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Fix the feature creation route in server.js - update to match the client endpoint format
+
+// Find this route:
+app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/features', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    const { documentId, workspaceId, elementId } = req.params;
+    const feature = req.body; // This needs to be the feature object directly
+    
+    const result = await client.createFeature({ documentId, workspaceId, elementId, feature });
+    res.json(result);
+  } catch (error) {
+    console.error('Error creating feature:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add entities to sketch
+app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/sketches/:sketchId/entities', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    const { documentId, workspaceId, elementId, sketchId } = req.params;
+    
+    const entity = await client.addSketchEntity({
+      documentId, 
+      workspaceId, 
+      elementId, 
+      sketchId,
+      entity: req.body
+    });
+    res.json(entity);
+  } catch (error) {
+    console.error('Error adding sketch entity:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Close sketch
+app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/sketches/:sketchId', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    const { documentId, workspaceId, elementId, sketchId } = req.params;
+    const { action } = req.body;
+    
+    if (action === 'close') {
+      const result = await client.closeSketch({
+        documentId, 
+        workspaceId, 
+        elementId, 
+        sketchId
+      });
+      res.json(result);
+    } else {
+      res.status(400).json({ error: 'Unsupported action' });
+    }
+  } catch (error) {
+    console.error('Error closing sketch:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/* // Start server
+const httpsOptions = {
+  key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'localhost.pem'))
+}; */
+
 app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port}`);
+  console.log(`HTTP Server running on port ${config.port}`);
 });

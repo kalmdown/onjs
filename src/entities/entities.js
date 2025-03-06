@@ -1,4 +1,4 @@
-// src\src\entities\entities.js
+// src\entities\entities.js
 /**
  * Interface to Onshape Parts
  */
@@ -89,9 +89,12 @@ class Part {
     return await this._getEntitiesByType('EDGE');
   }
   
-  /**
-   * Get all face entities owned by this part
-   * 
-   * @returns {Promise<Array<string>>} Array of face entity IDs
-   */
-  async getFaceIds() {
+    /**
+     * Get all face entities owned by this part
+     * 
+     * @returns {Promise<Array<string>>} Array of face entity IDs
+     */
+    async getFaceIds() {
+      return await this._getEntitiesByType('FACE');
+    }
+  }
