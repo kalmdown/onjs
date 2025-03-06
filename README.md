@@ -1,4 +1,4 @@
-# OnPy
+# OnJS
 
 [![CI Tests](https://github.com/kyle-tennison/onpy/actions/workflows/validate.yml/badge.svg)](https://github.com/kyle-tennison/onpy/actions/workflows/validate.yml)
 [![MIT License](https://img.shields.io/github/license/kyle-tennison/onpy?color=yellow)](https://opensource.org/license/mit)
@@ -7,6 +7,8 @@
 
 ## Overview
 
+**OnJS is a javascript translation of OnPy. This READ.me will be updated as soon as I have a pass at it working.**
+---
 **OnPy is an unofficial Python API for building 3D models in [Onshape](https://onshape.com).**
 
 With OnPy, you can:
