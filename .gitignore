@@ -2,3 +2,15 @@
 __pycache__/
 *.DS_Store
 *-tmp.py
+.env
+node_modules/
+.vscode/
+.vscode/extensions/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/settings.json
+.vscode/tasks

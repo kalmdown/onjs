@@ -1,110 +1,186 @@
-// src\api\schema.js
+// src/api/schema.js
 /**
- * RestApi interface to the Onshape server.
- * 
- * Handles HTTP requests to Onshape's API with proper authentication and formatting.
+ * Schema definitions for Onshape API requests
  */
 
-const axios = require('axios');
-const { OnshapeApiError } = require('../utils/errors');
-
-class RestApi {
-  /**
-   * @param {Object} options Configuration options
-   * @param {Function} options.getAuthHeaders Function that returns authentication headers
-   * @param {string} [options.baseUrl='https://cad.onshape.com/api/v6'] Base URL for the API
-   */
-  constructor({ getAuthHeaders, baseUrl = 'https://cad.onshape.com/api/v6' }) {
-    this.baseUrl = baseUrl;
-    this.getAuthHeaders = getAuthHeaders;
-  }
-
-  /**
-   * Make an HTTP request to the Onshape API
-   * 
-   * @param {string} method HTTP method (GET, POST, etc.)
-   * @param {string} endpoint API endpoint (e.g., '/documents')
-   * @param {Object|null} [payload=null] Request payload for POST/PUT requests
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
-   * @private
-   */
-  async _request(method, endpoint, payload = null, queryParams = {}) {
-    if (!endpoint.startsWith('/')) {
-      throw new Error(`Endpoint '${endpoint}' missing '/' prefix`);
-    }
-
-    const url = this.baseUrl + endpoint;
-    const headers = await this.getAuthHeaders();
-    const params = new URLSearchParams();
-    
-    // Add query parameters
-    Object.entries(queryParams).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        params.append(key, value);
-      }
-    });
-
-    console.log(`${method} ${endpoint}`);
-    
-    try {
-      const response = await axios({
-        method,
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...headers
-        },
-        data: payload,
-        params: params.toString() ? params : undefined
-      });
-      
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        throw new OnshapeApiError(
-          `Error ${error.response.status}: ${error.response.statusText}`,
-          error.response
-        );
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Make a GET request to the Onshape API
-   * 
-   * @param {string} endpoint API endpoint
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
-   */
-  async get(endpoint, queryParams = {}) {
-    return this._request('GET', endpoint, null, queryParams);
-  }
-
-  /**
-   * Make a POST request to the Onshape API
-   * 
-   * @param {string} endpoint API endpoint
-   * @param {Object} payload Request payload
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
-   */
-  async post(endpoint, payload, queryParams = {}) {
-    return this._request('POST', endpoint, payload, queryParams);
-  }
-
-  /**
-   * Make a DELETE request to the Onshape API
-   * 
-   * @param {string} endpoint API endpoint
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
-   */
-  async delete(endpoint, queryParams = {}) {
-    return this._request('DELETE', endpoint, null, queryParams);
-  }
+/**
+ * Generate a random ID
+ * 
+ * @returns {string} Random ID
+ */
+function generateId() {
+  return 'id_' + Math.random().toString(36).substring(2, 15);
 }
 
-module.exports = RestApi;
+/**
+ * Create a workspace version object
+ * 
+ * @param {string} workspaceId Workspace ID
+ * @returns {Object} Version object
+ */
+function createWorkspaceVersion(workspaceId) {
+  return {
+    wvm: 'w',
+    wvmid: workspaceId
+  };
+}
+
+/**
+ * Create a sketch feature definition
+ * 
+ * @param {Object} options Sketch options
+ * @param {string} options.name Sketch name
+ * @param {string} [options.featureId=null] Optional feature ID for updates
+ * @param {Array} [options.entities=[]] Sketch entities
+ * @returns {Object} Sketch feature definition
+ */
+function createSketch({ name, featureId = null, entities = [] }) {
+  return {
+    btType: "BTMFeature-134",
+    featureType: "sketch",
+    featureId: featureId || generateId(),
+    name: name,
+    suppressed: false,
+    parameters: [
+      {
+        btType: "BTMParameterFeatureList-1469",
+        parameterId: "entities",
+        features: entities
+      }
+    ]
+  };
+}
+
+/**
+ * Create a circle entity definition
+ * 
+ * @param {Object} options Circle options
+ * @param {number} options.radius Circle radius
+ * @param {number} options.xCenter X coordinate of center
+ * @param {number} options.yCenter Y coordinate of center
+ * @param {string} [options.entityId=null] Optional entity ID
+ * @returns {Object} Circle entity definition
+ */
+function createCircle({ radius, xCenter, yCenter, entityId = null }) {
+  return {
+    btType: "BTMSketchCurveCircle-144",
+    radius: radius,
+    xCenter: xCenter,
+    yCenter: yCenter,
+    xDirCenter: 0,
+    yDirCenter: 0,
+    xAxis: 1,
+    yAxis: 0,
+    clockwise: false,
+    entityId: entityId || generateId()
+  };
+}
+
+/**
+ * Create a line entity definition
+ * 
+ * @param {Object} options Line options
+ * @param {number} options.x1 X coordinate of start point
+ * @param {number} options.y1 Y coordinate of start point
+ * @param {number} options.x2 X coordinate of end point
+ * @param {number} options.y2 Y coordinate of end point
+ * @param {string} [options.entityId=null] Optional entity ID
+ * @returns {Object} Line entity definition
+ */
+function createLine({ x1, y1, x2, y2, entityId = null }) {
+  return {
+    btType: "BTMSketchCurveSegment-155",
+    startPointId: generateId(),
+    endPointId: generateId(),
+    startParam: 0,
+    endParam: 1,
+    parameters: [
+      {
+        btType: "BTMParameterPoint-25",
+        parameterId: "start",
+        expression: `point(${x1}, ${y1}, 0)`
+      },
+      {
+        btType: "BTMParameterPoint-25",
+        parameterId: "end",
+        expression: `point(${x2}, ${y2}, 0)`
+      }
+    ],
+    centerId: generateId(),
+    entityId: entityId || generateId()
+  };
+}
+
+/**
+ * Create an extrude feature definition
+ * 
+ * @param {Object} options Extrude options
+ * @param {string} options.name Extrude name
+ * @param {Array<string>} options.facesIds IDs of faces to extrude
+ * @param {number} options.distance Extrusion distance
+ * @param {string} [options.operationType="NEW"] Operation type (NEW, ADD, REMOVE, etc.)
+ * @param {Array<string>} [options.booleanScope=[]] IDs of bodies for boolean operations
+ * @returns {Object} Extrude feature definition
+ */
+function createExtrude({ name, facesIds, distance, operationType = "NEW", booleanScope = [] }) {
+  const feature = {
+    btType: "BTMFeature-134",
+    featureType: "extrude",
+    name: name,
+    suppressed: false,
+    parameters: [
+      {
+        btType: "BTMParameterQueryList-148",
+        queries: facesIds.map(id => ({
+          btType: "BTMIndividualQuery-138",
+          deterministicIds: [id]
+        })),
+        parameterId: "entities"
+      },
+      {
+        btType: "BTMParameterEnum-145",
+        namespace: "",
+        enumName: "ExtrudeOperationType",
+        value: operationType,
+        parameterId: "operationType"
+      },
+      {
+        btType: "BTMParameterQuantity-147",
+        isInteger: false,
+        value: distance,
+        expression: `${distance} in`,
+        parameterId: "depth"
+      },
+      {
+        btType: "BTMParameterEnum-145",
+        namespace: "",
+        enumName: "ExtrudeEndType",
+        value: "Blind",
+        parameterId: "endType"
+      }
+    ]
+  };
+  
+  // Add boolean scope if provided
+  if (booleanScope.length > 0 && operationType !== "NEW") {
+    feature.parameters.push({
+      btType: "BTMParameterQueryList-148",
+      queries: booleanScope.map(id => ({
+        btType: "BTMIndividualQuery-138",
+        deterministicIds: [id]
+      })),
+      parameterId: "booleanScope"
+    });
+  }
+  
+  return feature;
+}
+
+module.exports = {
+  generateId,
+  createWorkspaceVersion,
+  createSketch,
+  createCircle,
+  createLine,
+  createExtrude
+};
