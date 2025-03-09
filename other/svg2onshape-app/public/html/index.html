@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVG to Onshape</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/static/css/index.css" />
+    <link rel="stylesheet" href="/css/plane-selector.css" />
+
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Load Oswald for title and Roboto for content -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@400&family=Roboto:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="top-bar">
+        <h1 class="title">SVG to Onshape Converter</h1>
+      </div>
+
+      <div class="content">
+        <!-- File input section -->
+
+        <!-- Hidden file input element -->
+        <input
+          type="file"
+          id="fileInput"
+          accept=".svg"
+          class="hidden"
+          aria-label="SVG file input"
+        />
+
+        <!-- Visible upload button styled as desired -->
+        <button id="uploadButton" class="button primary" type="button">
+          <i class="icon-upload"></i> Select SVG File
+        </button>
+
+        <!-- Container for selected file info -->
+        <div id="selectedFileInfo" class="selected-file-info hidden"></div>
+
+        <!-- Upload status indicator -->
+        <div class="upload-status-container">
+          <span id="uploadStatus"></span>
+          <span id="uploadFileName"></span>
+          <div id="uploadSpinner" class="spinner hidden"></div>
+
+          <!-- Preview container for showing the result -->
+          <div id="previewContainer" class="preview-container hidden">
+            <h4>Sketch Preview</h4>
+            <img id="sketchPreview" alt="Sketch preview" />
+          </div>
+
+          <!-- SVG preview panel -->
+          <div id="svgPreview" class="svg-preview-container"></div>
+        </div>
+
+        <div class="plane-selection-container">
+          <!-- PlaneSelector will render its UI here -->
+          <div id="plane-selector" class="plane-selector"></div>
+          <input type="hidden" id="planeId" name="planeId" />
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-buttons">
+          <button id="convertToSketch" class="button" disabled>
+            Convert to Sketch
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load dependencies in correct order -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Core utilities - ensure appConfig loads first, then debug -->
+    <script type="module" src="/js/appConfig.js"></script>
+    <script type="module" src="/js/utils/debug.js"></script>
+
+    <!-- Application core (module-based) -->
+    <script type="module">
+        import App from '/js/main.js';
+        // Other imports will be handled by main.js
+    </script>
+  </body>
+</html>

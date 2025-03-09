@@ -15,19 +15,23 @@ const { DefaultPlane, DefaultPlaneOrientation } = require('./features/planes');
  */
 class OnshapeClient {
   /**
-   * @param {Object} options Client options
-   * @param {Function} options.getAuthHeaders Function that returns authentication headers
-   * @param {string} [options.unitSystem='inch'] Unit system to use ('inch' or 'metric')
-   * @param {string} [options.baseUrl='https://cad.onshape.com/api/v6'] Base URL for the API
+   * @param {Object} config Client configuration
    */
-  constructor({ 
-    getAuthHeaders, 
-    unitSystem = UnitSystem.INCH, 
-    baseUrl = 'https://cad.onshape.com/api/v6' 
-  }) {
-    this.unitSystem = unitSystem;
-    this._api = new RestApi({ getAuthHeaders, baseUrl });
-    this._api.endpoints = new EndpointContainer(this._api);
+  constructor(config) {
+    this.config = config;
+    
+    // Initialize the REST API
+    this.api = new RestApi(config);
+    
+    // Initialize the endpoints container with the API
+    this.endpoints = new EndpointContainer(this.api);
+    
+    // For debugging
+    console.log('OnshapeClient initialized with:', {
+      hasApi: !!this.api,
+      hasEndpoints: !!this.endpoints,
+      apiMethods: this.api ? Object.keys(this.api).filter(k => typeof this.api[k] === 'function') : []
+    });
   }
 
   /**
@@ -36,7 +40,7 @@ class OnshapeClient {
    * @returns {Promise<Array<Object>>} List of documents
    */
   async listDocuments() {
-    const documents = await this._api.endpoints.documents();
+    const documents = await this.endpoints.documents();
     return documents.map(doc => ({
       id: doc.id,
       name: doc.name,
@@ -79,7 +83,7 @@ class OnshapeClient {
    * @returns {Promise<Object>} Created document
    */
   async createDocument(name, description) {
-    const document = await this._api.endpoints.documentCreate(name, description);
+    const document = await this.endpoints.documentCreate(name, description);
     return {
       id: document.id,
       name: document.name,
@@ -96,7 +100,7 @@ class OnshapeClient {
    * @returns {Promise<Object>} Created document
    */
   async createDocument(name) {
-    const result = await this._api.post('documents', { name });
+    const result = await this.api.post('documents', { name });
     return {
       id: result.id,
       name: result.name,
@@ -112,7 +116,7 @@ class OnshapeClient {
    * @returns {Promise<Object>} Document
    */
   async getDocument({ documentId }) {
-    const result = await this._api.get(`documents/d/${documentId}`);
+    const result = await this.api.get(`documents/d/${documentId}`);
     return {
       id: result.id,
       name: result.name,
@@ -127,7 +131,7 @@ class OnshapeClient {
    * @returns {Promise<void>}
    */
   async deleteDocument(documentId) {
-    await this._api.endpoints.documentDelete(documentId);
+    await this.endpoints.documentDelete(documentId);
   }
 
   /**
@@ -141,7 +145,7 @@ class OnshapeClient {
    * @returns {Promise<Object>} Part studio object
    */
   async getPartStudio({ document, elementId, name, wipe = false }) {
-    const elements = await this._api.endpoints.documentElements(
+    const elements = await this.endpoints.documentElements(
       document.id, 
       createWorkspaceVersion(document.defaultWorkspace.id)
     );
@@ -171,7 +175,7 @@ class OnshapeClient {
       document,
       id: partStudio.id,
       name: partStudio.name,
-      _api: this._api,
+      _api: this.api,
       _client: this,
       _features: [],
       
@@ -208,7 +212,7 @@ class OnshapeClient {
         // (This would require implementation)
         
         // Get all features
-        const features = await this._api.endpoints.listFeatures(
+        const features = await this.endpoints.listFeatures(
           document.id,
           createWorkspaceVersion(document.defaultWorkspace.id),
           this.id
@@ -217,7 +221,7 @@ class OnshapeClient {
         // Delete features in reverse order (newest first)
         for (const feature of [...features].reverse()) {
           if (feature.featureId) {
-            await this._api.endpoints.deleteFeature(
+            await this.endpoints.deleteFeature(
               document.id,
               document.defaultWorkspace.id,
               this.id,
@@ -236,7 +240,7 @@ class OnshapeClient {
        * @returns {Promise<Array<Object>>} List of parts
        */
       async listParts() {
-        const parts = await this._api.endpoints.listParts(
+        const parts = await this.endpoints.listParts(
           document.id,
           createWorkspaceVersion(document.defaultWorkspace.id),
           this.id
@@ -268,7 +272,7 @@ class OnshapeClient {
    */
   async getWorkspaces({ documentId }) {
     try {
-      const result = await this._api.get(`documents/d/${documentId}/workspaces`);
+      const result = await this.api.get(`documents/d/${documentId}/workspaces`);
       return result;
     } catch (error) {
       console.error('Error fetching workspaces:', error);
@@ -293,7 +297,7 @@ class OnshapeClient {
     const workspaceId = workspaces[0].id;
     
     // Now get elements with the correct URL format
-    const response = await this._api.get(`documents/d/${documentId}/w/${workspaceId}/elements`);
+    const response = await this.api.get(`documents/d/${documentId}/w/${workspaceId}/elements`);
     return response;
   }
 
@@ -312,7 +316,7 @@ class OnshapeClient {
     // For part studios, use the partstudio-specific endpoint
     if (elementType === 'PARTSTUDIO') {
       try {
-        const response = await this._api.post(
+        const response = await this.api.post(
           `partstudios/d/${documentId}/w/${workspaceId}`,
           { name }
         );
@@ -341,7 +345,7 @@ class OnshapeClient {
   async createFeature({ documentId, workspaceId, elementId, feature }) {
     console.log('Creating feature:', feature);
     
-    const response = await this._api.post(
+    const response = await this.api.post(
       `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`,
       { feature }
     );
@@ -360,7 +364,7 @@ class OnshapeClient {
    * @returns {Promise<Object>} Created entity
    */
   async addSketchEntity({ documentId, workspaceId, elementId, sketchId, entity }) {
-    const response = await this._api.post(
+    const response = await this.api.post(
       `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}/entities`,
       entity
     );
@@ -377,7 +381,7 @@ class OnshapeClient {
    * @returns {Promise<Object>} Response
    */
   async closeSketch({ documentId, workspaceId, elementId, sketchId }) {
-    const response = await this._api.post(
+    const response = await this.api.post(
       `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}`,
       { action: 'close' }
     );

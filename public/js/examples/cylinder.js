@@ -1,6 +1,6 @@
 import { apiCall } from '../api.js';
 import { getAuthToken } from '../auth.js';
-import { getSelectedDocument, getDocumentName } from '../ui.js';
+import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logSuccess, logError } from '../utils/logging.js';
 
 /**
@@ -35,43 +35,66 @@ export async function runExample1() {
     const defaultWorkspace = workspaces[0];
     
     // Step 3: Get or create a part studio element
-    const elements = await apiCall(`documents/${onshapeDocument.id}/elements`);
-    let partStudioId = elements.find(el => el.type === 'PARTSTUDIO')?.id;
+    let partStudioId;
+    const selectedPartStudio = getSelectedPartStudio();
     
-    if (!partStudioId) {
-      logInfo('Creating new part studio...');
-      const newElement = await apiCall(
-        `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
-        'POST', 
-        { name: 'Part Studio', elementType: 'PARTSTUDIO' }
-      );
-      partStudioId = newElement.id;
+    if (selectedPartStudio && selectedPartStudio.documentId === onshapeDocument.id) {
+      partStudioId = selectedPartStudio.id;
+      logInfo(`Using selected part studio: ${selectedPartStudio.name}`);
+    } else {
+      const elements = await apiCall(`documents/${onshapeDocument.id}/elements`);
+      partStudioId = elements.find(el => el.type === 'PARTSTUDIO')?.id;
+      
+      if (!partStudioId) {
+        logInfo('Creating new part studio...');
+        const newElement = await apiCall(
+          `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
+          'POST', 
+          { name: 'Part Studio', elementType: 'PARTSTUDIO' }
+        );
+        partStudioId = newElement.id;
+      }
     }
     
-    // Step 4: Create a sketch on the top plane
-    logInfo('Creating sketch on top plane...');
+    // Step 4: Determine which plane to use
+    let sketchPlane = 'TOP'; // Default
+    const selectedPlane = getSelectedPlane();
+    
+    if (selectedPlane) {
+      sketchPlane = selectedPlane.id;
+      logInfo(`Using selected sketch plane: ${selectedPlane.name}`);
+    } else {
+      logInfo('Using default TOP plane');
+    }
+    
+    // Step 5: Create a sketch on the selected plane
+    logInfo(`Creating sketch on ${sketchPlane} plane...`);
     const sketchFeature = {
-      type: 'BTMSketch149',
+      btType: 'BTMSketch-151',
+      featureType: 'newSketch',
       name: 'Base Circle',
-      featureType: 'sketch',
       parameters: [{
-        btType: 'BTMParameterEnum-145',
-        enumName: 'SketchPlane',
-        value: 'TOP',
+        btType: 'BTMParameterQueryList-148',
+        queries: [{
+          btType: 'BTMIndividualQuery-138',
+          deterministicIds: [sketchPlane]
+        }],
         parameterId: 'sketchPlane'
       }]
     };
     
+    logInfo(`Sketch feature payload: ${JSON.stringify(sketchFeature)}`);
+    
     const sketchFeatureResponse = await apiCall(
       `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`,
       'POST',
-      sketchFeature
+      { feature: sketchFeature }  // Wrap in the proper "feature" property
     );
     
     const sketchId = sketchFeatureResponse.feature.featureId;
     logInfo(`Created sketch with ID: ${sketchId}`);
     
-    // Step 5: Draw a circle in the sketch
+    // Step 6: Draw a circle in the sketch
     logInfo('Drawing circle with radius 0.5 inches at origin...');
     await apiCall(
       `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/sketches/${sketchId}/entities`,
@@ -84,7 +107,7 @@ export async function runExample1() {
       }
     );
     
-    // Step 6: Close the sketch
+    // Step 7: Close the sketch
     logInfo('Finalizing sketch...');
     await apiCall(
       `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/sketches/${sketchId}`,
@@ -92,53 +115,57 @@ export async function runExample1() {
       { action: 'close' }
     );
     
-    // Step 7: Extrude the sketch to create the cylinder
+    // Step 8: Extrude the sketch to create the cylinder
     logInfo('Extruding circle to create cylinder with height 1 inch...');
     const extrudeFeature = {
-      type: 'BTMFeature-134',
+      btType: 'BTMFeature-134',
       name: 'Cylinder Extrude',
       featureType: 'extrude',
       parameters: [
         {
           btType: 'BTMParameterQueryList-148',
           queries: [{
-            btType: 'BTMIndividualQuery-138',
-            featureId: sketchId,
-            entityId: '',
-            deterministicIds: []
+            btType: 'BTMIndividualSketchRegionQuery-140',
+            featureId: sketchId
           }],
           parameterId: 'entities'
         },
         {
           btType: 'BTMParameterEnum-145',
           namespace: '',
-          enumName: 'ExtrudeOperationType',
-          value: 'NEW',
-          parameterId: 'operationType'
-        },
-        {
-          btType: 'BTMParameterQuantity-147',
-          isInteger: false,
-          value: 1.0,
-          expression: '1 in',
-          parameterId: 'depth'
+          enumName: 'ExtendedToolBodyType',
+          value: 'SOLID',
+          parameterId: 'bodyType'
         },
         {
           btType: 'BTMParameterEnum-145',
           namespace: '',
-          enumName: 'ExtrudeEndType',
-          value: 'Blind',
-          parameterId: 'endType'
+          enumName: 'NewBodyOperationType',
+          value: 'NEW',
+          parameterId: 'operationType'
+        },
+        {
+          btType: 'BTMParameterEnum-145',
+          namespace: '',
+          enumName: 'BoundingType',
+          value: 'BLIND',
+          parameterId: 'endBound'
+        },
+        {
+          btType: 'BTMParameterQuantity-147',
+          isInteger: false,
+          expression: '1 in',
+          parameterId: 'depth'
         }
       ]
     };
     
-    logInfo(`POST /api/documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features with payload: ${JSON.stringify(extrudeFeature)}`); // Log the POST statement
+    logInfo(`Extrude feature payload: ${JSON.stringify(extrudeFeature)}`);
     
     await apiCall(
       `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`,
       'POST',
-      extrudeFeature
+      { feature: extrudeFeature }  // Wrap in the proper "feature" property
     );
     
     logSuccess('Successfully created cylinder in Onshape!');

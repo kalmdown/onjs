@@ -49,6 +49,46 @@
     .log-error {
       color: #dc3545;
     }
+    .selector-container {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .selector-button {
+      width: 100%;
+      text-align: left;
+      background-color: #fff;
+      border: 1px solid #ced4da;
+      border-radius: 0.25rem;
+      padding: 0.375rem 0.75rem;
+      cursor: pointer;
+    }
+    .selector-dropdown {
+      display: none;
+      position: absolute;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      background-color: #fff;
+      border: 1px solid #ced4da;
+      border-radius: 0.25rem;
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+    }
+    .selector-dropdown.show {
+      display: block;
+    }
+    .selector-item {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+    }
+    .selector-item:hover {
+      background-color: #f8f9fa;
+    }
+    .selector-empty {
+      padding: 0.5rem 0.75rem;
+      color: #6c757d;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -90,17 +130,30 @@
       <div class="card-body">
         <div class="row mb-3">
           <div class="col-md-6">
+            <label for="documentSelect" class="form-label">Document</label>
             <select id="documentSelect" class="form-select">
               <option value="">Create a new document</option>
             </select>
           </div>
           <div class="col-md-6">
+            <label for="documentName" class="form-label">Document Name</label>
             <div class="input-group">
               <input type="text" id="documentName" class="form-control" placeholder="New document name">
               <button id="btnRefreshDocuments" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-clockwise"></i> Refresh
               </button>
             </div>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="partStudioContainer" class="form-label">Part Studio</label>
+            <div id="partStudioContainer"></div>
+          </div>
+          <div class="col-md-6">
+            <label for="planeContainer" class="form-label">Sketch Plane</label>
+            <div id="planeContainer"></div>
           </div>
         </div>
       </div>

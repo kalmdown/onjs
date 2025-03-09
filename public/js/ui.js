@@ -1,10 +1,12 @@
 import { fetchDocuments, getDocumentById } from './api.js';
-import { logInfo } from './utils/logging.js';
+import { logInfo, logError } from './utils/logging.js';
 import { runExample1 } from './examples/cylinder.js';
 import { runExample2 } from './examples/lamp.js';
 import { convertSvg } from './svg-converter.js';
 import { authenticate } from './auth.js';
 import { exportApiCalls } from './api.js'; // Import the exportApiCalls function
+import partStudioSelector from './partStudioSelector.js';
+import planeSelector from './planeSelector.js';
 
 // Application state
 let selectedDocument = null;
@@ -41,6 +43,9 @@ export function registerEventHandlers() {
   btnConvertSvg.addEventListener('click', convertSvg);
   svgFile.addEventListener('change', onSvgFileChange);
   btnExportApiCalls.addEventListener('click', exportApiCalls); // Add event listener for btnExportApiCalls
+  
+  // Register studio and plane change handlers
+  partStudioSelector.onSelect(onPartStudioSelect);
 }
 
 /**
@@ -54,13 +59,31 @@ function onDocumentSelectChange() {
     documentName.value = '';
     documentName.disabled = true;
     logInfo(`Selected document: ${selectedDocument.name}`);
+    
+    // Load part studios for this document
+    partStudioSelector.loadPartStudios(selectedId);
   } else {
     selectedDocument = null;
     documentName.disabled = false;
+    // Reset selectors
+    partStudioSelector.reset();
+    planeSelector.reset();
     logInfo('Creating a new document');
   }
   
   updateConvertButton();
+}
+
+/**
+ * Handle part studio selection change
+ */
+function onPartStudioSelect(partStudio) {
+  if (partStudio && partStudio.id) {
+    logInfo(`Selected part studio: ${partStudio.name}`);
+    
+    // Load planes for this part studio
+    planeSelector.loadPlanes(partStudio.documentId, partStudio.id);
+  }
 }
 
 /**
@@ -112,6 +135,20 @@ export function getDocumentName() {
  */
 export function getCurrentSvg() {
   return currentSvg;
+}
+
+/**
+ * Get the selected part studio
+ */
+export function getSelectedPartStudio() {
+  return partStudioSelector.getSelectedItem();
+}
+
+/**
+ * Get the selected sketch plane
+ */
+export function getSelectedPlane() {
+  return planeSelector.getSelectedItem();
 }
 
 // Import from other modules

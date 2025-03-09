@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cookie Debug Info</title>
+</head>
+<body>
+  <h1>Third-Party Cookies Debugging Information</h1>
+  <p id="debug-cookies">Loading cookie info...</p>
+  <p id="debug-info">Loading browser info...</p>
+  <hr>
+  <p>
+    If the above debug information shows that no cookies are present, please verify your browser settings and check for any extensions blocking cookies.
+  </p>
+  <p>
+    For help with enabling third-party cookies, see:
+    <a href="https://www.whatismybrowser.com/detect/are-third-party-cookies-enabled/" target="_blank">Are third-party cookies enabled?</a>
+  </p>
+  <script>
+    document.getElementById('debug-cookies').innerText = 'document.cookie: ' + document.cookie;
+    document.getElementById('debug-info').innerText = 
+      'User Agent: ' + navigator.userAgent + '\n' +
+      'Protocol: ' + window.location.protocol;
+  </script>
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+<body>
+  <div>
+    <strong> You have 3rd party cookies disabled. In order to use the SVG2Onshape, please enable 3rd party cookies. </strong>
+  </div>
+</body>
+</html> -->

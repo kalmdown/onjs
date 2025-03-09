@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cookie Test</title>
+</head>
+<body>
+    <h1>Cookie Test Page</h1>
+    <div id="cookie-status">Checking cookies...</div>
+    <script>
+        async function checkCookies() {
+            try {
+                const response = await fetch('/check-cookies', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                document.getElementById('cookie-status').innerHTML = 
+                    `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('cookie-status').innerHTML = 
+                    `Error: ${error.message}`;
+            }
+        }
+        checkCookies();
+    </script>
+</body>
+</html>

@@ -100,13 +100,24 @@ function isAuthenticated(req, res, next) {
 
 // Create Onshape client for a user
 function createOnshapeClient(req) {
-  return new OnshapeClient({
+  if (!req.user || !req.user.accessToken) {
+    throw new Error('User not authenticated or missing access token');
+  }
+  
+  const client = new OnshapeClient({
     getAuthHeaders: () => ({
       Authorization: `Bearer ${req.user.accessToken}`,
     }),
     unitSystem: "inch",
     baseUrl: config.onshape.baseUrl,
   });
+  
+  // Add debugging here
+  console.log('OnshapeClient created with:');
+  console.log('- API defined:', !!client.api);
+  console.log('- Endpoints defined:', !!client.endpoints);
+  
+  return client;
 }
 
 // OAuth routes
@@ -321,6 +332,100 @@ app.get('/api/documents/:documentId/elements', isAuthenticated, async (req, res)
     res.json(elements);
   } catch (error) {
     console.error('Error fetching elements:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get document elements with workspace
+app.get('/api/documents/:documentId/w/:workspaceId/elements', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    const { documentId, workspaceId } = req.params;
+    
+    // For now, reuse the existing elements endpoint
+    const elements = await client.getElements({ documentId });
+    res.json({ elements: elements });
+  } catch (error) {
+    console.error('Error fetching elements with workspace:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint for planes in a part studio
+app.get('/api/documents/:documentId/w/:workspaceId/e/:elementId/planes', isAuthenticated, async (req, res) => {
+  try {
+    const client = createOnshapeClient(req);
+    
+    // Debug the client structure
+    console.log('Client has api:', !!client.api);
+    console.log('Client has endpoints:', !!client.endpoints);
+    
+    const { documentId, workspaceId, elementId } = req.params;
+    const includeCustomPlanes = req.query.includeCustomPlanes === 'true';
+    
+    console.log(`Planes request: doc=${documentId}, workspace=${workspaceId}, element=${elementId}, includeCustom=${includeCustomPlanes}`);
+    
+    // Always include default planes
+    const planes = [
+      { id: `${elementId}_TOP`, name: 'Top Plane', transientId: 'TOP', type: 'default' },
+      { id: `${elementId}_FRONT`, name: 'Front Plane', transientId: 'FRONT', type: 'default' },
+      { id: `${elementId}_RIGHT`, name: 'Right Plane', transientId: 'RIGHT', type: 'default' }
+    ];
+    
+    // Add actual custom planes from Onshape
+    if (includeCustomPlanes) {
+      try {
+        console.log('Fetching actual custom planes from Onshape...');
+        
+        // Use the correct API access
+        const url = `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`;
+        console.log(`Making features API call: ${url}`);
+        
+        // Use client.api directly (it's defined in the constructor)
+        const featuresResponse = await client.api.get(url);
+        console.log(`Got features response with ${featuresResponse?.features?.length || 0} features`);
+        
+        // Filter for custom planes and transforms
+        if (featuresResponse && featuresResponse.features) {
+          const customPlaneFeatures = featuresResponse.features.filter(feature => {
+            return (
+              // Look for custom datum planes
+              (feature.featureType === "cPlane" || feature.featureType === "datumPlane") ||
+              // Also look for named plane features
+              (feature.message && 
+               feature.message.name && 
+               /plane|datum/i.test(feature.message.name))
+            );
+          });
+          
+          console.log(`Found ${customPlaneFeatures.length} potential custom plane features`);
+          
+          // Convert features to plane objects
+          customPlaneFeatures.forEach(feature => {
+            const featureId = feature.featureId || feature.id;
+            const name = feature.message?.name || 
+                         feature.name || 
+                         `Custom Plane ${featureId.substring(0, 6)}`;
+            
+            planes.push({
+              id: `${elementId}_${featureId}`,
+              name: name,
+              transientId: featureId,
+              type: 'custom',
+              featureType: feature.featureType || 'unknown'
+            });
+          });
+        }
+      } catch (planeError) {
+        console.error('Error fetching custom planes:', planeError);
+      }
+    }
+    
+    // Return the planes
+    res.json({ planes });
+    
+  } catch (error) {
+    console.error('Error fetching planes:', error);
     res.status(500).json({ error: error.message });
   }
 });
