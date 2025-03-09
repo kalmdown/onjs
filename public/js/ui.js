@@ -4,6 +4,7 @@ import { runExample1 } from './examples/cylinder.js';
 import { runExample2 } from './examples/lamp.js';
 import { convertSvg } from './svg-converter.js';
 import { authenticate } from './auth.js';
+import { exportApiCalls } from './api.js'; // Import the exportApiCalls function
 
 // Application state
 let selectedDocument = null;
@@ -12,7 +13,7 @@ let currentSvg = null;
 // DOM elements
 let btnAuthenticate, authStatus, svgFile, svgPreview, 
     documentSelect, documentName, btnRefreshDocuments,
-    btnExample1, btnExample2, btnConvertSvg, logOutput;
+    btnExample1, btnExample2, btnConvertSvg, logOutput, btnExportApiCalls;
 
 export function setupUI() {
   // Initialize DOM elements
@@ -27,6 +28,7 @@ export function setupUI() {
   btnExample2 = document.getElementById('btnExample2');
   btnConvertSvg = document.getElementById('btnConvertSvg');
   logOutput = document.getElementById('logOutput');
+  btnExportApiCalls = document.getElementById('btnExportApiCalls'); // Initialize btnExportApiCalls
 }
 
 export function registerEventHandlers() {
@@ -38,6 +40,7 @@ export function registerEventHandlers() {
   btnExample2.addEventListener('click', runExample2);
   btnConvertSvg.addEventListener('click', convertSvg);
   svgFile.addEventListener('change', onSvgFileChange);
+  btnExportApiCalls.addEventListener('click', exportApiCalls); // Add event listener for btnExportApiCalls
 }
 
 /**
