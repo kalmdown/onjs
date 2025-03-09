@@ -1,4 +1,4 @@
-// src/api/schema.js
+// src\api\schema.js
 /**
  * Schema definitions for Onshape API requests
  */
@@ -46,6 +46,11 @@ function createSketch({ name, featureId = null, entities = [] }) {
         btType: "BTMParameterFeatureList-1469",
         parameterId: "entities",
         features: entities
+      },
+      {
+        btType: "BTMParameterBoolean-144",
+        value: true,
+        parameterId: "disableImprinting"
       }
     ]
   };

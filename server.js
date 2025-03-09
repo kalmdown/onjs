@@ -47,9 +47,15 @@ const config = {
 // Initialize Express app
 const app = express();
 
+// Add this just after initializing the app
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 // Configure middleware
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(session(config.session));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -393,6 +399,11 @@ app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/sketches
     console.error('Error closing sketch:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Add this to make sure '/' returns index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 /* // Start server

@@ -1,8 +1,9 @@
 import { authToken } from './auth.js';
-import { logError, logSuccess } from './utils/logging.js';
+import { logError, logSuccess, logInfo } from './utils/logging.js';
 
 // State
 let documents = [];
+let apiCalls = []; // Array to store API calls
 
 /**
  * Make an API call to the backend server
@@ -21,10 +22,19 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
   
   if (body && (method === 'POST' || method === 'PUT')) {
     options.body = JSON.stringify(body);
+    logInfo(`Making ${method} request to /api/${endpoint} with payload: ${JSON.stringify(body)}`); // Log the payload
   }
   
-  console.log(`Making ${method} request to /api/${endpoint}`);
+  logInfo(`Making ${method} request to /api/${endpoint}`); // Log the endpoint
   
+  // Store the API call
+  apiCalls.push({
+    url: `/api/${endpoint}`,
+    method: method,
+    headers: headers,
+    body: body
+  });
+
   try {
     const response = await fetch(`/api/${endpoint}`, options);
     
@@ -107,3 +117,47 @@ export async function getWorkspaces(documentId) {
 }
 
 // Add other API-related functions from app.js
+
+/**
+ * Export API calls to a Postman collection
+ */
+export function exportApiCalls() {
+  const postmanCollection = {
+    info: {
+      name: 'Onshape API Calls',
+      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+    },
+    item: apiCalls.map(call => ({
+      name: call.url,
+      request: {
+        url: `{{baseUrl}}${call.url}`,
+        method: call.method,
+        header: Object.keys(call.headers).map(key => ({
+          key: key,
+          value: call.headers[key]
+        })),
+        body: call.body ? {
+          mode: 'raw',
+          raw: JSON.stringify(call.body, null, 2),
+          options: {
+            raw: {
+              language: 'json'
+            }
+          }
+        } : null
+      },
+      response: []
+    }))
+  };
+
+  const json = JSON.stringify(postmanCollection, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'onshape-api-calls.postman_collection.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

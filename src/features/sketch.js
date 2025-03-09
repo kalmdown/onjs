@@ -27,9 +27,21 @@ class Sketch {
     // Access APIs via part studio
     this._api = partStudio._api;
     this._client = partStudio._client;
-    
-    // Create the sketch in Onshape
-    this._uploadFeature();
+  }
+
+  /**
+   * Create a new sketch with proper async initialization
+   * 
+   * @param {Object} options Sketch properties
+   * @param {Object} options.partStudio The part studio that owns the sketch
+   * @param {Object} options.plane The plane to base the sketch on
+   * @param {string} [options.name="New Sketch"] Name of the sketch
+   * @returns {Promise<Sketch>} The initialized sketch
+   */
+  static async create(options) {
+    const sketch = new Sketch(options);
+    await sketch._uploadFeature();
+    return sketch;
   }
 
   /**
@@ -108,8 +120,9 @@ class Sketch {
       
       const response = await this._api.endpoints.updateFeature(
         this.partStudio.document.id,
-        this.partStudio.document.defaultWorkspace.id,
+        { wvm: 'w', wvmid: this.partStudio.document.defaultWorkspace.id },
         this.partStudio.id,
+        this.featureId,
         sketchModel
       );
       

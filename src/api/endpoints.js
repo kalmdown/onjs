@@ -123,18 +123,21 @@ class EndpointContainer {
      * Update an existing feature
      * 
      * @param {string} documentId Document ID
-     * @param {string} workspaceId Workspace ID
+     * @param {Object} version Version info
+     * @param {string} version.wvm Type ('w', 'v', or 'm')
+     * @param {string} version.wvmid ID of workspace, version, or microversion
      * @param {string} elementId Element ID
+     * @param {string} featureId Feature ID to update
      * @param {Object} feature Feature definition with ID
      * @returns {Promise<Object>} Updated feature response
      */
-    async updateFeature(documentId, workspaceId, elementId, feature) {
-      if (!feature.featureId) {
+    async updateFeature(documentId, version, elementId, featureId, feature) {
+      if (!featureId) {
         throw new Error('Feature ID is required for updating a feature');
       }
       
       return await this.api.post(
-        `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features/featureid/${feature.featureId}`,
+        `/partstudios/d/${documentId}/${version.wvm}/${version.wvmid}/e/${elementId}/features/featureid/${featureId}`,
         { feature }
       );
     }
