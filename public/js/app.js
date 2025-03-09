@@ -8,6 +8,9 @@ import { initAuth } from './auth.js';
 import { fetchDocuments } from './api.js';
 import { setupUI, registerEventHandlers } from './ui.js';
 import { initLogger, logInfo } from './utils/logging.js';
+// Import selectors - these need to be loaded even if not used directly
+import './partStudioSelector.js';
+import './planeSelector.js';
 
 // Define a function to initialize the application with dependencies
 async function initializeApp(dependencies) {

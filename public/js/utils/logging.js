@@ -32,3 +32,16 @@ export function logSuccess(message) {
 export function logError(message) {
   log(message, 'error');
 }
+
+/**
+ * Log debug message to console
+ * @param {string} message The message to log
+ * @param {any} [data] Optional data to include
+ */
+export function logDebug(message, data) {
+  if (data !== undefined) {
+    console.debug(`[DEBUG] ${message}`, data);
+  } else {
+    console.debug(`[DEBUG] ${message}`);
+  }
+}

@@ -71,6 +71,13 @@ class DefaultPlane extends Plane {
    * @returns {Promise<Array<string>>} Array with the plane's transient ID
    */
   async getTransientIds() {
+    // For the default planes, we'll first try to just return the direct orientation name
+    // since that matches what our frontend is expecting (TOP, FRONT, RIGHT)
+    console.log(`Getting transientIds for default plane: ${this.orientation}`);
+    return [this.orientation];
+    
+    /*
+    // Old implementation that uses FeatureScript to get the IDs
     const script = `
       function(context is Context, queries) {
         return transientQueriesToStrings(evaluateQuery(context, qCreatedBy(makeId("${this.orientation}"), EntityType.FACE)));
@@ -97,6 +104,7 @@ class DefaultPlane extends Plane {
       console.error(`Error getting ${this.orientation} plane ID:`, error);
       throw new OnshapeFeatureError(`Failed to get ${this.orientation} plane ID`, error);
     }
+    */
   }
   
   /**

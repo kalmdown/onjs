@@ -1,5 +1,5 @@
 import { authToken } from './auth.js';
-import { logError, logSuccess, logInfo } from './utils/logging.js';
+import { logError, logSuccess, logInfo, logDebug } from './utils/logging.js';
 
 // State
 let documents = [];
@@ -42,6 +42,7 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
       let errorData;
       try {
         errorData = await response.json();
+        console.error('API error details:', errorData); // Log detailed error
       } catch (jsonError) {
         errorData = { error: `API error: ${response.status} - Failed to parse JSON response` };
       }
@@ -51,6 +52,7 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
     
     return response.json();
   } catch (error) {
+    console.error('Full API call error:', error); // More detailed logging
     logError(`API call failed: ${error.message}`);  // Log the error
     throw error;  // Re-throw the error so the calling function can handle it
   }
@@ -116,7 +118,76 @@ export async function getWorkspaces(documentId) {
   }
 }
 
-// Add other API-related functions from app.js
+/**
+ * Fetch all elements for a document
+ * 
+ * @param {string} documentId Document ID
+ * @returns {Promise<Array>} Array of elements
+ */
+export async function fetchElementsForDocument(documentId) {
+  if (!documentId) {
+    throw new Error('Document ID is required');
+  }
+  
+  try {
+    const workspaces = await getWorkspaces(documentId);
+    const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
+    
+    if (!defaultWorkspace) {
+      throw new Error('No workspace found for document');
+    }
+    
+    const response = await apiCall(`documents/${documentId}/w/${defaultWorkspace.id}/elements`);
+    return response.elements || response;
+  } catch (error) {
+    logError(`Failed to fetch elements: ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * Fetch planes for a part studio
+ * 
+ * @param {string} documentId Document ID
+ * @param {string} partStudioId Part studio ID
+ * @param {boolean} includeCustomPlanes Whether to include custom planes
+ * @returns {Promise<Array>} Array of planes
+ */
+export async function fetchPlanesForPartStudio(documentId, partStudioId, includeCustomPlanes = true) {
+  if (!documentId || !partStudioId) {
+    throw new Error('Document ID and Part Studio ID are required');
+  }
+  
+  try {
+    logDebug(`API Call: Fetching planes with includeCustomPlanes=${includeCustomPlanes}`);
+    
+    const workspaces = await getWorkspaces(documentId);
+    const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
+    
+    if (!defaultWorkspace) {
+      throw new Error('No workspace found for document');
+    }
+    
+    // Add includeCustomPlanes parameter to API call
+    const url = `/api/documents/${documentId}/w/${defaultWorkspace.id}/e/${partStudioId}/planes?includeCustomPlanes=${includeCustomPlanes}`;
+    logDebug(`Making request to: ${url}`);
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    logDebug('Planes response:', data);
+    
+    // Return planes from server response without adding default planes client-side
+    // This prevents duplication of default planes
+    return data.planes || [];
+  } catch (error) {
+    logError(`API error fetching planes: ${error.message}`);
+    throw error;
+  }
+}
 
 /**
  * Export API calls to a Postman collection
