@@ -6,6 +6,10 @@
 const { generateId, createSketch, createCircle, createLine } = require('../api/schema');
 const { OnshapeFeatureError, OnshapeParameterError } = require('../utils/errors');
 const { Point2D, UnitSystem, inchesToMeters } = require('../utils/misc');
+const logger = require('../utils/logger');
+
+// Create a scoped logger for the Sketch class
+const log = logger.scope('Sketch');
 
 /**
  * Represents a sketch in Onshape
@@ -76,17 +80,42 @@ class Sketch {
         sketchModel
       );
       
-      this.featureId = response.feature.featureId;
-      console.log(`Successfully uploaded sketch '${this.name}'`);
+      // Process response and extract feature ID
+      this._loadResponse(response);
+      
+      log.info(`Successfully uploaded sketch '${this.name}'`);
       
       // Add this sketch to the part studio's features
       this.partStudio._features.push(this);
       
       return response;
     } catch (error) {
-      console.error("Error creating sketch:", error);
+      log.error("Error creating sketch:", error);
       throw new OnshapeFeatureError("Failed to create sketch", error);
     }
+  }
+
+  /**
+   * Process API response and extract feature information
+   * @private
+   * @param {Object} response The API response
+   */
+  _loadResponse(response) {
+    if (!response || !response.feature) {
+      throw new OnshapeFeatureError("Invalid API response - missing feature data");
+    }
+    
+    this.featureId = response.feature.featureId;
+    
+    // Store additional feature information if needed
+    this.featureType = response.feature.featureType;
+    this.featureState = response.feature.featureStatus;
+    
+    if (!this.featureId) {
+      throw new OnshapeFeatureError("Failed to get valid feature ID from response");
+    }
+    
+    return this.featureId;
   }
 
   /**
@@ -126,10 +155,10 @@ class Sketch {
         sketchModel
       );
       
-      console.log(`Successfully updated sketch '${this.name}'`);
+      log.info(`Successfully updated sketch '${this.name}'`);
       return response;
     } catch (error) {
-      console.error("Error updating sketch:", error);
+      log.error("Error updating sketch:", error);
       throw new OnshapeFeatureError("Failed to update sketch", error);
     }
   }
@@ -192,7 +221,7 @@ class Sketch {
     };
     
     this.items.add(circle);
-    console.log(`Added circle to sketch: radius=${radius}, center=(${centerPoint.x}, ${centerPoint.y})`);
+    log.info(`Added circle to sketch: radius=${radius}, center=(${centerPoint.x}, ${centerPoint.y})`);
     
     await this._updateFeature();
     return circle;
@@ -245,7 +274,7 @@ class Sketch {
     };
     
     this.items.add(line);
-    console.log(`Added line to sketch: (${startPoint.x}, ${startPoint.y}) to (${endPoint.x}, ${endPoint.y})`);
+    log.info(`Added line to sketch: (${startPoint.x}, ${startPoint.y}) to (${endPoint.x}, ${endPoint.y})`);
     
     await this._updateFeature();
     return line;
@@ -329,14 +358,14 @@ class Sketch {
       
       const transientIds = response.result.value.map(item => item.value);
       
-      // We would normally categorize these by type (face, edge, vertex)
+      // We would normalrly categorize these by type (face, edge, vertex)
       // but for simplicity we'll just return the face IDs which are needed for extrusion
       return { 
         faceIds: transientIds,
         // Add more entity types as needed
       };
     } catch (error) {
-      console.error("Error getting sketch entities:", error);
+      log.error("Error getting sketch entities:", error);
       throw new OnshapeFeatureError("Failed to get sketch entities", error);
     }
   }

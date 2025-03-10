@@ -166,11 +166,51 @@ class EndpointContainer {
      * @param {string} version.wvmid ID of workspace, version, or microversion
      * @param {string} elementId Element ID
      * @returns {Promise<Array>} List of parts
-     */
+     */copilit
     async listParts(documentId, version, elementId) {
       return await this.api.get(
         `/parts/d/${documentId}/${version.wvm}/${version.wvmid}/e/${elementId}`
       );
+    }
+
+    /**
+     * Verify and get the transient ID for a named plane
+     * 
+     * @param {string} documentId Document ID
+     * @param {Object} version Version info
+     * @param {string} version.wvm Type ('w', 'v', or 'm')
+     * @param {string} version.wvmid ID of workspace, version, or microversion
+     * @param {string} elementId Element ID (part studio)
+     * @param {string} planeName Name of the plane (e.g., "TOP", "FRONT", "RIGHT")
+     * @returns {Promise<string>} The transient ID of the plane
+     */
+    async verifyPlaneId(documentId, version, elementId, planeName) {
+      // FeatureScript to query the transient ID of standard planes
+      const script = `
+        function(context is Context, queries) {
+          // The standard plane IDs in Onshape
+          const planeIds = {
+            "TOP": "JHD",
+            "FRONT": "JFD", 
+            "RIGHT": "JGD"
+          };
+          
+          if (planeIds[${JSON.stringify(planeName)}] != undefined) {
+            return planeIds[${JSON.stringify(planeName)}];
+          }
+          
+          // For custom planes, we would need to add more logic here
+          return "Not found";
+        }
+      `;
+      
+      const response = await this.evalFeaturescript(documentId, version, elementId, script);
+      
+      if (!response.result || response.result === "Not found") {
+        throw new Error(`Could not verify plane ID for: ${planeName}`);
+      }
+      
+      return response.result;
     }
   }
   
