@@ -278,103 +278,27 @@ function endpoints(api) {
       return api.post('/documents', options);
     },
     
+    createPublicDocument: async (name) => {
+      return api.post('/documents', {
+        name,
+        isPublic: true
+      });
+    },
+    
     getDocument: async (documentId) => {
       return api.get(`/documents/${documentId}`);
     },
     
-    listDocuments: async (queryParams = {}) => {
-      return api.get('/documents', { queryParams });
-    },
-    
-    deleteDocument: async (documentId) => {
-      return api.delete(`/documents/${documentId}`);
-    },
-    
-    // Element endpoints
-    getElements: async (documentId, params) => {
-      return api.get(`/documents/d/${documentId}/${params.wvm}/${params.wvmid}/elements`);
-    },
-    
-    // Feature endpoints
-    addFeature: async (documentId, params, elementId, feature) => {
-      return api.post(
-        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/features`,
-        feature
-      );
-    },
-    
-    updateFeature: async (documentId, params, elementId, featureId, feature) => {
-      if (!featureId) {
-        throw new Error('Feature ID is required for updating a feature');
-      }
-      
-      return api.post(
-        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/features/featureid/${featureId}`,
-        feature
-      );
-    },
-    
-    deleteFeature: async (documentId, workspaceId, elementId, featureId) => {
-      await api.delete(
-        `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features/featureid/${featureId}`
-      );
-    },
-    
-    // FeatureScript endpoints
-    evalFeaturescript: async (documentId, params, elementId, script) => {
-      return api.post(
-        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/featurescript`,
-        { script }
-      );
-    },
-    
-    // Part endpoints
-    listParts: async (documentId, params, elementId) => {
-      return api.get(
-        `/parts/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}`
-      );
-    },
-    
-    // Plane endpoints
-    getPlanes: async (documentId, params, elementId) => {
-      // This might need implementation based on your API needs
-      // Currently using a FeatureScript approach to get planes
-      const script = `
-        function(context is Context, queries) {
-          var planes = {};
-          
-          // Standard planes
-          var xyPlane = qCreatedBy(makeId("JHD"));
-          var yzPlane = qCreatedBy(makeId("JFD"));
-          var xzPlane = qCreatedBy(makeId("JGD"));
-          
-          planes["XY"] = evaluateQuery(context, xyPlane);
-          planes["YZ"] = evaluateQuery(context, yzPlane);
-          planes["XZ"] = evaluateQuery(context, xzPlane);
-          
-          return planes;
+    findPublicDocuments: async (query) => {
+      return api.get('/documents', {
+        queryParams: {
+          q: query,
+          filter: 'isPublic'
         }
-      `;
-      
-      const result = await api.post(
-        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/featurescript`,
-        { script }
-      );
-      
-      // Process the result into a usable format
-      const planes = [];
-      if (result && result.planes) {
-        for (const [name, data] of Object.entries(result.planes)) {
-          planes.push({
-            name,
-            transientId: data.id,
-            normal: data.normal
-          });
-        }
-      }
-      
-      return planes;
-    }
+      });
+    },
+    
+    // Add other endpoints as needed...
   };
 }
 

@@ -112,24 +112,24 @@ function isAuthenticated(req, res, next) {
 
 // Create Onshape client for a user
 function createOnshapeClient(req) {
-  if (!req.user || !req.user.accessToken) {
-    throw new Error('User not authenticated or missing access token');
+  // If user is authenticated via OAuth
+  if (req.user && req.user.accessToken) {
+    return new OnshapeClient({
+      authType: 'oauth',
+      oauthToken: req.user.accessToken,
+      unitSystem: "inch",
+      baseUrl: config.onshape.baseUrl,
+    });
   }
   
-  const client = new OnshapeClient({
-    getAuthHeaders: () => ({
-      Authorization: `Bearer ${req.user.accessToken}`,
-    }),
+  // Otherwise use API key authentication from environment
+  return new OnshapeClient({
+    authType: 'api_key',
+    accessKey: process.env.ONSHAPE_ACCESS_KEY,
+    secretKey: process.env.ONSHAPE_SECRET_KEY,
     unitSystem: "inch",
     baseUrl: config.onshape.baseUrl,
   });
-  
-  // Add debugging here
-  console.log('OnshapeClient created with:');
-  console.log('- API defined:', !!client.api);
-  console.log('- Endpoints defined:', !!client.endpoints);
-  
-  return client;
 }
 
 // OAuth routes
