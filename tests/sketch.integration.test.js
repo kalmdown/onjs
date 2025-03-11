@@ -1,8 +1,9 @@
 require('dotenv').config();
-const OnshapeAuth = require('../src/auth/onshape-auth');
+const AuthManager = require('../src/auth/auth-manager');
 const SimpleRestApi = require('../src/api/simple-rest-api');
 const Sketch = require('../src/features/sketch');
 const { UnitSystem } = require('../src/utils/misc');
+const logger = require('../src/utils/logger');
 
 // Set longer timeout for API operations
 jest.setTimeout(45000);
@@ -12,29 +13,40 @@ const hasDocumentAccess = process.env.ONSHAPE_TEST_DOCUMENT_ID &&
                          process.env.ONSHAPE_TEST_WORKSPACE_ID && 
                          process.env.ONSHAPE_TEST_ELEMENT_ID;
 
+// Get authentication type from environment
+const authType = process.env.ONSHAPE_AUTH_TYPE || 'api_key';
+
 // Skip tests if no document access
 (hasDocumentAccess ? describe : describe.skip)('Sketch & Feature API Integration', () => {
   let auth;
+  let api;
   let documentId;
   let workspaceId;
   let elementId;
+  let document;
+  let partStudioId;
+  let plane;
   
   beforeAll(() => {
-    // Initialize auth
-    auth = new OnshapeAuth({
+    // Initialize authentication manager based on environment configuration
+    auth = new AuthManager({
+      authType: authType,
       accessKey: process.env.ONSHAPE_ACCESS_KEY,
-      secretKey: process.env.ONSHAPE_SECRET_KEY
+      secretKey: process.env.ONSHAPE_SECRET_KEY,
+      oauthToken: process.env.ONSHAPE_OAUTH_TOKEN // For OAuth testing
     });
+    
+    logger.info(`Running integration tests with ${authType.toUpperCase()} authentication`);
   });
   
   beforeAll(async () => {
     try {
       console.log('Setting up integration test with direct API access');
       
-      // Create API client directly
+      // Create API client using auth manager
       api = new SimpleRestApi({
-        accessKey: process.env.ONSHAPE_ACCESS_KEY,
-        secretKey: process.env.ONSHAPE_SECRET_KEY
+        authManager: auth,
+        baseUrl: process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api'
       });
       
       // Create document directly

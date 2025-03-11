@@ -1,149 +1,130 @@
-// src\api\rest-api.js
-/**
- * Onshape REST API client
- */
 const axios = require('axios');
-const crypto = require('crypto');
-const { OnshapeApiError } = require('../utils/errors');
+const AuthManager = require('../auth/auth-manager');
 const logger = require('../utils/logger');
 
-// Create a scoped logger
-const log = logger.scope('RestApi');
-
-class RestApi {
+class SimpleRestApi {
   /**
-   * Create a new REST API client
-   * @param {Object} options - API options
-   * @param {string} options.accessKey - Onshape access key
-   * @param {string} options.secretKey - Onshape secret key
-   * @param {string} [options.baseUrl='https://cad.onshape.com/api'] - Base URL for API
+   * Create a SimpleRestApi client
+   * @param {object} options - API client options
+   * @param {AuthManager} options.authManager - Auth manager instance
+   * @param {string} options.authType - Auth type (api_key or oauth)
+   * @param {string} options.accessKey - API key access key
+   * @param {string} options.secretKey - API key secret key
+   * @param {string} options.oauthToken - OAuth token
+   * @param {string} options.baseUrl - API base URL
    */
-  constructor({ accessKey, secretKey, baseUrl = 'https://cad.onshape.com/api' }) {
-    this.accessKey = accessKey;
-    this.secretKey = secretKey;
-    this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    
-    // Initialize axios instance with defaults
-    this.client = axios.create({
-      baseURL: this.baseUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-    
-    log.debug('RestApi initialized');
+  constructor(options) {
+    // Support direct auth keys or auth manager
+    if (options.authManager) {
+      this.auth = options.authManager;
+    } else {
+      this.auth = new AuthManager({
+        authType: options.authType || 'api_key',
+        accessKey: options.accessKey,
+        secretKey: options.secretKey,
+        oauthToken: options.oauthToken,
+      });
+    }
+
+    this.baseUrl = options.baseUrl || 'https://cad.onshape.com/api';
+
+    // Remove trailing slash if present
+    if (this.baseUrl.endsWith('/')) {
+      this.baseUrl = this.baseUrl.slice(0, -1);
+    }
+
+    // Set debug mode
+    this.debug = options.debug || false;
+
+    // Initialize logger
+    this.logger = logger.scope('SimpleRestApi');
+    this.logger.info(`SimpleRestApi initialized with ${this.auth.authType} authentication`);
   }
-  
+
   /**
-   * Build authentication headers for Onshape API
+   * Make API request
    * @param {string} method - HTTP method
    * @param {string} path - API path
-   * @param {Object} [queryParams={}] - Query parameters
-   * @returns {Object} - Authentication headers
+   * @param {object|string|null} data - Request body
+   * @param {object} queryParams - Query parameters
+   * @returns {Promise<object>} API response
    */
-  buildAuthHeaders(method, path, queryParams = {}) {
-    // Current date in RFC format
-    const date = new Date();
-    const dateString = date.toUTCString();
-    
-    // Build query string
-    const queryString = Object.keys(queryParams)
-      .sort()
-      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
-      .join('&');
-    
-    // Build the full path
-    let fullPath = path;
-    if (!fullPath.startsWith('/')) {
-      fullPath = '/' + fullPath;
+  async request(method, path, data = null, queryParams = {}) {
+    // Make sure path has a leading slash
+    let cleanPath = path;
+    if (!cleanPath.startsWith('/')) {
+      cleanPath = '/' + cleanPath;
     }
-    fullPath = queryString ? `${fullPath}?${queryString}` : fullPath;
-    
-    // Build string to sign
-    const stringToSign = [
-      method.toLowerCase(),
-      fullPath.toLowerCase(),
-      dateString.toLowerCase()
-    ].join('\n');
-    
-    // Generate signature
-    const hmac = crypto.createHmac('sha256', this.secretKey);
-    hmac.update(stringToSign);
-    const signature = hmac.digest('base64');
-    
-    // Generate nonce
-    const nonce = crypto.randomBytes(16).toString('base64');
-    
-    // Return auth headers
-    return {
-      'Date': dateString,
-      'On-Nonce': nonce,
-      'Authorization': `On ${this.accessKey}:${signature}`
-    };
-  }
-  
-  /**
-   * Make authenticated request to Onshape API
-   * @private
-   */
-  async _request(method, path, options = {}) {
-    const { data, queryParams = {} } = options;
-    
+
+    // Format data for consistency
+    let bodyString = '';
+    if (data !== null && data !== undefined) {
+      bodyString = typeof data === 'string' ? data : JSON.stringify(data);
+    }
+
+    // Get authentication headers from auth manager
+    const headers = this.auth.getAuthHeaders(method, cleanPath, queryParams, bodyString);
+
     try {
-      // Generate auth headers
-      const authHeaders = this.buildAuthHeaders(method, path, queryParams);
-      
-      // Make request with auth headers
-      const response = await this.client.request({
+      if (this.debug) {
+        this.logger.debug(`${method} request to ${cleanPath}`, {
+          headers: headers,
+          hasBody: !!bodyString,
+          queryParams,
+        });
+      } else {
+        this.logger.debug(`${method} request to ${cleanPath}`, { hasBody: !!bodyString });
+      }
+
+      const response = await axios({
         method,
-        url: path,
+        url: `${this.baseUrl}${cleanPath}`,
+        headers,
+        data: bodyString || undefined,
         params: queryParams,
-        data,
-        headers: authHeaders
       });
-      
+
       return response.data;
     } catch (error) {
-      if (error.response) {
-        const status = error.response.status;
-        const message = error.response.data?.message || 'Unknown API error';
-        log.error(`API error ${status}: ${message}`, { path, method, status });
-        throw new OnshapeApiError(`API error (${status}): ${message}`, error);
+      // Log error details
+      const errorResponse = error.response?.data || {};
+      const statusCode = error.response?.status;
+
+      this.logger.error(`API Error (${statusCode}):`, errorResponse);
+      console.error(`API Error (${statusCode}):`, errorResponse);
+
+      if (this.debug && error.request) {
+        // Log request details for debugging
+        this.logger.debug('Failed request details', {
+          url: `${this.baseUrl}${cleanPath}`,
+          headers: headers,
+          method,
+          statusCode,
+          errorMessage: error.message,
+        });
       }
-      
-      log.error(`API request failed: ${error.message}`);
-      throw new OnshapeApiError('API request failed', error);
+
+      // Re-throw with more context
+      throw new Error(`API request failed: ${error.message}`);
     }
   }
-  
-  /**
-   * Make GET request
-   */
-  get(path, options = {}) {
-    return this._request('GET', path, options);
+
+  // Helper methods for HTTP verbs with support for query parameters
+  async get(path, queryParams = {}) {
+    return this.request('GET', path, null, queryParams);
   }
-  
-  /**
-   * Make POST request
-   */
-  post(path, data, options = {}) {
-    return this._request('POST', path, { ...options, data });
+
+  async post(path, data, queryParams = {}) {
+    return this.request('POST', path, data, queryParams);
   }
-  
-  /**
-   * Make PUT request
-   */
-  put(path, data, options = {}) {
-    return this._request('PUT', path, { ...options, data });
+
+  async put(path, data, queryParams = {}) {
+    return this.request('PUT', path, data, queryParams);
   }
-  
-  /**
-   * Make DELETE request
-   */
-  delete(path, options = {}) {
-    return this._request('DELETE', path, options);
+
+  async delete(path, queryParams = {}) {
+    return this.request('DELETE', path, null, queryParams);
   }
 }
 
-module.exports = RestApi;
+module.exports = SimpleRestApi;

@@ -4,6 +4,7 @@
  */
 const axios = require('axios');
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 class OnshapeAuth {
   /**
@@ -17,6 +18,7 @@ class OnshapeAuth {
     this.accessKey = options.accessKey;
     this.secretKey = options.secretKey;
     this.baseUrl = options.baseUrl || 'https://cad.onshape.com/api';
+    this.logger = logger.scope('OnshapeAuth');
     
     // Remove trailing slash if present
     if (this.baseUrl.endsWith('/')) {
@@ -34,44 +36,65 @@ class OnshapeAuth {
   }
   
   /**
-   * Generate authentication headers
-   * @param {string} method HTTP method (GET, POST, etc.)
-   * @param {string} path API path
-   * @param {Object} queryParams Query parameters
-   * @returns {Object} Authentication headers
+   * Build authentication headers for Onshape API
+   * @param {string} method - HTTP method
+   * @param {string} path - API path
+   * @param {Object} [queryParams={}] - Query parameters
+   * @param {string} [body=''] - Request body for POST/PUT requests
+   * @returns {Object} - Authentication headers
    */
-  generateAuthHeaders(method, path, queryParams = {}) {
+  buildAuthHeaders(method, path, queryParams = {}, body = '') {
     // Current date in RFC format
     const date = new Date().toUTCString();
     
-    // Ensure path starts with /
-    if (!path.startsWith('/')) {
-      path = '/' + path;
-    }
-    
-    // Build query string with proper sorting
+    // Build query string
     const queryString = Object.keys(queryParams)
       .sort()
       .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
       .join('&');
     
-    // Build path with query
-    const pathWithQuery = queryString ? `${path}?${queryString}` : path;
+    // Build the full path
+    let fullPath = path;
+    if (!fullPath.startsWith('/')) {
+      fullPath = '/' + fullPath;
+    }
+    fullPath = queryString ? `${fullPath}?${queryString}` : fullPath;
     
-    // Create string to sign
-    const stringToSign = `${method.toLowerCase()}\n${pathWithQuery.toLowerCase()}\n${date.toLowerCase()}`;
+    // Generate nonce
+    const nonce = crypto.randomBytes(16).toString('base64');
+    
+    // Content length
+    const contentLength = Buffer.byteLength(body || '').toString();
+    
+    // Build string to sign, including body for all requests
+    const stringToSign = [
+      method.toUpperCase(),
+      fullPath,
+      date,
+      nonce,
+      contentLength,
+      body || ''
+    ].join('\n');
     
     // Generate signature
-    const hmac = crypto.createHmac('sha256', this.secretKey);
-    hmac.update(stringToSign);
-    const signature = hmac.digest('base64');
+    const signature = crypto
+      .createHmac('sha256', this.secretKey)
+      .update(stringToSign)
+      .digest('base64');
+    
+    this.logger.debug('Signature generated', {
+      method,
+      path,
+      contentLength,
+      hasBody: !!body
+    });
     
     // Return auth headers
     return {
       'Date': date,
-      'On-Nonce': crypto.randomBytes(16).toString('base64'),
-      'Authorization': `On ${this.accessKey}:${signature}`,
-      'Content-Type': 'application/json'
+      'On-Nonce': nonce,
+      'Content-Length': contentLength,
+      'Authorization': `On ${this.accessKey}:${signature}`
     };
   }
   
@@ -87,7 +110,7 @@ class OnshapeAuth {
     
     try {
       // Generate auth headers
-      const headers = this.generateAuthHeaders(method, path, query);
+      const headers = this.buildAuthHeaders(method, path, query, body);
       
       // Make request
       const response = await this.client({
@@ -107,6 +130,12 @@ class OnshapeAuth {
       if (status === 403) {
         console.error('Permission denied - Free account limitations may apply');
       }
+      
+      this.logger.error(`API request failed: ${message}`, {
+        status,
+        method,
+        path
+      });
       
       throw new Error(`API request failed (${status}): ${message}`);
     }
