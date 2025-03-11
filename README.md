@@ -108,6 +108,23 @@ Currently, the application supports:
 - Simple paths
 - Basic transformations
 
+## Integration Tests
+
+To run integration tests that connect to the actual Onshape API:
+
+1. Create a `.env` file in the project root with your Onshape API credentials:
+   ```
+   ONSHAPE_ACCESS_KEY=your_access_key_here
+   ONSHAPE_SECRET_KEY=your_secret_key_here
+   ```
+
+2. Run the integration tests:
+   ```bash
+   npm run test:integration
+   ```
+
+**Note:** If credentials are not provided, integration tests will be skipped automatically.
+
 ## License
 
 MIT
@@ -115,8 +132,6 @@ MIT
 ## Credits
 
 This project uses the Onshape API. Learn more about Onshape at [onshape.com](https://www.onshape.com/).
-
-
 
 ## Project Structure
 ```

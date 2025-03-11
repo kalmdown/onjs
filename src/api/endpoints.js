@@ -5,6 +5,51 @@
  * This module wraps the many Onshape endpoints in JavaScript functions.
  */
 
+const axios = require('axios');
+const OnshapeAuth = require('../auth/onshape-auth');
+
+const auth = new OnshapeAuth({
+    accessKey: process.env.ONSHAPE_ACCESS_KEY,
+    secretKey: process.env.ONSHAPE_SECRET_KEY
+});
+
+function createAPI() {
+  const api = axios.create({
+    baseURL: 'https://cad.onshape.com/api'
+  });
+
+  // Attach authentication headers with proper signature
+  api.interceptors.request.use((config) => {
+    let body = '';
+    if (config.data) {
+      // For JSON requests, ensure payload is a string
+      if (config.headers['Content-Type'] === 'application/json' && typeof config.data !== 'string') {
+        body = JSON.stringify(config.data);
+        config.data = body;
+      } else {
+        body = config.data;
+      }
+    }
+    
+    const signing = auth.signRequest(config.method, config.url, body);
+    config.headers['Date'] = signing.date;
+    config.headers['On-Nonce'] = signing.nonce;
+    config.headers['Content-Length'] = signing.contentLength;
+    config.headers['Authorization'] = `On ${process.env.ONSHAPE_ACCESS_KEY}:${signing.signature}`;
+
+    return config;
+  }, error => Promise.reject(error));
+
+  return {
+    getUserInfo: () => api.get('/users/sessioninfo'),
+    createDocument: (documentData) =>
+      api.post('/documents', documentData, {
+        headers: { 'Content-Type': 'application/json' }
+      }),
+    // ...other endpoints...
+  };
+}
+
 class EndpointContainer {
     /**
      * @param {import('./rest-api')} restApi The RestApi instance
@@ -166,7 +211,7 @@ class EndpointContainer {
      * @param {string} version.wvmid ID of workspace, version, or microversion
      * @param {string} elementId Element ID
      * @returns {Promise<Array>} List of parts
-     */copilit
+     */
     async listParts(documentId, version, elementId) {
       return await this.api.get(
         `/parts/d/${documentId}/${version.wvm}/${version.wvmid}/e/${elementId}`
@@ -215,3 +260,123 @@ class EndpointContainer {
   }
   
   module.exports = EndpointContainer;
+
+/**
+ * Define API endpoints
+ * @param {RestApi} api The REST API instance
+ * @returns {Object} Object containing all API endpoint functions
+ */
+function endpoints(api) {
+  return {
+    // User endpoints
+    getUserInfo: async () => {
+      return api.get('/users/sessioninfo');
+    },
+    
+    // Document endpoints
+    createDocument: async (options) => {
+      return api.post('/documents', options);
+    },
+    
+    getDocument: async (documentId) => {
+      return api.get(`/documents/${documentId}`);
+    },
+    
+    listDocuments: async (queryParams = {}) => {
+      return api.get('/documents', { queryParams });
+    },
+    
+    deleteDocument: async (documentId) => {
+      return api.delete(`/documents/${documentId}`);
+    },
+    
+    // Element endpoints
+    getElements: async (documentId, params) => {
+      return api.get(`/documents/d/${documentId}/${params.wvm}/${params.wvmid}/elements`);
+    },
+    
+    // Feature endpoints
+    addFeature: async (documentId, params, elementId, feature) => {
+      return api.post(
+        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/features`,
+        feature
+      );
+    },
+    
+    updateFeature: async (documentId, params, elementId, featureId, feature) => {
+      if (!featureId) {
+        throw new Error('Feature ID is required for updating a feature');
+      }
+      
+      return api.post(
+        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/features/featureid/${featureId}`,
+        feature
+      );
+    },
+    
+    deleteFeature: async (documentId, workspaceId, elementId, featureId) => {
+      await api.delete(
+        `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features/featureid/${featureId}`
+      );
+    },
+    
+    // FeatureScript endpoints
+    evalFeaturescript: async (documentId, params, elementId, script) => {
+      return api.post(
+        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/featurescript`,
+        { script }
+      );
+    },
+    
+    // Part endpoints
+    listParts: async (documentId, params, elementId) => {
+      return api.get(
+        `/parts/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}`
+      );
+    },
+    
+    // Plane endpoints
+    getPlanes: async (documentId, params, elementId) => {
+      // This might need implementation based on your API needs
+      // Currently using a FeatureScript approach to get planes
+      const script = `
+        function(context is Context, queries) {
+          var planes = {};
+          
+          // Standard planes
+          var xyPlane = qCreatedBy(makeId("JHD"));
+          var yzPlane = qCreatedBy(makeId("JFD"));
+          var xzPlane = qCreatedBy(makeId("JGD"));
+          
+          planes["XY"] = evaluateQuery(context, xyPlane);
+          planes["YZ"] = evaluateQuery(context, yzPlane);
+          planes["XZ"] = evaluateQuery(context, xzPlane);
+          
+          return planes;
+        }
+      `;
+      
+      const result = await api.post(
+        `/partstudios/d/${documentId}/${params.wvm}/${params.wvmid}/e/${elementId}/featurescript`,
+        { script }
+      );
+      
+      // Process the result into a usable format
+      const planes = [];
+      if (result && result.planes) {
+        for (const [name, data] of Object.entries(result.planes)) {
+          planes.push({
+            name,
+            transientId: data.id,
+            normal: data.normal
+          });
+        }
+      }
+      
+      return planes;
+    }
+  };
+}
+
+module.exports = endpoints;
+module.exports = createAPI;
