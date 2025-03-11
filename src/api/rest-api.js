@@ -1,114 +1,148 @@
 // src\api\rest-api.js
 /**
- * RestApi interface to the Onshape server.
- * 
- * Handles HTTP requests to Onshape's API with proper authentication and formatting.
+ * Onshape REST API client
  */
-
 const axios = require('axios');
+const crypto = require('crypto');
 const { OnshapeApiError } = require('../utils/errors');
+const logger = require('../utils/logger');
+
+// Create a scoped logger
+const log = logger.scope('RestApi');
 
 class RestApi {
   /**
-   * @param {Object} options Configuration options
-   * @param {Function} options.getAuthHeaders Function that returns authentication headers
-   * @param {string} [options.baseUrl='https://cad.onshape.com/api/v6'] Base URL for the API
+   * Create a new REST API client
+   * @param {Object} options - API options
+   * @param {string} options.accessKey - Onshape access key
+   * @param {string} options.secretKey - Onshape secret key
+   * @param {string} [options.baseUrl='https://cad.onshape.com/api'] - Base URL for API
    */
-  constructor({ getAuthHeaders, baseUrl = 'https://cad.onshape.com/api/v6' }) {
-    this.baseUrl = baseUrl;
-    this.getAuthHeaders = getAuthHeaders;
-  }
-
-  /**
-   * Make an HTTP request to the Onshape API
-   * 
-   * @param {string} method HTTP method (GET, POST, etc.)
-   * @param {string} endpoint API endpoint (e.g., '/documents')
-   * @param {Object|null} [payload=null] Request payload for POST/PUT requests
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
-   * @private
-   */
-  async _request(method, endpoint, payload = null, queryParams = {}) {
-    // Remove this check that forces a slash prefix
-    // if (!endpoint.startsWith('/')) {
-    //   throw new Error(`Endpoint '${endpoint}' missing '/' prefix`);
-    // }
-
-    // Make sure we don't have double slashes
-    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+  constructor({ accessKey, secretKey, baseUrl = 'https://cad.onshape.com/api' }) {
+    this.accessKey = accessKey;
+    this.secretKey = secretKey;
+    this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     
-    const url = `${this.baseUrl}/${normalizedEndpoint}`;
-    const headers = await this.getAuthHeaders();
-    const params = new URLSearchParams();
-    
-    // Add query parameters
-    Object.entries(queryParams).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        params.append(key, value);
+    // Initialize axios instance with defaults
+    this.client = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
-
-    console.log(`${method} ${url}`);
+    
+    log.debug('RestApi initialized');
+  }
+  
+  /**
+   * Build authentication headers for Onshape API
+   * @param {string} method - HTTP method
+   * @param {string} path - API path
+   * @param {Object} [queryParams={}] - Query parameters
+   * @returns {Object} - Authentication headers
+   */
+  buildAuthHeaders(method, path, queryParams = {}) {
+    // Current date in RFC format
+    const date = new Date();
+    const dateString = date.toUTCString();
+    
+    // Build query string
+    const queryString = Object.keys(queryParams)
+      .sort()
+      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
+      .join('&');
+    
+    // Build the full path
+    let fullPath = path;
+    if (!fullPath.startsWith('/')) {
+      fullPath = '/' + fullPath;
+    }
+    fullPath = queryString ? `${fullPath}?${queryString}` : fullPath;
+    
+    // Build string to sign
+    const stringToSign = [
+      method.toLowerCase(),
+      fullPath.toLowerCase(),
+      dateString.toLowerCase()
+    ].join('\n');
+    
+    // Generate signature
+    const hmac = crypto.createHmac('sha256', this.secretKey);
+    hmac.update(stringToSign);
+    const signature = hmac.digest('base64');
+    
+    // Generate nonce
+    const nonce = crypto.randomBytes(16).toString('base64');
+    
+    // Return auth headers
+    return {
+      'Date': dateString,
+      'On-Nonce': nonce,
+      'Authorization': `On ${this.accessKey}:${signature}`
+    };
+  }
+  
+  /**
+   * Make authenticated request to Onshape API
+   * @private
+   */
+  async _request(method, path, options = {}) {
+    const { data, queryParams = {} } = options;
     
     try {
-      const response = await axios({
+      // Generate auth headers
+      const authHeaders = this.buildAuthHeaders(method, path, queryParams);
+      
+      // Make request with auth headers
+      const response = await this.client.request({
         method,
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...headers
-        },
-        data: payload,
-        params: params.toString() ? params : undefined
+        url: path,
+        params: queryParams,
+        data,
+        headers: authHeaders
       });
       
       return response.data;
     } catch (error) {
       if (error.response) {
-        console.error('Onshape API Error:', error.response.data);
-        throw new OnshapeApiError(
-          `Error ${error.response.status}: ${error.response.statusText}`,
-          error.response
-        );
+        const status = error.response.status;
+        const message = error.response.data?.message || 'Unknown API error';
+        log.error(`API error ${status}: ${message}`, { path, method, status });
+        throw new OnshapeApiError(`API error (${status}): ${message}`, error);
       }
-      throw error;
+      
+      log.error(`API request failed: ${error.message}`);
+      throw new OnshapeApiError('API request failed', error);
     }
   }
-
+  
   /**
-   * Make a GET request to the Onshape API
-   * 
-   * @param {string} endpoint API endpoint
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
+   * Make GET request
    */
-  async get(endpoint, queryParams = {}) {
-    return this._request('GET', endpoint, null, queryParams);
+  get(path, options = {}) {
+    return this._request('GET', path, options);
   }
-
+  
   /**
-   * Make a POST request to the Onshape API
-   * 
-   * @param {string} endpoint API endpoint
-   * @param {Object} payload Request payload
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
+   * Make POST request
    */
-  async post(endpoint, payload, queryParams = {}) {
-    return this._request('POST', endpoint, payload, queryParams);
+  post(path, data, options = {}) {
+    return this._request('POST', path, { ...options, data });
   }
-
+  
   /**
-   * Make a DELETE request to the Onshape API
-   * 
-   * @param {string} endpoint API endpoint
-   * @param {Object} [queryParams={}] Query parameters
-   * @returns {Promise<Object>} Response data
+   * Make PUT request
    */
-  async delete(endpoint, queryParams = {}) {
-    return this._request('DELETE', endpoint, null, queryParams);
+  put(path, data, options = {}) {
+    return this._request('PUT', path, { ...options, data });
+  }
+  
+  /**
+   * Make DELETE request
+   */
+  delete(path, options = {}) {
+    return this._request('DELETE', path, options);
   }
 }
 

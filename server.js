@@ -15,6 +15,7 @@ const { Strategy: OAuth2Strategy } = require("passport-oauth2");
 const OnshapeClient = require("./src");
 const fs = require('fs');
 const https = require('https');
+const logger = require('./src/utils/logger');
 
 // Configuration - would be loaded from environment variables in production
 const config = {
@@ -43,6 +44,17 @@ const config = {
     callbackRootUrl: process.env.WEBHOOK_CALLBACK_ROOT_URL,
   },
 };
+
+// Configure logger based on environment
+if (process.env.NODE_ENV === 'production') {
+  logger.logLevel = 'info';
+  // Uncomment to enable file logging in production
+  // logger.logToFile = true;
+}
+
+if (process.env.NODE_ENV === 'development') {
+  logger.logLevel = 'debug';  // More verbose in development
+}
 
 // Initialize Express app
 const app = express();
