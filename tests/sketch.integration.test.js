@@ -1,5 +1,6 @@
 require('dotenv').config();
-const AuthManager = require('../src/auth/auth-manager');
+// Replace direct import with unified interface
+const { createAuth } = require('../src/auth');
 const SimpleRestApi = require('../src/api/simple-rest-api');
 const Sketch = require('../src/features/sketch');
 const { UnitSystem } = require('../src/utils/misc');
@@ -28,12 +29,13 @@ const authType = process.env.ONSHAPE_AUTH_TYPE || 'api_key';
   let plane;
   
   beforeAll(() => {
-    // Initialize authentication manager based on environment configuration
-    auth = new AuthManager({
+    // Initialize authentication using createAuth factory function
+    auth = createAuth({
+      // Keep the existing options
       authType: authType,
       accessKey: process.env.ONSHAPE_ACCESS_KEY,
       secretKey: process.env.ONSHAPE_SECRET_KEY,
-      oauthToken: process.env.ONSHAPE_OAUTH_TOKEN // For OAuth testing
+      accessToken: process.env.ONSHAPE_ACCESS_TOKEN
     });
     
     logger.info(`Running integration tests with ${authType.toUpperCase()} authentication`);

@@ -1,8 +1,7 @@
-const AuthManager = require('../../src/auth/auth-manager');
-const { OnshapeApiError } = require('../../src/utils/errors');
+const { createAuth, formatOAuthScopes } = require('../../src/auth');
 require('dotenv').config();
 
-// Get API key authentication credentials
+// Get credentials from environment variables
 const accessKey = process.env.ONSHAPE_ACCESS_KEY;
 const secretKey = process.env.ONSHAPE_SECRET_KEY;
 const baseUrl = process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v6';
@@ -31,7 +30,7 @@ console.log('AUTH MANAGER TEST');
 console.log('=============================================');
 
 /**
- * Test the AuthManager with API Key authentication
+ * Test the API Key authentication
  */
 async function testApiKeyAuth() {
   console.log('\n---------- TEST 1: API KEY AUTHENTICATION ----------');
@@ -41,22 +40,19 @@ async function testApiKeyAuth() {
     return false;
   }
   
-  // Initialize with API keys and use correct API URL from .env
-  const authManager = new AuthManager({
-    baseUrl: baseUrl,
-    accessKey: accessKey,
-    secretKey: secretKey
-  });
-  
   try {
-    // Test setting method
-    const methodSet = authManager.setMethod('apikey');
-    console.log('Method set successfully:', methodSet);
-    console.log('Current method:', authManager.getMethod());
+    // Initialize with API keys using the unified interface
+    const auth = createAuth({
+      baseUrl,
+      accessKey,
+      secretKey
+    });
     
-    // Test API request - ensure the path starts with '/'
+    console.log('Method selected:', auth.getMethod());
+    
+    // Test API request
     console.log('Making API request to /users/sessioninfo...');
-    const userInfo = await authManager.request('GET', '/users/sessioninfo');
+    const userInfo = await auth.request('GET', '/users/sessioninfo');
     
     console.log('Request successful!');
     console.log('User name:', userInfo.name);
@@ -71,13 +67,12 @@ async function testApiKeyAuth() {
     return true;
   } catch (error) {
     console.error('API Key Authentication Test Failed:', error.message);
-    console.error('Error details:', error);
     return false;
   }
 }
 
 /**
- * Test the AuthManager with OAuth authentication
+ * Test the OAuth authentication
  */
 async function testOAuthAuth() {
   console.log('\n---------- TEST 2: OAUTH AUTHENTICATION ----------');
@@ -87,24 +82,21 @@ async function testOAuthAuth() {
     return false;
   }
   
-  // Initialize with OAuth credentials
-  const authManager = new AuthManager({
-    baseUrl: baseUrl,
-    accessToken: accessToken,
-    refreshToken: refreshToken,
-    clientId: oauthClientId,
-    clientSecret: oauthClientSecret
-  });
-  
   try {
-    // Test setting method
-    const methodSet = authManager.setMethod('oauth');
-    console.log('Method set successfully:', methodSet);
-    console.log('Current method:', authManager.getMethod());
+    // Initialize with OAuth credentials using the unified interface
+    const auth = createAuth({
+      baseUrl,
+      accessToken,
+      refreshToken,
+      clientId: oauthClientId,
+      clientSecret: oauthClientSecret
+    });
+    
+    console.log('Method selected:', auth.getMethod());
     
     // Test API request
     console.log('Making API request to /users/sessioninfo...');
-    const userInfo = await authManager.request('GET', '/users/sessioninfo');
+    const userInfo = await auth.request('GET', '/users/sessioninfo');
     
     console.log('Request successful!');
     console.log('User name:', userInfo.name);
@@ -113,13 +105,12 @@ async function testOAuthAuth() {
     return true;
   } catch (error) {
     console.error('OAuth Authentication Test Failed:', error.message);
-    console.error('Error details:', error);
     return false;
   }
 }
 
 /**
- * Test the AuthManager's error handling with a non-existent endpoint
+ * Test the error handling with a non-existent endpoint
  */
 async function testErrorHandling() {
   console.log('\n---------- TEST 3: ERROR HANDLING ----------');
@@ -130,18 +121,16 @@ async function testErrorHandling() {
   }
   
   try {
-    // Use real credentials but an invalid endpoint to test error handling
-    const authManager = new AuthManager({
-      baseUrl: baseUrl,
-      accessKey: accessKey,
-      secretKey: secretKey
+    // Initialize with API keys using the unified interface
+    const auth = createAuth({
+      baseUrl,
+      accessKey,
+      secretKey
     });
-    
-    authManager.setMethod('apikey');
     
     // Try to access a non-existent endpoint to trigger a 404 error
     console.log('Making API request to a non-existent endpoint...');
-    await authManager.request('GET', '/non/existent/endpoint');
+    await auth.request('GET', '/non/existent/endpoint');
     
     console.error('Expected error was not thrown!');
     return false;
@@ -153,7 +142,7 @@ async function testErrorHandling() {
 }
 
 /**
- * Test the AuthManager's OAuth client creation
+ * Test the OAuth client creation
  */
 function testOAuthClientCreation() {
   console.log('\n---------- TEST 4: OAUTH CLIENT CREATION ----------');
@@ -164,9 +153,9 @@ function testOAuthClientCreation() {
   }
   
   try {
-    // Initialize auth manager with OAuth credentials
-    const authManager = new AuthManager({
-      baseUrl: baseUrl,
+    // Initialize with OAuth credentials using the unified interface
+    const auth = createAuth({
+      baseUrl,
       clientId: oauthClientId,
       clientSecret: oauthClientSecret
     });
@@ -179,7 +168,7 @@ function testOAuthClientCreation() {
     console.log('- Redirect URI:', redirectUri);
     console.log('- Scope:', scope);
     
-    const oauthClient = authManager.createOAuthClient({
+    const oauthClient = auth.createOAuthClient({
       redirectUri: redirectUri,
       scope: scope
     });
@@ -190,7 +179,6 @@ function testOAuthClientCreation() {
     return true;
   } catch (error) {
     console.error('OAuth Client Creation Test Failed:', error.message);
-    console.error('Error details:', error);
     return false;
   }
 }

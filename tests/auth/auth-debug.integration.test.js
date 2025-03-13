@@ -2,8 +2,9 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const fs = require('fs');
-const AuthManager = require('../src/auth/auth-manager');
-const SimpleRestApi = require('../src/api/simple-rest-api');
+// Replace direct import with unified interface
+const { createAuth } = require('../../src/auth');
+const SimpleRestApi = require('../../src/api/simple-rest-api');
 
 describe('Authentication Debugging', () => {
   let api;
@@ -62,14 +63,14 @@ describe('Authentication Debugging', () => {
     } catch (err) {
       console.error('Request failed', err.message);
       
-      // Log auth headers for debugging
-      const authManager = new AuthManager({
+      // Update auth headers generation
+      const auth = createAuth({
         authType: 'api_key',
         accessKey: process.env.ONSHAPE_ACCESS_KEY || 'vHVlHgBD3cXYlZUbNsOK1Yzy',
         secretKey: process.env.ONSHAPE_SECRET_KEY || 'YGq5H4POIX0KZVmrRp5CLsyeFODW95nqS4xfjjwWitfPfJGC'
       });
       
-      const authHeaders = authManager.getAuthHeaders(
+      const authHeaders = auth.getAuthHeaders(
         'GET', 
         '/users/sessioninfo',
         {}

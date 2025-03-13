@@ -4,6 +4,7 @@
  * Provides a simplified interface for accessing Onshape API functionality
  */
 const RestApi = require('./api/rest-api');
+const { createAuth } = require('./auth'); // Import the unified auth interface
 const endpoints = require('./api/endpoints');
 const { OnshapeApiError } = require('./utils/errors');
 const logger = require('./utils/logger');
@@ -51,12 +52,18 @@ class OnshapeClient {
       throw new Error(`Invalid authType: ${authType}. Must be 'api_key' or 'oauth'`);
     }
     
-    // Initialize REST API client
-    this.api = new RestApi({
-      authType: authType,
+    // Create unified auth manager using the factory function
+    const authManager = createAuth({
+      baseUrl: options.baseUrl || 'https://cad.onshape.com/api',
       accessKey: options.accessKey || process.env.ONSHAPE_ACCESS_KEY,
       secretKey: options.secretKey || process.env.ONSHAPE_SECRET_KEY,
-      oauthToken: options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN,
+      accessToken: options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN,
+      defaultMethod: authType === 'oauth' ? 'oauth' : 'apikey'
+    });
+    
+    // Initialize REST API client with the auth manager
+    this.api = new RestApi({
+      authManager: authManager,
       baseUrl: options.baseUrl || 'https://cad.onshape.com/api'
     });
     
