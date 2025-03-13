@@ -31,9 +31,32 @@ class OnshapeClient {
    * @param {string} [options.unitSystem='meter'] - Default unit system to use
    */
   constructor(options = {}) {
-    // Determine authentication type - prioritize options, then env var, default to api_key
-    const authType = options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key';
+    // If a pre-configured authManager is provided, use it directly without validation
+    if (options.authManager) {
+      // Skip validation for existing auth manager
+      const authType = options.authManager.getMethod() || 'apikey';
+      
+      // Initialize REST API client with the auth manager
+      this.api = new RestApi({
+        authManager: options.authManager,
+        baseUrl: options.baseUrl || 'https://cad.onshape.com/api'
+      });
+      
+      // Initialize API endpoints
+      this.api.endpoints = endpoints(this.api);
+      
+      // Set default unit system
+      this.unitSystem = options.unitSystem || 'meter';
+      
+      log.info(`Onshape client initialized with ${authType} authentication (from provided auth manager)`);
+      return; // Exit constructor early
+    }
     
+    // Only execute the rest of this constructor if no auth manager was provided
+    
+    // Determine authentication type - prioritize options, then env var, default to api_key
+    let authType = options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key';
+
     // Validate credentials based on auth type
     if (authType === 'api_key') {
       const accessKey = options.accessKey || process.env.ONSHAPE_ACCESS_KEY;
