@@ -78,13 +78,12 @@ function formatOAuthScopes(scopes) {
   
   // If empty, set default scopes
   if (!result.formatted) {
-    result.formatted = 'OAuth2ReadPII OAuth2Read OAuth2Write';
-    result.interpretedScopes = ['OAuth2ReadPII', 'OAuth2Read', 'OAuth2Write'];
+    result.formatted = 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete';
+    result.interpretedScopes = ['OAuth2ReadPII', 'OAuth2Read', 'OAuth2Write', 'OAuth2Delete'];
     result.has.readPII = true;
     result.has.read = true;
     result.has.write = true;
   }
-  
   return result;
 }
 

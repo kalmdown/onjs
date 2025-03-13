@@ -86,63 +86,71 @@ class AuthManager {
   }
   
   /**
-   * Get authentication headers for a request
-   * @param {string} method - The HTTP method (GET, POST, etc.)
-   * @param {string} path - The API endpoint path
-   * @param {Object} [queryParams={}] - Query parameters
-   * @returns {Object} - Headers object with authentication headers
+   * Get authentication headers for an API request
+   * @param {string} method HTTP method (GET, POST, etc.)
+   * @param {string} path API path
+   * @param {Object} queryParams Query parameters
+   * @param {string} [bodyString=''] Request body as string
+   * @returns {Object} Authentication headers
    */
-  getAuthHeaders(method, path, queryParams = {}) {
-    if (!this.currentMethod) {
-      throw new OnshapeApiError('No authentication method selected', 401);
-    }
+  getAuthHeaders(method, path, queryParams, bodyString = '') {
+    const authMethod = this.getMethod();
     
-    // Common headers
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-    
-    // Generate auth headers based on the selected method
-    if (this.currentMethod === 'apikey') {
-      // Generate API key authentication headers
-      const date = new Date().toUTCString();
-      const nonce = crypto.randomBytes(16).toString('hex');
-      
-      // Build the normalized path with query parameters
-      let pathWithQuery = path;
-      const queryString = querystring.stringify(queryParams);
-      if (queryString) {
-        pathWithQuery += '?' + queryString;
+    if (authMethod === 'oauth') {
+      if (!this.accessToken) {
+        throw new OnshapeApiError('OAuth authentication requires an access token');
       }
       
-      // Create the authorization string
-      const authString = [
-        method,
-        nonce,
-        date,
-        'application/json',
-        pathWithQuery
-      ].join('\n').toLowerCase();
+      return {
+        'Authorization': `Bearer ${this.accessToken}`
+      };
+    } 
+    else if (authMethod === 'apikey') {
+      if (!this.accessKey || !this.secretKey) {
+        throw new OnshapeApiError('API key authentication requires accessKey and secretKey');
+      }
       
-      // Create the signature
+      // Generate API key authentication headers
+      // Make sure path doesn't have the base URL in it
+      const cleanPath = path.startsWith('http') ? new URL(path).pathname : path;
+      
+      // Convert query params object to string
+      let queryString = '';
+      if (queryParams && Object.keys(queryParams).length > 0) {
+        const searchParams = new URLSearchParams();
+        Object.entries(queryParams).forEach(([key, value]) => {
+          searchParams.append(key, value);
+        });
+        queryString = searchParams.toString();
+      }
+      
+      const date = new Date().toUTCString();
+      const contentType = bodyString ? 'application/json' : '';
+      
+      // Build the string to sign
+      const stringToSign = [
+        method,
+        date,
+        contentType,
+        queryString,
+        cleanPath,
+        bodyString || ''
+      ].join('\n');
+      
+      // Generate HMAC signature
       const hmac = crypto.createHmac('sha256', this.secretKey);
-      hmac.update(authString);
+      hmac.update(stringToSign);
       const signature = hmac.digest('base64');
       
-      // Add the API key authentication headers
-      headers['Date'] = date;
-      headers['Authorization'] = 
-        `On ${this.accessKey}:HmacSHA256:${signature}`;
-      
-      return headers;
-    } else if (this.currentMethod === 'oauth') {
-      // OAuth authentication headers
-      headers['Authorization'] = `Bearer ${this.accessToken}`;
-      return headers;
+      return {
+        'Date': date,
+        'Content-Type': contentType || undefined,
+        'Authorization': `On ${this.accessKey}:HmacSHA256:${signature}`
+      };
+    } 
+    else {
+      throw new OnshapeApiError(`Unknown auth method: ${authMethod}`);
     }
-    
-    throw new OnshapeApiError('Invalid authentication method', 401);
   }
   
   /**
@@ -244,7 +252,7 @@ class AuthManager {
    * @param {string} options.clientId - The OAuth client ID
    * @param {string} options.clientSecret - The OAuth client secret
    * @param {string} options.redirectUri - The OAuth redirect URI
-   * @param {string} [options.scope='OAuth2ReadPII OAuth2Read OAuth2Write'] - OAuth scopes
+   * @param {string} [options.scope='OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'] - OAuth scopes
    * @returns {OAuthClient} - Initialized OAuth client
    */
   createOAuthClient(options) {
@@ -252,10 +260,10 @@ class AuthManager {
       clientId: options.clientId || this.clientId,
       clientSecret: options.clientSecret || this.clientSecret,
       redirectUri: options.redirectUri || this.redirectUri,
-      scope: options.scope || 'OAuth2ReadPII OAuth2Read OAuth2Write'
+      scope: options.scope || 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'
     };
     
-    if (!clientOptions.clientId || clientOptions.clientSecret || clientOptions.redirectUri) {
+    if (!clientOptions.clientId || !clientOptions.clientSecret || !clientOptions.redirectUri) {
       throw new OnshapeApiError('OAuth client requires clientId, clientSecret, and redirectUri');
     }
     

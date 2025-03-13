@@ -11,12 +11,19 @@ const { OnshapeApiError } = require('./errors');
 class RestApi {
   /**
    * @param {Object} options Configuration options
-   * @param {Function} options.getAuthHeaders Function that returns authentication headers
-   * @param {string} [options.baseUrl='https://cad.onshape.com/api/v6'] Base URL for the API
+   * @param {Function|Object} options.getAuthHeaders Function that returns authentication headers or AuthManager instance
    */
-  constructor({ getAuthHeaders, baseUrl = 'https://cad.onshape.com/api/v6' }) {
+  constructor({ getAuthHeaders, authManager, baseUrl }) {
     this.baseUrl = baseUrl;
-    this.getAuthHeaders = getAuthHeaders;
+    
+    if (authManager) {
+      // Use the provided auth manager
+      this.authManager = authManager;
+      this.getAuthHeaders = async () => this.authManager.getAuthHeaders('GET', '', {});
+    } else {
+      // Use the provided function
+      this.getAuthHeaders = getAuthHeaders;
+    }
   }
 
   /**

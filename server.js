@@ -12,7 +12,8 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 const passport = require("passport");
 const { Strategy: OAuth2Strategy } = require("passport-oauth2");
-const OnshapeClient = require("./src");
+const onjs = require("./src");
+const AuthManager = require('./src/auth/auth-manager');
 const fs = require('fs');
 const https = require('https');
 const logger = require('./src/utils/logger');
@@ -27,7 +28,7 @@ const config = {
       process.env.OAUTH_CALLBACK_URL || "http://localhost:3000/oauthRedirect",
     authorizationUrl: `${process.env.OAUTH_URL}/oauth/authorize`,
     tokenUrl: `${process.env.OAUTH_URL}/oauth/token`,
-    baseUrl: `${process.env.API_URL}/api/v6`,
+    baseUrl: `${process.env.API_URL}`,
   },
   session: {
     secret: process.env.SESSION_SECRET || "development_secret_do_not_use_in_production",
@@ -45,6 +46,37 @@ const config = {
   },
 };
 
+// Create a single AuthManager instance for the application
+const authManager = new AuthManager({
+  baseUrl: config.onshape.baseUrl,
+  accessKey: process.env.ONSHAPE_ACCESS_KEY,
+  secretKey: process.env.ONSHAPE_SECRET_KEY,
+  clientId: config.onshape.clientId,
+  clientSecret: config.onshape.clientSecret,
+  redirectUri: config.onshape.callbackUrl,
+  defaultMethod: process.env.ONSHAPE_AUTH_METHOD === 'OAUTH' ? 'oauth' : 'apikey'
+});
+
+// Set the method immediately to ensure it's properly initialized
+if (process.env.ONSHAPE_AUTH_METHOD === 'OAUTH') {
+  authManager.setMethod('oauth');
+  logger.info('AuthManager initialized with OAuth authentication');
+} else {
+  authManager.setMethod('apikey');
+  logger.info('AuthManager initialized with API key authentication');
+}
+
+// Log auth credentials state (without actual values) for debugging
+logger.debug('Auth credentials state:', {
+  hasApiKey: !!process.env.ONSHAPE_ACCESS_KEY,
+  hasApiSecret: !!process.env.ONSHAPE_SECRET_KEY,
+  hasApiKeyLength: process.env.ONSHAPE_ACCESS_KEY?.length || 0,
+  hasSecretKeyLength: process.env.ONSHAPE_SECRET_KEY?.length || 0,
+  hasOAuthClientId: !!config.onshape.clientId,
+  hasOAuthClientSecret: !!config.onshape.clientSecret,
+  authMethod: process.env.ONSHAPE_AUTH_METHOD || 'API_KEY'
+});
+
 // Configure logger based on environment
 if (process.env.NODE_ENV === 'production') {
   logger.logLevel = 'info';
@@ -58,6 +90,9 @@ if (process.env.NODE_ENV === 'development') {
 
 // Initialize Express app
 const app = express();
+
+// Store authManager in app context for middleware access
+app.set('authManager', authManager);
 
 // Add this just after initializing the app
 app.use((req, res, next) => {
@@ -81,9 +116,11 @@ passport.use(
       clientID: config.onshape.clientId,
       clientSecret: config.onshape.clientSecret,
       callbackURL: config.onshape.callbackUrl,
+      scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'
     },
     function (accessToken, refreshToken, profile, done) {
-      console.log('OAuth tokens received:', !!accessToken, !!refreshToken);
+      logger.debug('OAuth tokens received:', !!accessToken, !!refreshToken);
+      
       // Store tokens with the user profile
       return done(null, {
         accessToken,
@@ -104,29 +141,52 @@ passport.deserializeUser((user, done) => {
 
 // Helper to check if user is authenticated
 function isAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
+  // Get the central auth manager
+  const authManager = req.app.get('authManager');
+  
+  // Check auth method and credentials
+  const authMethod = authManager.getMethod();
+  
+  if (authMethod === 'oauth' && req.user && req.user.accessToken) {
+    // Update auth manager with user's OAuth token if needed
+    if (authManager.accessToken !== req.user.accessToken) {
+      authManager.accessToken = req.user.accessToken;
+      authManager.refreshToken = req.user.refreshToken;
+      logger.debug('Updated auth manager with user OAuth tokens');
+    }
+    return next();
+  } else if (authMethod === 'apikey' && authManager.accessKey) {
+    // API key auth is already set up
     return next();
   }
+  
   res.status(401).json({ error: "Authentication required" });
 }
 
 // Create Onshape client for a user
 function createOnshapeClient(req) {
-  // If user is authenticated via OAuth
-  if (req.user && req.user.accessToken) {
-    return new OnshapeClient({
-      authType: 'oauth',
-      oauthToken: req.user.accessToken,
-      unitSystem: "inch",
-      baseUrl: config.onshape.baseUrl,
-    });
+  // Get application's authManager
+  const authManager = req.app.get('authManager');
+  const authMethod = process.env.ONSHAPE_AUTH_METHOD || 'API_KEY';
+  
+  logger.debug(`Using auth method: ${authMethod}`);
+  
+  // Update auth manager based on authentication state
+  if (authMethod === 'OAUTH' && req.user && req.user.accessToken) {
+    // Update with OAuth token
+    authManager.accessToken = req.user.accessToken;
+    authManager.refreshToken = req.user.refreshToken;
+    authManager.setMethod('oauth');
+    logger.debug('Using OAuth token authentication');
+  } else {
+    // Use API key
+    authManager.setMethod('apikey');
+    logger.debug('Using API key authentication');
   }
   
-  // Otherwise use API key authentication from environment
-  return new OnshapeClient({
-    authType: 'api_key',
-    accessKey: process.env.ONSHAPE_ACCESS_KEY,
-    secretKey: process.env.ONSHAPE_SECRET_KEY,
+  // Create client with the application's auth manager instance
+  return onjs.createClient({
+    authManager: authManager,
     unitSystem: "inch",
     baseUrl: config.onshape.baseUrl,
   });
@@ -158,14 +218,25 @@ app.get("/oauth/logout", (req, res) => {
   });
 });
 
-// Document listing API
+// Example route handler for documents API
 app.get('/api/documents', isAuthenticated, async (req, res) => {
   try {
-    const client = createOnshapeClient(req);
-    const documents = await client.listDocuments();
+    // Get the central auth manager
+    const authManager = req.app.get('authManager');
+    
+    // Create client using the central auth manager
+    const client = onjs.createClient({
+      authManager: authManager,
+      unitSystem: "inch",
+      baseUrl: config.onshape.baseUrl,
+    });
+    
+    // Make API request
+    const documents = await client.api.get('/documents');
+    
     res.json(documents);
   } catch (error) {
-    console.error('API error:', error);
+    logger.error('API error:', error);
     res.status(500).json({ error: error.message });
   }
 });
