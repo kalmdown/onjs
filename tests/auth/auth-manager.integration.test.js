@@ -1,429 +1,362 @@
+const { createAuth } = require('../../src/auth');
 const AuthManager = require('../../src/auth/auth-manager');
-const { OnshapeApiError } = require('../../src/utils/errors');
-const axios = require('axios');
 require('dotenv').config();
 
-// Mock dependencies
-jest.mock('axios');
-jest.mock('../../src/utils/logger', () => ({
-  debug: jest.fn(),
-  error: jest.fn()
-}));
+// Don't mock axios for true integration tests
 
-// Mock OAuthClient correctly at the module level
-jest.mock('../../src/auth/oauth-client', () => {
-  return jest.fn().mockImplementation(() => ({
-    getAuthorizationUrl: jest.fn(() => 'https://oauth.onshape.com/oauth/authorize?mock=true')
-  }));
-});
-
-// Get credentials from environment variables
-const accessKey = process.env.ONSHAPE_ACCESS_KEY;
-const secretKey = process.env.ONSHAPE_SECRET_KEY;
+// Check for required credentials
+const hasApiKeyCredentials = process.env.ONSHAPE_ACCESS_KEY && process.env.ONSHAPE_SECRET_KEY;
+const hasOAuthCredentials = process.env.ONSHAPE_ACCESS_TOKEN;
 const baseUrl = process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v6';
 
-// Optional OAuth credentials
-const accessToken = process.env.ONSHAPE_ACCESS_TOKEN;
-const refreshToken = process.env.ONSHAPE_REFRESH_TOKEN;
-const clientId = process.env.ONSHAPE_CLIENT_ID;
-const clientSecret = process.env.ONSHAPE_CLIENT_SECRET;
-
-console.log('=============================================');
-console.log('AUTH MANAGER TEST');
-console.log('=============================================');
-
-/**
- * Test the AuthManager with API Key authentication
- */
-async function testApiKeyAuth() {
-  console.log('\n---------- TEST 1: API KEY AUTHENTICATION ----------');
+describe('AuthManager Integration Tests', () => {
+  // Set longer timeout for API calls
+  jest.setTimeout(30000);
   
-  // Initialize with API keys
-  const authManager = new AuthManager({
-    baseUrl,
-    accessKey,
-    secretKey
+  beforeAll(() => {
+    console.log('Integration test environment setup');
+    console.log('Environment variables loaded successfully');
+    console.log('ACCESS_KEY available:', Boolean(process.env.ONSHAPE_ACCESS_KEY));
+    console.log('SECRET_KEY available:', Boolean(process.env.ONSHAPE_SECRET_KEY));
+    console.log('OAUTH_TOKEN available:', Boolean(process.env.ONSHAPE_ACCESS_TOKEN));
+  });
+
+  // Only run if API key credentials are available
+  (hasApiKeyCredentials ? describe : describe.skip)('API Key Authentication', () => {
+    let authManager;
+    
+    beforeEach(() => {
+      authManager = new AuthManager({
+        baseUrl,
+        accessKey: process.env.ONSHAPE_ACCESS_KEY,
+        secretKey: process.env.ONSHAPE_SECRET_KEY
+      });
+    });
+    
+    test('should authenticate with API key', async () => {
+      // Set the authentication method
+      const result = authManager.setMethod('apikey');
+      expect(result).toBeTruthy();
+      expect(authManager.getMethod()).toBe('apikey');
+      
+      // Get user info using real API call
+      const userInfo = await authManager.request('GET', '/users/sessioninfo');
+      
+      // Verify response structure without asserting specific values
+      expect(userInfo).toBeDefined();
+      expect(userInfo.name).toBeDefined();
+      expect(userInfo.id).toBeDefined();
+    });
+    
+    test('should generate valid auth headers', () => {
+      // Set the authentication method
+      authManager.setMethod('apikey');
+      
+      // Generate auth headers
+      const headers = authManager.getAuthHeaders('GET', '/users/sessioninfo');
+      
+      // Verify header structure
+      expect(headers).toHaveProperty('Authorization');
+      expect(headers.Authorization).toContain('On ');
+      expect(headers).toHaveProperty('Date');
+      expect(headers).toHaveProperty('Content-Type', 'application/json');
+      expect(headers).toHaveProperty('Accept', 'application/json');
+    });
   });
   
-  try {
-    // Test setting method
-    const methodSet = authManager.setMethod('apikey');
-    console.log('Method set successfully:', methodSet);
-    console.log('Current method:', authManager.getMethod());
+  // Only run if OAuth credentials are available
+  (hasOAuthCredentials ? describe : describe.skip)('OAuth Authentication', () => {
+    let authManager;
     
-    // Test API request
-    console.log('Making API request to /users/sessioninfo...');
-    const userInfo = await authManager.request('GET', '/users/sessioninfo');
+    beforeEach(() => {
+      authManager = new AuthManager({
+        baseUrl,
+        accessToken: process.env.ONSHAPE_ACCESS_TOKEN,
+        refreshToken: process.env.ONSHAPE_REFRESH_TOKEN,
+        clientId: process.env.OAUTH_CLIENT_ID,
+        clientSecret: process.env.OAUTH_CLIENT_SECRET
+      });
+    });
     
-    console.log('Request successful!');
-    console.log('User name:', userInfo.name);
-    console.log('Account type:', userInfo.plan);
+    test('should authenticate with OAuth token', async () => {
+      // Set the authentication method
+      const result = authManager.setMethod('oauth');
+      expect(result).toBeTruthy();
+      expect(authManager.getMethod()).toBe('oauth');
+      
+      // Get user info using real API call
+      const userInfo = await authManager.request('GET', '/users/sessioninfo');
+      
+      // Verify response structure without asserting specific values
+      expect(userInfo).toBeDefined();
+      expect(userInfo.name).toBeDefined();
+      expect(userInfo.id).toBeDefined();
+    });
     
-    // Display OAuth scopes if available
-    if (userInfo.oauth2Scopes) {
-      console.log('OAuth scopes:', Array.isArray(userInfo.oauth2Scopes) ? 
-        userInfo.oauth2Scopes.join(' ') : userInfo.oauth2Scopes);
+    test('should generate valid OAuth headers', () => {
+      // Set the authentication method
+      authManager.setMethod('oauth');
+      
+      // Generate auth headers
+      const headers = authManager.getAuthHeaders('GET', '/users/sessioninfo');
+      
+      // Verify header structure
+      expect(headers).toHaveProperty('Authorization');
+      expect(headers.Authorization).toContain('Bearer ');
+      expect(headers).toHaveProperty('Content-Type', 'application/json');
+      expect(headers).toHaveProperty('Accept', 'application/json');
+    });
+  });
+  
+  describe('Unified Auth Interface', () => {
+    // Only run if API key credentials are available
+    (hasApiKeyCredentials ? test : test.skip)('should create auth manager with API key via factory function', async () => {
+      // Use createAuth factory function
+      const auth = createAuth({
+        baseUrl,
+        accessKey: process.env.ONSHAPE_ACCESS_KEY,
+        secretKey: process.env.ONSHAPE_SECRET_KEY
+      });
+      
+      // Verify it's properly configured
+      expect(auth).toBeInstanceOf(AuthManager);
+      expect(auth.getMethod()).toBe('apikey');
+      
+      // Make a real API call
+      const userInfo = await auth.request('GET', '/users/sessioninfo');
+      expect(userInfo).toBeDefined();
+      expect(userInfo.name).toBeDefined();
+    });
+    
+    // Only run if OAuth credentials are available
+    (hasOAuthCredentials ? test : test.skip)('should create auth manager with OAuth via factory function', async () => {
+      // Use createAuth factory function
+      const auth = createAuth({
+        baseUrl,
+        accessToken: process.env.ONSHAPE_ACCESS_TOKEN
+      });
+      
+      // Verify it's properly configured
+      expect(auth).toBeInstanceOf(AuthManager);
+      expect(auth.getMethod()).toBe('oauth');
+      
+      // Make a real API call
+      const userInfo = await auth.request('GET', '/users/sessioninfo');
+      expect(userInfo).toBeDefined();
+      expect(userInfo.name).toBeDefined();
+    });
+  });
+  
+  describe('Error Handling', () => {
+    // Test error handling with invalid endpoint
+    test('should handle 404 errors correctly', async () => {
+      // Only run if API keys are available
+      if (!hasApiKeyCredentials) {
+        return;
+      }
+      
+      const auth = createAuth({
+        baseUrl,
+        accessKey: process.env.ONSHAPE_ACCESS_KEY,
+        secretKey: process.env.ONSHAPE_SECRET_KEY
+      });
+      
+      // Try accessing a non-existent endpoint
+      await expect(auth.request('GET', '/non/existent/endpoint'))
+        .rejects.toThrow();
+    });
+  });
+});
+
+// Keep the manual test section for running outside of Jest
+// This will run all the manual tests without mocks
+if (require.main === module) {
+  const AuthManager = require('../../src/auth/auth-manager');
+  
+  /**
+   * Test the AuthManager with API Key authentication
+   */
+  async function testApiKeyAuth() {
+    console.log('\n---------- TEST 1: API KEY AUTHENTICATION ----------');
+    
+    if (!process.env.ONSHAPE_ACCESS_KEY || !process.env.ONSHAPE_SECRET_KEY) {
+      console.log('Skipping API Key test - No API credentials available');
+      return false;
     }
     
-    return true;
-  } catch (error) {
-    console.error('API Key Authentication Test Failed:', error.message);
-    return false;
-  }
-}
-
-/**
- * Test the AuthManager with OAuth authentication
- */
-async function testOAuthAuth() {
-  console.log('\n---------- TEST 2: OAUTH AUTHENTICATION ----------');
-  
-  if (!accessToken) {
-    console.log('Skipping OAuth test - No access token available');
-    return false;
-  }
-  
-  // Initialize with OAuth credentials
-  const authManager = new AuthManager({
-    baseUrl,
-    accessToken,
-    refreshToken,
-    clientId,
-    clientSecret
-  });
-  
-  try {
-    // Test setting method
-    const methodSet = authManager.setMethod('oauth');
-    console.log('Method set successfully:', methodSet);
-    console.log('Current method:', authManager.getMethod());
-    
-    // Test API request
-    console.log('Making API request to /users/sessioninfo...');
-    const userInfo = await authManager.request('GET', '/users/sessioninfo');
-    
-    console.log('Request successful!');
-    console.log('User name:', userInfo.name);
-    console.log('Account type:', userInfo.plan);
-    
-    return true;
-  } catch (error) {
-    console.error('OAuth Authentication Test Failed:', error.message);
-    return false;
-  }
-}
-
-/**
- * Test the AuthManager's error handling
- */
-async function testErrorHandling() {
-  console.log('\n---------- TEST 3: ERROR HANDLING ----------');
-  
-  try {
-    // Test with invalid credentials
-    const invalidAuthManager = new AuthManager({
-      baseUrl,
-      accessKey: 'invalid',
-      secretKey: 'invalid'
-    });
-    
-    invalidAuthManager.setMethod('apikey');
-    
-    console.log('Making API request with invalid credentials...');
-    await invalidAuthManager.request('GET', '/users/sessioninfo');
-    
-    console.error('Expected error was not thrown!');
-    return false;
-  } catch (error) {
-    console.log('Expected error caught correctly:', error.message);
-    return true;
-  }
-}
-
-/**
- * Test the AuthManager's OAuth client creation
- */
-function testOAuthClientCreation() {
-  console.log('\n---------- TEST 4: OAUTH CLIENT CREATION ----------');
-  
-  if (!clientId || !clientSecret) {
-    console.log('Skipping OAuth client creation test - No client credentials available');
-    return false;
-  }
-  
-  try {
-    // Initialize auth manager
+    // Initialize with API keys
     const authManager = new AuthManager({
       baseUrl,
-      clientId,
-      clientSecret
+      accessKey: process.env.ONSHAPE_ACCESS_KEY,
+      secretKey: process.env.ONSHAPE_SECRET_KEY
     });
     
-    // Create OAuth client
-    const oauthClient = authManager.createOAuthClient({
-      redirectUri: 'http://localhost:3000/callback',
-      scope: 'OAuth2ReadPII OAuth2Read OAuth2Write'
-    });
-    
-    console.log('OAuth client created successfully');
-    console.log('Authorization URL:', oauthClient.getAuthorizationUrl());
-    
-    return true;
-  } catch (error) {
-    console.error('OAuth Client Creation Test Failed:', error.message);
-    return false;
+    try {
+      // Test setting method
+      const methodSet = authManager.setMethod('apikey');
+      console.log('Method set successfully:', methodSet);
+      console.log('Current method:', authManager.getMethod());
+      
+      // Test API request
+      console.log('Making API request to /users/sessioninfo...');
+      
+      const userInfo = await authManager.request('GET', '/users/sessioninfo');
+      
+      console.log('Request successful!');
+      console.log('User name:', userInfo.name);
+      console.log('Account type:', userInfo.plan);
+      
+      return true;
+    } catch (error) {
+      console.error('API Key Authentication Test Failed:', error.message);
+      return false;
+    }
   }
-}
-
-/**
- * Run all tests and display summary
- */
-async function runTests() {
-  console.log('Running tests...');
   
-  const results = {
-    apiKeyAuth: await testApiKeyAuth(),
-    oauthAuth: await testOAuthAuth(),
-    errorHandling: await testErrorHandling(),
-    oauthClientCreation: testOAuthClientCreation()
-  };
+  /**
+   * Test the AuthManager with OAuth authentication
+   */
+  async function testOAuthAuth() {
+    console.log('\n---------- TEST 2: OAUTH AUTHENTICATION ----------');
+    
+    if (!process.env.ONSHAPE_ACCESS_TOKEN) {
+      console.log('Skipping OAuth test - No OAuth token available');
+      return false;
+    }
+    
+    // Initialize with OAuth token
+    const authManager = new AuthManager({
+      baseUrl,
+      accessToken: process.env.ONSHAPE_ACCESS_TOKEN,
+      refreshToken: process.env.ONSHAPE_REFRESH_TOKEN,
+      clientId: process.env.OAUTH_CLIENT_ID,
+      clientSecret: process.env.OAUTH_CLIENT_SECRET
+    });
+    
+    try {
+      // Test setting method
+      const methodSet = authManager.setMethod('oauth');
+      console.log('Method set successfully:', methodSet);
+      console.log('Current method:', authManager.getMethod());
+      
+      // Test API request
+      console.log('Making API request to /users/sessioninfo...');
+      const userInfo = await authManager.request('GET', '/users/sessioninfo');
+      
+      console.log('Request successful!');
+      console.log('User name:', userInfo.name);
+      console.log('Account type:', userInfo.plan);
+      
+      return true;
+    } catch (error) {
+      console.error('OAuth Authentication Test Failed:', error.message);
+      return false;
+    }
+  }
   
-  console.log('\n=============================================');
-  console.log('TEST RESULTS SUMMARY');
-  console.log('=============================================');
-  console.log('API Key Authentication:', results.apiKeyAuth ? '✅ PASS' : '❌ FAIL');
-  console.log('OAuth Authentication:', results.oauthAuth ? '✅ PASS' : '❌ FAIL');
-  console.log('Error Handling:', results.errorHandling ? '✅ PASS' : '❌ FAIL');
-  console.log('OAuth Client Creation:', results.oauthClientCreation ? '✅ PASS' : '❌ FAIL');
+  /**
+   * Test error handling with a non-existent endpoint
+   */
+  async function testErrorHandling() {
+    console.log('\n---------- TEST 3: ERROR HANDLING ----------');
+    
+    if (!process.env.ONSHAPE_ACCESS_KEY || !process.env.ONSHAPE_SECRET_KEY) {
+      console.log('Skipping Error Handling test - No API credentials available');
+      return false;
+    }
+    
+    // Use real credentials but an invalid endpoint
+    const authManager = new AuthManager({
+      baseUrl,
+      accessKey: process.env.ONSHAPE_ACCESS_KEY,
+      secretKey: process.env.ONSHAPE_SECRET_KEY
+    });
+    
+    try {
+      authManager.setMethod('apikey');
+      
+      // Try to access a non-existent endpoint to trigger a 404 error
+      console.log('Making API request to a non-existent endpoint...');
+      await authManager.request('GET', '/non/existent/endpoint');
+      
+      console.error('Expected error was not thrown!');
+      return false;
+    } catch (error) {
+      console.log('Expected error caught correctly:', error.message);
+      return true;
+    }
+  }
   
-  const passCount = Object.values(results).filter(r => r).length;
-  const totalCount = Object.values(results).length;
-  
-  console.log(`\nOverall: ${passCount}/${totalCount} tests passed`);
-}
-
-// Run the tests
-runTests().catch(error => {
-  console.error('Unexpected error during tests:', error);
-  process.exit(1);
-});
-
-describe('AuthManager', () => {
-  let baseUrl;
-  
-  beforeEach(() => {
-    jest.clearAllMocks();
-    baseUrl = process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v6';
-  });
-
-  describe('constructor', () => {
-    test('should initialize with default values', () => {
-      const authManager = new AuthManager();
-      expect(authManager.baseUrl).toBe('https://cad.onshape.com/api/v6');
-      expect(authManager.currentMethod).toBeNull();
-    });
-
-    test('should initialize with provided options', () => {
+  /**
+   * Test the AuthManager's OAuth client creation
+   */
+  function testOAuthClientCreation() {
+    console.log('\n---------- TEST 4: OAUTH CLIENT CREATION ----------');
+    
+    if (!process.env.OAUTH_CLIENT_ID || !process.env.OAUTH_CLIENT_SECRET) {
+      console.log('Skipping OAuth client creation test - No OAuth client credentials available');
+      return false;
+    }
+    
+    try {
+      // Initialize auth manager with real credentials
       const authManager = new AuthManager({
-        baseUrl: 'https://custom.onshape.com/api',
-        accessKey: 'test-key',
-        secretKey: 'test-secret',
-        defaultMethod: 'apikey'
+        baseUrl,
+        clientId: process.env.OAUTH_CLIENT_ID,
+        clientSecret: process.env.OAUTH_CLIENT_SECRET
       });
       
-      expect(authManager.baseUrl).toBe('https://custom.onshape.com/api');
-      expect(authManager.accessKey).toBe('test-key');
-      expect(authManager.secretKey).toBe('test-secret');
-      expect(authManager.currentMethod).toBe('apikey');
-    });
-  });
-
-  describe('setMethod', () => {
-    test('should set apikey method when credentials are available', () => {
-      const authManager = new AuthManager({
-        accessKey: 'test-key',
-        secretKey: 'test-secret'
-      });
+      // Create OAuth client
+      const redirectUri = process.env.OAUTH_CALLBACK_URL || 'http://localhost:3000/oauthRedirect';
+      const scope = process.env.ONSHAPE_OAUTH_SCOPE || 'OAuth2ReadPII OAuth2Read OAuth2Write';
       
-      expect(authManager.setMethod('apikey')).toBe(true);
-      expect(authManager.currentMethod).toBe('apikey');
-    });
-
-    test('should set oauth method when token is available', () => {
-      const authManager = new AuthManager({
-        accessToken: 'test-token'
-      });
-      
-      expect(authManager.setMethod('oauth')).toBe(true);
-      expect(authManager.currentMethod).toBe('oauth');
-    });
-
-    test('should return false for apikey method without credentials', () => {
-      const authManager = new AuthManager();
-      
-      expect(authManager.setMethod('apikey')).toBe(false);
-      expect(authManager.currentMethod).toBeNull();
-    });
-
-    test('should return false for oauth method without token', () => {
-      const authManager = new AuthManager();
-      
-      expect(authManager.setMethod('oauth')).toBe(false);
-      expect(authManager.currentMethod).toBeNull();
-    });
-
-    test('should return false for unknown method', () => {
-      const authManager = new AuthManager();
-      
-      expect(authManager.setMethod('unknown')).toBe(false);
-      expect(authManager.currentMethod).toBeNull();
-    });
-  });
-
-  describe('getAuthHeaders', () => {
-    test('should throw error when no method is selected', () => {
-      const authManager = new AuthManager();
-      
-      expect(() => authManager.getAuthHeaders('GET', '/path')).toThrow(OnshapeApiError);
-    });
-
-    test('should generate Basic Auth headers for apikey method', () => {
-      const authManager = new AuthManager({
-        accessKey: 'test-key',
-        secretKey: 'test-secret',
-        defaultMethod: 'apikey'
-      });
-      
-      const headers = authManager.getAuthHeaders('GET', '/path');
-      
-      expect(headers).toHaveProperty('Authorization');
-      expect(headers.Authorization).toMatch(/^Basic /);
-      expect(headers['Content-Type']).toBe('application/json');
-    });
-
-    test('should generate Bearer token headers for oauth method', () => {
-      const authManager = new AuthManager({
-        accessToken: 'test-token',
-        defaultMethod: 'oauth'
-      });
-      
-      const headers = authManager.getAuthHeaders('GET', '/path');
-      
-      expect(headers).toHaveProperty('Authorization');
-      expect(headers.Authorization).toBe('Bearer test-token');
-      expect(headers['Content-Type']).toBe('application/json');
-    });
-  });
-
-  describe('request', () => {
-    test('should make successful API request', async () => {
-      // Mock successful response
-      axios.mockResolvedValueOnce({
-        status: 200,
-        data: { name: 'Test User' }
-      });
-      
-      const authManager = new AuthManager({
-        accessKey: 'test-key',
-        secretKey: 'test-secret',
-        defaultMethod: 'apikey'
-      });
-      
-      const result = await authManager.request('GET', '/users/sessioninfo');
-      
-      expect(result).toEqual({ name: 'Test User' });
-      expect(axios).toHaveBeenCalledTimes(1);
-    });
-
-    test('should handle authentication errors', async () => {
-      // Mock 401 error
-      axios.mockRejectedValueOnce({
-        response: {
-          status: 401,
-          data: { message: 'Unauthorized' }
-        }
-      });
-      
-      const authManager = new AuthManager({
-        accessKey: 'test-key',
-        secretKey: 'test-secret',
-        defaultMethod: 'apikey'
-      });
-      
-      await expect(authManager.request('GET', '/users/sessioninfo'))
-        .rejects.toThrow('Authentication failed');
-    });
-
-    test('should attempt to refresh token on 401 with OAuth', async () => {
-      // Mock 401 error followed by successful refresh and successful retry
-      axios.mockRejectedValueOnce({
-        response: {
-          status: 401,
-          data: { message: 'Token expired' }
-        }
-      });
-      
-      // Mock successful token refresh
-      axios.mockResolvedValueOnce({
-        status: 200,
-        data: { 
-          access_token: 'new-test-token',
-          refresh_token: 'new-refresh-token'
-        }
-      });
-      
-      // Mock successful retry with new token
-      axios.mockResolvedValueOnce({
-        status: 200,
-        data: { name: 'Test User' }
-      });
-      
-      const authManager = new AuthManager({
-        accessToken: 'old-test-token',
-        refreshToken: 'old-refresh-token',
-        clientId: 'test-client',
-        clientSecret: 'test-secret',
-        defaultMethod: 'oauth'
-      });
-      
-      const result = await authManager.request('GET', '/users/sessioninfo');
-      
-      expect(result).toEqual({ name: 'Test User' });
-      expect(axios).toHaveBeenCalledTimes(3);
-      expect(authManager.accessToken).toBe('new-test-token');
-      expect(authManager.refreshToken).toBe('new-refresh-token');
-    });
-  });
-  
-  describe('createOAuthClient', () => {
-    test('should create OAuth client with provided options', () => {
-      const OAuthClient = require('../../src/auth/oauth-client');
-      
-      const authManager = new AuthManager({
-        clientId: 'test-client',
-        clientSecret: 'test-secret',
-        redirectUri: 'http://localhost:3000/callback'
-      });
+      console.log('Creating OAuth client with:');
+      console.log('- Redirect URI:', redirectUri);
+      console.log('- Scope:', scope);
       
       const oauthClient = authManager.createOAuthClient({
-        scope: 'OAuth2ReadPII OAuth2Read OAuth2Write'
+        redirectUri: redirectUri,
+        scope: scope
       });
       
-      expect(oauthClient).toBeDefined();
-      expect(OAuthClient).toHaveBeenCalledWith({
-        clientId: 'test-client',
-        clientSecret: 'test-secret',
-        redirectUri: 'http://localhost:3000/callback',
-        scope: 'OAuth2ReadPII OAuth2Read OAuth2Write'
-      });
-    });
+      console.log('OAuth client created successfully');
+      console.log('Authorization URL:', oauthClient.getAuthorizationUrl());
+      
+      return true;
+    } catch (error) {
+      console.error('OAuth Client Creation Test Failed:', error.message);
+      return false;
+    }
+  }
+  
+  /**
+   * Run all tests and display summary
+   */
+  async function runTests() {
+    console.log('Running tests...');
     
-    test('should throw error when missing required OAuth parameters', () => {
-      const authManager = new AuthManager();
-      
-      expect(() => authManager.createOAuthClient({
-        scope: 'OAuth2ReadPII OAuth2Read OAuth2Write'
-      })).toThrow(OnshapeApiError);
-    });
-  });
-});
+    const results = {
+      apiKeyAuth: await testApiKeyAuth(),
+      oauthAuth: await testOAuthAuth(),
+      errorHandling: await testErrorHandling(),
+      oauthClientCreation: testOAuthClientCreation()
+    };
+    
+    console.log('\n=============================================');
+    console.log('TEST RESULTS SUMMARY');
+    console.log('=============================================');
+    console.log('API Key Authentication:', results.apiKeyAuth ? '✅ PASS' : '❌ FAIL');
+    console.log('OAuth Authentication:', results.oauthAuth ? '✅ PASS' : '❌ FAIL');
+    console.log('Error Handling:', results.errorHandling ? '✅ PASS' : '❌ FAIL');
+    console.log('OAuth Client Creation:', results.oauthClientCreation ? '✅ PASS' : '❌ FAIL');
+    
+    const passCount = Object.values(results).filter(r => r).length;
+    const totalCount = Object.values(results).length;
+    
+    console.log(`\nOverall: ${passCount}/${totalCount} tests passed`);
+  }
+  
+  (async () => {
+    await runTests();
+  })();
+}

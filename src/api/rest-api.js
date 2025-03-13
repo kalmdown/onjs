@@ -1,6 +1,6 @@
 // src\api\rest-api.js
 const axios = require('axios');
-const AuthManager = require('../auth/auth-manager');
+const { createAuth } = require('../auth');
 const logger = require('../utils/logger');
 
 class RestApi {
@@ -19,7 +19,7 @@ class RestApi {
     if (options.authManager) {
       this.auth = options.authManager;
     } else {
-      this.auth = new AuthManager({
+      this.auth = createAuth({
         authType: options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key',
         accessKey: options.accessKey || process.env.ONSHAPE_ACCESS_KEY,
         secretKey: options.secretKey || process.env.ONSHAPE_SECRET_KEY,
