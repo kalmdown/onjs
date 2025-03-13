@@ -11,177 +11,249 @@ const logger = require('../utils/logger');
  */
 class AuthManager {
   /**
-   * Create a new authentication manager
-   * @param {Object} options - Auth options
-   * @param {string} options.authType - Authentication type ('api_key' or 'oauth')
-   * @param {string} options.accessKey - API access key (for api_key auth)
-   * @param {string} options.secretKey - API secret key (for api_key auth)
-   * @param {string} options.oauthToken - OAuth token (for oauth auth)
+   * Create a new AuthManager
+   * @param {Object} options - Configuration options
+   * @param {string} options.baseUrl - The base URL for Onshape API
+   * @param {string} [options.accessKey] - The access key for API Key authentication
+   * @param {string} [options.secretKey] - The secret key for API Key authentication
+   * @param {string} [options.accessToken] - The access token for OAuth authentication
+   * @param {string} [options.refreshToken] - The refresh token for OAuth authentication
+   * @param {string} [options.clientId] - The OAuth client ID
+   * @param {string} [options.clientSecret] - The OAuth client secret
+   * @param {string} [options.redirectUri] - The OAuth redirect URI
+   * @param {string} [options.defaultMethod='apikey'] - The default authentication method ('apikey', 'oauth')
    */
-  constructor(options) {
-    // Use environment variables as fallback if options not provided
-    this.authType = (options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key').toLowerCase();
-    this.accessKey = options.accessKey || process.env.ONSHAPE_ACCESS_KEY;
-    this.secretKey = options.secretKey || process.env.ONSHAPE_SECRET_KEY;
-    this.oauthToken = options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN;
-    this.logger = logger.scope('AuthManager');
+  constructor(options = {}) {
+    this.baseUrl = options.baseUrl || 'https://cad.onshape.com/api/v6';
+    this.accessKey = options.accessKey;
+    this.secretKey = options.secretKey;
     
-    // Validate based on auth type
-    if (this.authType === 'api_key' && (!this.accessKey || !this.secretKey)) {
-      throw new Error('API key authentication requires both accessKey and secretKey');
+    // OAuth credentials
+    this.accessToken = options.accessToken;
+    this.refreshToken = options.refreshToken;
+    this.clientId = options.clientId;
+    this.clientSecret = options.clientSecret;
+    this.redirectUri = options.redirectUri;
+    
+    // Current authentication method
+    this.currentMethod = null;
+    
+    // Initialize with default method if provided
+    if (options.defaultMethod) {
+      this.setMethod(options.defaultMethod);
     }
-    
-    if (this.authType === 'oauth' && !this.oauthToken) {
-      throw new Error('OAuth authentication requires an oauthToken');
-    }
-    
-    this.logger.info(`Authentication manager initialized with ${this.authType} authentication`);
   }
   
   /**
-   * Generate a cryptographically secure random nonce
-   * @private
-   * @returns {string} Base64-encoded nonce
+   * Set the current authentication method
+   * @param {string} method - The authentication method ('apikey', 'oauth')
+   * @returns {boolean} - True if method was set successfully
    */
-  _generateNonce() {
-    const crypto = require('crypto');
-    return crypto.randomBytes(16).toString('base64');
-  }
-
-  /**
-   * Build a sorted, encoded query string from parameters
-   * @private
-   * @param {Object} params - Query parameters
-   * @returns {string} Encoded query string
-   */
-  _buildQueryString(params = {}) {
-    if (!params || Object.keys(params).length === 0) {
-      return '';
-    }
+  setMethod(method) {
+    method = method.toLowerCase();
     
-    // Debug logging for query params
-    this.logger.debug('[AuthManager] Building query string from params:', JSON.stringify(params, null, 2));
-    
-    // Convert all parameters to strings and handle special cases
-    const stringParams = {};
-    Object.keys(params).forEach(key => {
-      // Convert null/undefined to empty string, boolean to actual string 'true'/'false'
-      if (params[key] === null || params[key] === undefined) {
-        stringParams[key] = '';
-      } else if (typeof params[key] === 'boolean') {
-        stringParams[key] = params[key].toString();
-      } else {
-        stringParams[key] = String(params[key]);
+    if (method === 'apikey' || method === 'basic') {
+      if (!this.accessKey || !this.secretKey) {
+        logger.error('API key authentication requires accessKey and secretKey');
+        return false;
       }
-    });
-    
-    // Sort parameters by key (required by Onshape)
-    return Object.keys(stringParams)
-      .sort()
-      .map(key => {
-        return `${encodeURIComponent(key)}=${encodeURIComponent(stringParams[key])}`;
-      })
-      .join('&');
-  }
-
-  /**
-   * Get authentication headers for a request
-   * @param {string} method - HTTP method
-   * @param {string} path - API path
-   * @param {Object} queryParams - Query parameters
-   * @param {string} body - Request body
-   * @returns {Object} Headers object with authentication
-   */
-  getAuthHeaders(method, path, queryParams = {}, body = null) {
-    if (this.authType === 'oauth') {
-      // OAuth authentication - just return the token
-      return {
-        'Authorization': `Bearer ${this.oauthToken}`
-      };
-    } else {
-      // API key authentication - use the official format
-      return this._getApiKeyHeaders(method, path, queryParams, body);
+      
+      this.currentMethod = 'apikey';
+      return true;
+    } 
+    else if (method === 'oauth' || method === 'oauth2') {
+      if (!this.accessToken) {
+        logger.error('OAuth authentication requires accessToken');
+        return false;
+      }
+      
+      this.currentMethod = 'oauth';
+      return true;
     }
+    
+    logger.error(`Unknown authentication method: ${method}`);
+    return false;
   }
-
+  
   /**
-   * Get OAuth authentication headers
-   * @returns {Object} OAuth headers
+   * Get the current authentication method
+   * @returns {string} - The current authentication method
+   */
+  getMethod() {
+    return this.currentMethod;
+  }
+  
+  /**
+   * Generate authentication headers based on the current method
+   * @param {string} method - The HTTP method (GET, POST, etc.)
+   * @param {string} path - The API endpoint path
+   * @param {Object} [queryParams={}] - Query parameters
+   * @returns {Object} - Headers object
+   */
+  getAuthHeaders(method, path, queryParams = {}) {
+    if (!this.currentMethod) {
+      throw new OnshapeApiError('No authentication method selected');
+    }
+    
+    if (this.currentMethod === 'apikey') {
+      return this.getApiKeyHeaders(method, path, queryParams);
+    } else if (this.currentMethod === 'oauth') {
+      return this.getOAuthHeaders();
+    }
+    
+    throw new OnshapeApiError(`Unknown authentication method: ${this.currentMethod}`);
+  }
+  
+  /**
+   * Generate API key authentication headers
+   * @param {string} method - The HTTP method (GET, POST, etc.)
+   * @param {string} path - The API endpoint path
+   * @param {Object} [queryParams={}] - Query parameters
+   * @returns {Object} - Headers object
    * @private
    */
-  _getOAuthHeaders() {
+  getApiKeyHeaders(method, path, queryParams = {}) {
+    // Create base64 encoded credentials for Basic Auth
+    const credentials = Buffer.from(`${this.accessKey}:${this.secretKey}`).toString('base64');
+    
+    // Return headers with Basic authentication
     return {
-      'Authorization': `Bearer ${this.oauthToken}`,
-      'Content-Type': 'application/json'
+      'Authorization': `Basic ${credentials}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     };
   }
   
   /**
-   * Get API key authentication headers
-   * Following format from official Onshape JavaScript client
-   * @param {string} method - HTTP method
-   * @param {string} path - API path
-   * @param {Object} queryParams - Query parameters
-   * @param {string} body - Request body
-   * @returns {Object} API key headers
+   * Generate OAuth authentication headers
+   * @returns {Object} - Headers object
    * @private
    */
-  _getApiKeyHeaders(method, path, queryParams = {}, body = '') {
-    // Ensure path starts with /
-    const pathname = path.startsWith('/') ? path : `/${path}`;
-    
-    // Current date in RFC format
-    const date = new Date().toUTCString();
-    
-    // Generate nonce
-    const nonce = this._generateNonce();
-    
-    // Content type - always application/json for our API
-    const contentType = 'application/json';
-
-    // Build query string - must be sorted alphabetically
-    const queryString = this._buildQueryString(queryParams);
-
-    // Complete path with query string
-    const fullPath = pathname + (queryString ? `?${queryString}` : '');
-
-    // Calculate MD5 hash for body if present
-    let contentMd5 = '';
-    if (body && body.length > 0) {
-      contentMd5 = crypto.createHash('md5').update(body).digest('base64');
-    }
-
-    // String to sign precisely as specified by Onshape API docs
-    // This is the critical fix: format must be exact
-    const hmacString = [
-      method.toUpperCase(),
-      contentMd5,
-      contentType,
-      date,
-      nonce,
-      fullPath
-    ].join('\n');
-
-    // Generate HMAC signature
-    const signature = crypto.createHmac('sha256', this.secretKey)
-      .update(hmacString)
-      .digest('base64');
-
-    // Build headers object
-    const headers = {
-      'Content-Type': contentType,
-      'Accept': 'application/json',
-      'Date': date,
-      'On-Nonce': nonce,
-      'Authorization': `On ${this.accessKey}:${signature}`
+  getOAuthHeaders() {
+    return {
+      'Authorization': `Bearer ${this.accessToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     };
-
-    // Add MD5 hash if body is present
-    if (contentMd5) {
-      headers['Content-MD5'] = contentMd5;
+  }
+  
+  /**
+   * Make an authenticated request to the Onshape API
+   * @param {string} method - The HTTP method (GET, POST, etc.)
+   * @param {string} path - The API endpoint path
+   * @param {Object} [data=null] - Request body
+   * @param {Object} [queryParams={}] - Query parameters
+   * @param {Object} [options={}] - Additional options
+   * @returns {Promise<Object>} - The response data
+   */
+  async request(method, path, data = null, queryParams = {}, options = {}) {
+    try {
+      const headers = this.getAuthHeaders(method, path, queryParams);
+      const url = `${this.baseUrl}${path}`;
+      
+      logger.debug(`${method} ${url}`);
+      if (data) logger.debug('Request data:', data);
+      
+      const response = await axios({
+        method,
+        url,
+        headers,
+        params: queryParams,
+        data,
+        validateStatus: status => status >= 200 && status < 300,
+        ...options
+      });
+      
+      return response.data;
+    } catch (error) {
+      const statusCode = error.response?.status;
+      const message = error.response?.data?.message || error.message;
+      
+      logger.error(`API request failed: ${statusCode} - ${message}`);
+      
+      // Handle auth-specific errors
+      if (statusCode === 401) {
+        if (this.currentMethod === 'oauth' && this.refreshToken) {
+          // Try to refresh token
+          try {
+            await this.refreshOAuthToken();
+            // Retry the original request
+            return this.request(method, path, data, queryParams, options);
+          } catch (refreshError) {
+            throw new OnshapeApiError('Authentication failed and token refresh failed', 401);
+          }
+        }
+        throw new OnshapeApiError('Authentication failed', 401);
+      }
+      
+      throw new OnshapeApiError(`API error: ${message}`, statusCode || 500);
     }
-
-    return headers;
+  }
+  
+  /**
+   * Refresh the OAuth access token using the refresh token
+   * @returns {Promise<void>}
+   * @private
+   */
+  async refreshOAuthToken() {
+    if (!this.refreshToken || !this.clientId || !this.clientSecret) {
+      throw new OnshapeApiError('Cannot refresh token: missing refresh token, client ID, or client secret');
+    }
+    
+    try {
+      const tokenResponse = await axios({
+        method: 'POST',
+        url: 'https://oauth.onshape.com/oauth/token',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        auth: {
+          username: this.clientId,
+          password: this.clientSecret
+        },
+        data: new URLSearchParams({
+          'grant_type': 'refresh_token',
+          'refresh_token': this.refreshToken
+        }).toString()
+      });
+      
+      this.accessToken = tokenResponse.data.access_token;
+      
+      // Update refresh token if provided
+      if (tokenResponse.data.refresh_token) {
+        this.refreshToken = tokenResponse.data.refresh_token;
+      }
+      
+      logger.debug('OAuth token refreshed successfully');
+    } catch (error) {
+      logger.error('Failed to refresh OAuth token:', error.message);
+      throw new OnshapeApiError('Failed to refresh OAuth token', 401);
+    }
+  }
+  
+  /**
+   * Create and initialize OAuth client for web authentication flow
+   * @param {Object} options - OAuth client options
+   * @param {string} options.clientId - The OAuth client ID
+   * @param {string} options.clientSecret - The OAuth client secret
+   * @param {string} options.redirectUri - The OAuth redirect URI
+   * @param {string} [options.scope='OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'] - OAuth scopes
+   * @returns {OAuthClient} - Initialized OAuth client
+   */
+  createOAuthClient(options) {
+    const clientOptions = {
+      clientId: options.clientId || this.clientId,
+      clientSecret: options.clientSecret || this.clientSecret,
+      redirectUri: options.redirectUri || this.redirectUri,
+      scope: options.scope || 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'
+    };
+    
+    if (!clientOptions.clientId || !clientOptions.clientSecret || !clientOptions.redirectUri) {
+      throw new OnshapeApiError('OAuth client requires clientId, clientSecret, and redirectUri');
+    }
+    
+    const oauthClient = new OAuthClient(clientOptions);
+    return oauthClient;
   }
 }
 
