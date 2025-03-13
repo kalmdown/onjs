@@ -8,85 +8,141 @@ const logger = require('../utils/logger');
 
 class SimpleRestApi {
   /**
-   * Create a SimpleRestApi client
-   * @param {Object} options - API client options
-   * @param {AuthManager} options.authManager - Auth manager instance
-   * @param {string} options.authType - Auth type (api_key or oauth)
-   * @param {string} options.accessKey - API key access key
-   * @param {string} options.secretKey - API key secret key
-   * @param {string} options.oauthToken - OAuth token
-   * @param {string} options.baseUrl - API base URL
+   * Constructor for SimpleRestApi
+   * @param {Object} options - Configuration options
+   * @param {string} options.authType - Authentication type ('oauth' or 'api_key')
+   * @param {string} options.accessKey - API access key (for API key auth)
+   * @param {string} options.secretKey - API secret key (for API key auth)
+   * @param {string} options.oauthToken - OAuth token (for OAuth auth)
+   * @param {string} options.baseUrl - Base URL for the API
+   * @param {boolean} options.debug - Enable debug mode
    */
-  constructor(options) {
-    // Support direct auth keys or auth manager
-    if (options.authManager) {
-      this.auth = options.authManager;
-    } else {
-      this.auth = new AuthManager({
-        authType: options.authType || 'api_key',
-        accessKey: options.accessKey,
-        secretKey: options.secretKey,
-        oauthToken: options.oauthToken
-      });
-    }
-    
-    this.baseUrl = options.baseUrl || 'https://cad.onshape.com/api';
-    
-    // Remove trailing slash if present
-    if (this.baseUrl.endsWith('/')) {
-      this.baseUrl = this.baseUrl.slice(0, -1);
-    }
-    
-    // Set debug mode
+  constructor(options = {}) {
+    this.baseUrl = options.baseUrl || process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v6';
     this.debug = options.debug || false;
+    this.logger = options.logger || require('../utils/logger').scope('SimpleRestApi');
     
-    // Initialize logger
-    this.logger = logger.scope('SimpleRestApi');
-    this.logger.info(`SimpleRestApi initialized with ${this.auth.authType} authentication`);
+    // Initialize auth manager
+    if (options.authManager) {
+      // Use provided auth manager
+      this.authManager = options.authManager;
+    } else {
+      // Create new auth manager with options
+      const AuthManager = require('../auth/auth-manager');
+      try {
+        this.authManager = new AuthManager({
+          authType: options.authType || process.env.ONSHAPE_AUTH_METHOD || 'api_key',
+          accessKey: options.accessKey || process.env.ONSHAPE_ACCESS_KEY,
+          secretKey: options.secretKey || process.env.ONSHAPE_SECRET_KEY,
+          oauthToken: options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN,
+          logger: this.logger
+        });
+      } catch (error) {
+        this.logger.error('Failed to initialize auth manager:', error.message);
+        console.error('Auth initialization error:', error.message);
+        // Don't throw here - handle missing auth in request method
+      }
+    }
+  
+    this.logger.info(`SimpleRestApi initialized with ${options.authType || process.env.ONSHAPE_AUTH_METHOD || 'api_key'} authentication`);
   }
 
   /**
-   * Make API request
+   * Make API request with defensive auth check
    * @param {string} method - HTTP method
    * @param {string} path - API path
-   * @param {Object|string|null} data - Request body
    * @param {Object} queryParams - Query parameters
+   * @param {Object|string|null} body - Request body
+   * @param {Object} options - Additional options
    * @returns {Promise<Object>} API response
    */
-  async request(method, path, data = null, queryParams = {}) {
-    // Make sure path has a leading slash
-    let cleanPath = path;
-    if (!cleanPath.startsWith('/')) {
-      cleanPath = '/' + cleanPath;
-    }
-    
-    // Format data for consistency
-    let bodyString = '';
-    if (data !== null && data !== undefined) {
-      bodyString = typeof data === 'string' ? data : JSON.stringify(data);
-    }
-    
-    // Get authentication headers from auth manager
-    const headers = this.auth.getAuthHeaders(method, cleanPath, queryParams, bodyString);
-    
+  async request(method, path, queryParams = {}, body = null, options = {}) {
     try {
-      if (this.debug) {
-        this.logger.debug(`${method} request to ${cleanPath}`, { 
-          headers: { ...headers, Authorization: headers.Authorization.substr(0, 20) + '...' },
-          hasBody: !!bodyString,
-          queryParams
-        });
-      } else {
-        this.logger.debug(`${method} request to ${cleanPath}`, { hasBody: !!bodyString });
+      // Verify auth manager is available
+      if (!this.authManager) {
+        throw new Error('Authentication manager not initialized properly. Check credentials.');
+      }
+
+      // Add detailed request logging
+      const requestData = {
+        method: method.toUpperCase(),
+        path,
+        queryParams,
+        bodySize: body ? JSON.stringify(body).length : 0,
+        options
+      };
+      
+      this.logger.debug('[REQUEST DETAILS]', JSON.stringify(requestData, null, 2));
+      
+      // Make sure path has a leading slash
+      let cleanPath = path;
+      if (!cleanPath.startsWith('/')) {
+        cleanPath = '/' + cleanPath;
       }
       
-      const response = await axios({
-        method,
-        url: `${this.baseUrl}${cleanPath}`,
-        headers,
-        data: bodyString || undefined,
-        params: queryParams
+      // Format data for consistency
+      let bodyString = '';
+      if (body !== null && body !== undefined) {
+        bodyString = typeof body === 'string' ? body : JSON.stringify(body);
+      }
+
+      // Build URL with query parameters
+      let fullUrl = `${this.baseUrl}${cleanPath}`;
+      
+      // Get authentication headers
+      const authHeaders = this.authManager.getAuthHeaders(
+        method.toUpperCase(),
+        cleanPath,
+        queryParams,
+        bodyString
+      );
+      
+      // Complete headers
+      const headersObj = {
+        ...authHeaders,
+        'Accept': 'application/json',
+      };
+      
+      if (bodyString) {
+        headersObj['Content-Type'] = 'application/json';
+      }
+      
+      // Log complete request details before sending
+      const sensitiveHeadersLog = {...headersObj};
+      if (sensitiveHeadersLog.Authorization) {
+        sensitiveHeadersLog.Authorization = sensitiveHeadersLog.Authorization.substring(0, 20) + '...';
+      }
+      
+      this.logger.debug('[COMPLETE REQUEST]', {
+        url: fullUrl,
+        method: method.toUpperCase(),
+        headers: sensitiveHeadersLog,
+        queryParams: queryParams,
+        bodyPreview: bodyString ? (bodyString.length > 100 ? bodyString.substring(0, 100) + '...' : bodyString) : null
       });
+      
+      // Axios request configuration
+      const config = {
+        url: fullUrl,
+        method: method.toUpperCase(),
+        headers: headersObj,
+        params: queryParams,
+        paramsSerializer: params => {
+          return Object.keys(params)
+            .sort()
+            .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+            .join('&');
+        }
+      };
+      
+      // Add data if present
+      if (bodyString) {
+        config.data = bodyString;
+      }
+      
+      this.logger.debug(`${method.toLowerCase()} request to ${cleanPath}`, { hasBody: !!bodyString });
+      
+      const response = await axios(config);
       
       return response.data;
     } catch (error) {
@@ -101,7 +157,7 @@ class SimpleRestApi {
         // Log request details for debugging
         this.logger.debug('Failed request details', {
           url: `${this.baseUrl}${cleanPath}`,
-          headers: { ...headers, Authorization: '...[redacted]...' },
+          headers: { ...headersObj, Authorization: '...[redacted]...' },
           method,
           statusCode,
           errorMessage: error.message
@@ -115,19 +171,19 @@ class SimpleRestApi {
   
   // Helper methods for HTTP verbs with support for query parameters
   async get(path, queryParams = {}) {
-    return this.request('GET', path, null, queryParams);
+    return this.request('GET', path, queryParams);
   }
   
   async post(path, data, queryParams = {}) {
-    return this.request('POST', path, data, queryParams);
+    return this.request('POST', path, queryParams, data);
   }
   
   async put(path, data, queryParams = {}) {
-    return this.request('PUT', path, data, queryParams);
+    return this.request('PUT', path, queryParams, data);
   }
   
   async delete(path, queryParams = {}) {
-    return this.request('DELETE', path, null, queryParams);
+    return this.request('DELETE', path, queryParams);
   }
 }
 
