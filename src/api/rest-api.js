@@ -18,6 +18,7 @@ class RestApi {
     // Support direct auth keys or auth manager
     if (options.authManager) {
       this.auth = options.authManager;
+      this.authSource = 'provided';
     } else {
       this.auth = createAuth({
         authType: options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key',
@@ -25,9 +26,10 @@ class RestApi {
         secretKey: options.secretKey || process.env.ONSHAPE_SECRET_KEY,
         oauthToken: options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN,
       });
+      this.authSource = 'created';
     }
 
-    this.baseUrl = options.baseUrl || 'https://cad.onshape.com/api';
+    this.baseUrl = options.baseUrl || 'https://cad.onshape.com/api/v10';
 
     // Remove trailing slash if present
     if (this.baseUrl.endsWith('/')) {
@@ -39,7 +41,13 @@ class RestApi {
 
     // Initialize logger
     this.logger = logger.scope('RestApi');
-    this.logger.info(`RestApi initialized with ${this.auth.authType} authentication`);
+    
+    // Use getMethod() if available, otherwise try to access authType directly
+    const authMethod = typeof this.auth.getMethod === 'function' 
+      ? this.auth.getMethod() 
+      : (this.auth.authType || 'unknown');
+    
+    this.logger.info(`RestApi initialized with ${authMethod} authentication (${this.authSource})`);
   }
 
   /**
@@ -64,12 +72,31 @@ class RestApi {
     }
 
     // Get authentication headers from auth manager
-    const headers = this.auth.getAuthHeaders(method, cleanPath, queryParams, bodyString);
+    let headers;
+    try {
+      // Use getAuthHeaders with correct parameters
+      headers = await this.auth.getAuthHeaders(method, cleanPath, queryParams, bodyString);
+      
+      // Debug log the authentication headers (without showing full credentials)
+      if (this.debug && headers) {
+        const authHeader = headers.Authorization || '';
+        const maskedAuth = authHeader.substring(0, 15) + '...' + (authHeader.length > 30 ? authHeader.substring(authHeader.length - 10) : '');
+        this.logger.debug('Using auth headers:', { Authorization: maskedAuth });
+      }
+    } catch (authError) {
+      this.logger.error('Failed to get auth headers:', authError.message);
+      throw new Error(`Authentication error: ${authError.message}`);
+    }
+    
+    // Verify we have authentication headers
+    if (!headers || !headers.Authorization) {
+      this.logger.error('Missing authentication headers');
+      throw new Error('Authentication headers could not be generated - check API credentials');
+    }
 
     try {
       if (this.debug) {
         this.logger.debug(`${method} request to ${cleanPath}`, {
-          headers: { ...headers, Authorization: headers.Authorization.substr(0, 20) + '...' },
           hasBody: !!bodyString,
           queryParams,
         });
@@ -80,7 +107,11 @@ class RestApi {
       const response = await axios({
         method,
         url: `${this.baseUrl}${cleanPath}`,
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...headers
+        },
         data: bodyString || undefined,
         params: queryParams
       });
@@ -92,17 +123,9 @@ class RestApi {
       const statusCode = error.response?.status;
 
       this.logger.error(`API Error (${statusCode}):`, errorResponse);
-      console.error(`API Error (${statusCode}):`, errorResponse);
-
-      if (this.debug && error.request) {
-        // Log request details for debugging
-        this.logger.debug('Failed request details', {
-          url: `${this.baseUrl}${cleanPath}`,
-          headers: { ...headers, Authorization: '...[redacted]...' },
-          method,
-          statusCode,
-          errorMessage: error.message
-        });
+      
+      if (statusCode === 401) {
+        this.logger.error('Authentication failed. Check API credentials and permissions.');
       }
 
       // Re-throw with more context

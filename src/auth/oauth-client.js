@@ -18,7 +18,7 @@ class OAuthClient {
     this.tokenExpiry = null;
     
     // Standard Onshape OAuth scopes
-    this.scope = config.scope || 'OAuth2ReadPII OAuth2Read OAuth2Write';
+    this.scope = config.scope || 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete';
     
     logger.info('OAuth client initialized');
   }

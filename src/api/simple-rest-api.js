@@ -16,9 +16,10 @@ class SimpleRestApi {
    * @param {string} options.oauthToken - OAuth token (for OAuth auth)
    * @param {string} options.baseUrl - Base URL for the API
    * @param {boolean} options.debug - Enable debug mode
+   * @param {AuthManager} options.authManager - Auth manager instance
    */
   constructor(options = {}) {
-    this.baseUrl = options.baseUrl || process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v6';
+    this.baseUrl = options.baseUrl || process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v10';
     this.debug = options.debug || false;
     this.logger = options.logger || require('../utils/logger').scope('SimpleRestApi');
     
@@ -26,6 +27,7 @@ class SimpleRestApi {
     if (options.authManager) {
       // Use provided auth manager
       this.authManager = options.authManager;
+      this.logger.info('Using provided auth manager instance');
     } else {
       // Create new auth manager with options
       const AuthManager = require('../auth/auth-manager');
@@ -37,14 +39,14 @@ class SimpleRestApi {
           oauthToken: options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN,
           logger: this.logger
         });
+        this.logger.warn('Created new auth manager instead of using application instance');
       } catch (error) {
         this.logger.error('Failed to initialize auth manager:', error.message);
         console.error('Auth initialization error:', error.message);
-        // Don't throw here - handle missing auth in request method
       }
     }
   
-    this.logger.info(`SimpleRestApi initialized with ${options.authType || process.env.ONSHAPE_AUTH_METHOD || 'api_key'} authentication`);
+    this.logger.info(`SimpleRestApi initialized with ${this.authManager ? this.authManager.getMethod() : 'unknown'} authentication`);
   }
 
   /**
