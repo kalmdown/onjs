@@ -41,6 +41,25 @@ const authType = process.env.ONSHAPE_AUTH_TYPE || 'api_key';
   
   beforeAll(async () => {
     try {
+      // First check permissions
+      const userInfo = await auth.get('/users/sessioninfo');
+      
+      // Analyze OAuth scopes
+      let hasWriteAccess = false;
+      if (typeof userInfo.oauth2Scopes === 'number') {
+        const scopeValue = userInfo.oauth2Scopes;
+        // Check if OAuth2Write bit is set
+        hasWriteAccess = (scopeValue & 2) === 2; // 2 is the bit value for OAuth2Write
+      } else if (Array.isArray(userInfo.oauth2Scopes)) {
+        hasWriteAccess = userInfo.oauth2Scopes.some(scope => 
+          scope.includes('OAuth2Write') || scope.includes('write'));
+      }
+      
+      if (!hasWriteAccess) {
+        console.warn('⚠️ API key lacks OAuth2Write permission. Tests will be skipped.');
+        return;
+      }
+      
       console.log('Setting up integration test with direct API access');
       
       // Create API client using auth manager

@@ -22,20 +22,41 @@ class OnshapeClient {
    * Create a new Onshape API client
    * 
    * @param {Object} options - Client options
-   * @param {string} options.accessKey - Onshape API access key
-   * @param {string} options.secretKey - Onshape API secret key
+   * @param {string} [options.authType='api_key'] - Authentication type ('api_key' or 'oauth')
+   * @param {string} [options.accessKey] - Onshape API access key (for api_key auth)
+   * @param {string} [options.secretKey] - Onshape API secret key (for api_key auth)
+   * @param {string} [options.oauthToken] - OAuth token (for oauth auth)
    * @param {string} [options.baseUrl='https://cad.onshape.com/api'] - API base URL
    * @param {string} [options.unitSystem='meter'] - Default unit system to use
    */
-  constructor(options) {
-    if (!options || !options.accessKey || !options.secretKey) {
-      throw new Error('accessKey and secretKey are required');
+  constructor(options = {}) {
+    // Determine authentication type - prioritize options, then env var, default to api_key
+    const authType = options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key';
+    
+    // Validate credentials based on auth type
+    if (authType === 'api_key') {
+      const accessKey = options.accessKey || process.env.ONSHAPE_ACCESS_KEY;
+      const secretKey = options.secretKey || process.env.ONSHAPE_SECRET_KEY;
+      
+      if (!accessKey || !secretKey) {
+        throw new Error('accessKey and secretKey are required for API key authentication');
+      }
+    } else if (authType === 'oauth') {
+      const oauthToken = options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN;
+      
+      if (!oauthToken) {
+        throw new Error('oauthToken is required for OAuth authentication');
+      }
+    } else {
+      throw new Error(`Invalid authType: ${authType}. Must be 'api_key' or 'oauth'`);
     }
     
     // Initialize REST API client
     this.api = new RestApi({
-      accessKey: options.accessKey,
-      secretKey: options.secretKey,
+      authType: authType,
+      accessKey: options.accessKey || process.env.ONSHAPE_ACCESS_KEY,
+      secretKey: options.secretKey || process.env.ONSHAPE_SECRET_KEY,
+      oauthToken: options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN,
       baseUrl: options.baseUrl || 'https://cad.onshape.com/api'
     });
     
@@ -45,7 +66,7 @@ class OnshapeClient {
     // Set default unit system
     this.unitSystem = options.unitSystem || 'meter';
     
-    log.info('Onshape client initialized');
+    log.info(`Onshape client initialized with ${authType} authentication`);
   }
   
   /**

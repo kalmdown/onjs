@@ -15,10 +15,15 @@ class OnshapeAuth {
    * @param {string} [options.baseUrl='https://cad.onshape.com/api'] API base URL
    */
   constructor(options) {
-    this.accessKey = options.accessKey;
-    this.secretKey = options.secretKey;
+    this.accessKey = options.accessKey || process.env.ONSHAPE_ACCESS_KEY;
+    this.secretKey = options.secretKey || process.env.ONSHAPE_SECRET_KEY;
     this.baseUrl = options.baseUrl || 'https://cad.onshape.com/api';
     this.logger = logger.scope('OnshapeAuth');
+    
+    // Check for valid credentials
+    if (!this.accessKey || !this.secretKey) {
+      throw new Error('OnshapeAuth requires accessKey and secretKey');
+    }
     
     // Remove trailing slash if present
     if (this.baseUrl.endsWith('/')) {
@@ -47,7 +52,7 @@ class OnshapeAuth {
     // Current date in RFC format
     const date = new Date().toUTCString();
     
-    // Build query string
+    // Build query string - must be sorted alphabetically
     const queryString = Object.keys(queryParams)
       .sort()
       .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
@@ -67,6 +72,7 @@ class OnshapeAuth {
     const contentLength = Buffer.byteLength(body || '').toString();
     
     // Build string to sign, including body for all requests
+    // This is the critical part that must match Onshape's expected format
     const stringToSign = [
       method.toUpperCase(),
       fullPath,
@@ -144,8 +150,24 @@ class OnshapeAuth {
   /**
    * Convenience methods for common HTTP verbs
    */
-  async get(path, query = {}) {
-    return this.request('GET', path, { query });
+  async get(path, queryParams = {}) {
+    try {
+      // Create a safe copy of query parameters
+      const safeParams = {};
+      Object.keys(queryParams || {}).forEach(key => {
+        safeParams[key] = queryParams[key] === undefined ? '' : String(queryParams[key]);
+      });
+      
+      this.logger.debug(`Making GET request to ${path}`, { 
+        params: safeParams,
+        hasParams: Object.keys(safeParams).length > 0
+      });
+      
+      return this.request('GET', path, safeParams);
+    } catch (error) {
+      this.logger.error(`GET request to ${path} failed:`, error);
+      throw error;
+    }
   }
   
   async post(path, body, query = {}) {
@@ -183,6 +205,23 @@ class OnshapeAuth {
       q: name,
       filter: 0 // Public documents
     });
+  }
+  
+  /**
+   * Find public documents by search query
+   * @param {string} query - Search query
+   * @returns {Promise<Object>} Search results
+   */
+  async findPublicDocuments(query) {
+    // Use the global search API with the public flag
+    const queryParams = {
+      q: query,
+      filter: 'public',
+      limit: 20
+    };
+    
+    this.logger.debug('Finding public documents with query:', query);
+    return this.get('/documents', queryParams);
   }
   
   /**

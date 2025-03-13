@@ -19,6 +19,7 @@ class AuthManager {
    * @param {string} options.oauthToken - OAuth token (for oauth auth)
    */
   constructor(options) {
+    // Use environment variables as fallback if options not provided
     this.authType = (options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key').toLowerCase();
     this.accessKey = options.accessKey || process.env.ONSHAPE_ACCESS_KEY;
     this.secretKey = options.secretKey || process.env.ONSHAPE_SECRET_KEY;
@@ -38,6 +39,52 @@ class AuthManager {
   }
   
   /**
+   * Generate a cryptographically secure random nonce
+   * @private
+   * @returns {string} Base64-encoded nonce
+   */
+  _generateNonce() {
+    const crypto = require('crypto');
+    return crypto.randomBytes(16).toString('base64');
+  }
+
+  /**
+   * Build a sorted, encoded query string from parameters
+   * @private
+   * @param {Object} params - Query parameters
+   * @returns {string} Encoded query string
+   */
+  _buildQueryString(params = {}) {
+    if (!params || Object.keys(params).length === 0) {
+      return '';
+    }
+    
+    // Debug logging for query params
+    this.logger.debug('[AuthManager] Building query string from params:', JSON.stringify(params, null, 2));
+    
+    // Convert all parameters to strings and handle special cases
+    const stringParams = {};
+    Object.keys(params).forEach(key => {
+      // Convert null/undefined to empty string, boolean to actual string 'true'/'false'
+      if (params[key] === null || params[key] === undefined) {
+        stringParams[key] = '';
+      } else if (typeof params[key] === 'boolean') {
+        stringParams[key] = params[key].toString();
+      } else {
+        stringParams[key] = String(params[key]);
+      }
+    });
+    
+    // Sort parameters by key (required by Onshape)
+    return Object.keys(stringParams)
+      .sort()
+      .map(key => {
+        return `${encodeURIComponent(key)}=${encodeURIComponent(stringParams[key])}`;
+      })
+      .join('&');
+  }
+
+  /**
    * Get authentication headers for a request
    * @param {string} method - HTTP method
    * @param {string} path - API path
@@ -45,14 +92,18 @@ class AuthManager {
    * @param {string} body - Request body
    * @returns {Object} Headers object with authentication
    */
-  getAuthHeaders(method, path, queryParams = {}, body = '') {
+  getAuthHeaders(method, path, queryParams = {}, body = null) {
     if (this.authType === 'oauth') {
-      return this._getOAuthHeaders();
+      // OAuth authentication - just return the token
+      return {
+        'Authorization': `Bearer ${this.oauthToken}`
+      };
     } else {
+      // API key authentication - use the official format
       return this._getApiKeyHeaders(method, path, queryParams, body);
     }
   }
-  
+
   /**
    * Get OAuth authentication headers
    * @returns {Object} OAuth headers
@@ -76,56 +127,59 @@ class AuthManager {
    * @private
    */
   _getApiKeyHeaders(method, path, queryParams = {}, body = '') {
+    // Ensure path starts with /
     const pathname = path.startsWith('/') ? path : `/${path}`;
+    
+    // Current date in RFC format
     const date = new Date().toUTCString();
-    const nonce = crypto.randomBytes(32).toString('base64');
+    
+    // Generate nonce
+    const nonce = this._generateNonce();
+    
+    // Content type - always application/json for our API
     const contentType = 'application/json';
 
-    let queryString = '';
-    if (Object.keys(queryParams).length > 0) {
-      queryString = '?' + Object.keys(queryParams)
-        .sort()
-        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
-        .join('&');
-    }
-    const fullPath = pathname + queryString;
+    // Build query string - must be sorted alphabetically
+    const queryString = this._buildQueryString(queryParams);
 
+    // Complete path with query string
+    const fullPath = pathname + (queryString ? `?${queryString}` : '');
+
+    // Calculate MD5 hash for body if present
     let contentMd5 = '';
-    if (body) {
+    if (body && body.length > 0) {
       contentMd5 = crypto.createHash('md5').update(body).digest('base64');
     }
 
-    // Use uppercase HTTP method for the HMAC string
-    let hmacString = `${method.toUpperCase()}\n${fullPath}\n${contentType}\n${date}\n${nonce}`;
-    if (contentMd5) {
-      hmacString += `\n${contentMd5}`;
-    }
+    // String to sign precisely as specified by Onshape API docs
+    // This is the critical fix: format must be exact
+    const hmacString = [
+      method.toUpperCase(),
+      contentMd5,
+      contentType,
+      date,
+      nonce,
+      fullPath
+    ].join('\n');
 
+    // Generate HMAC signature
     const signature = crypto.createHmac('sha256', this.secretKey)
       .update(hmacString)
       .digest('base64');
 
+    // Build headers object
     const headers = {
       'Content-Type': contentType,
       'Accept': 'application/json',
       'Date': date,
       'On-Nonce': nonce,
-      'Authorization': `On ${this.accessKey}:${signature}`,
+      'Authorization': `On ${this.accessKey}:${signature}`
     };
 
+    // Add MD5 hash if body is present
     if (contentMd5) {
       headers['Content-MD5'] = contentMd5;
     }
-
-    this.logger.debug('Generated auth signature with HMAC string components', {
-      method: method.toUpperCase(),
-      path: fullPath,
-      contentType,
-      date,
-      nonce: nonce.substring(0, 8) + '...',
-      contentMd5: contentMd5 ? contentMd5.substring(0, 8) + '...' : null,
-      hmacString,
-    });
 
     return headers;
   }

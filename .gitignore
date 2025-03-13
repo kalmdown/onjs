@@ -3,6 +3,7 @@ __pycache__/
 *.DS_Store
 *-tmp.py
 .env
+config.json
 node_modules/
 .vscode/
 .vscode/extensions/

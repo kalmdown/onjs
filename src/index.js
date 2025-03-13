@@ -1,3 +1,4 @@
+// src\index.js
 /**
  * OnJS - Onshape JavaScript API Client
  */
@@ -25,6 +26,6 @@ module.exports = {
   UnitSystem,
   Point2D,
   
-  // Factory method
+  // Factory methods
   createClient: (options) => new OnshapeClient(options)
 };

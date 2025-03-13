@@ -1,10 +1,11 @@
+// src\api\rest-api.js
 const axios = require('axios');
 const AuthManager = require('../auth/auth-manager');
 const logger = require('../utils/logger');
 
-class SimpleRestApi {
+class RestApi {
   /**
-   * Create a SimpleRestApi client
+   * Create a RestApi client
    * @param {object} options - API client options
    * @param {AuthManager} options.authManager - Auth manager instance
    * @param {string} options.authType - Auth type (api_key or oauth)
@@ -19,10 +20,10 @@ class SimpleRestApi {
       this.auth = options.authManager;
     } else {
       this.auth = new AuthManager({
-        authType: options.authType || 'api_key',
-        accessKey: options.accessKey,
-        secretKey: options.secretKey,
-        oauthToken: options.oauthToken,
+        authType: options.authType || process.env.ONSHAPE_AUTH_TYPE || 'api_key',
+        accessKey: options.accessKey || process.env.ONSHAPE_ACCESS_KEY,
+        secretKey: options.secretKey || process.env.ONSHAPE_SECRET_KEY,
+        oauthToken: options.oauthToken || process.env.ONSHAPE_OAUTH_TOKEN,
       });
     }
 
@@ -37,8 +38,8 @@ class SimpleRestApi {
     this.debug = options.debug || false;
 
     // Initialize logger
-    this.logger = logger.scope('SimpleRestApi');
-    this.logger.info(`SimpleRestApi initialized with ${this.auth.authType} authentication`);
+    this.logger = logger.scope('RestApi');
+    this.logger.info(`RestApi initialized with ${this.auth.authType} authentication`);
   }
 
   /**
@@ -68,7 +69,7 @@ class SimpleRestApi {
     try {
       if (this.debug) {
         this.logger.debug(`${method} request to ${cleanPath}`, {
-          headers: headers,
+          headers: { ...headers, Authorization: headers.Authorization.substr(0, 20) + '...' },
           hasBody: !!bodyString,
           queryParams,
         });
@@ -81,7 +82,7 @@ class SimpleRestApi {
         url: `${this.baseUrl}${cleanPath}`,
         headers,
         data: bodyString || undefined,
-        params: queryParams,
+        params: queryParams
       });
 
       return response.data;
@@ -97,10 +98,10 @@ class SimpleRestApi {
         // Log request details for debugging
         this.logger.debug('Failed request details', {
           url: `${this.baseUrl}${cleanPath}`,
-          headers: headers,
+          headers: { ...headers, Authorization: '...[redacted]...' },
           method,
           statusCode,
-          errorMessage: error.message,
+          errorMessage: error.message
         });
       }
 
@@ -127,4 +128,4 @@ class SimpleRestApi {
   }
 }
 
-module.exports = SimpleRestApi;
+module.exports = RestApi;
