@@ -152,7 +152,15 @@ function isAuthenticated(req, res, next) {
     if (authManager.accessToken !== req.user.accessToken) {
       authManager.accessToken = req.user.accessToken;
       authManager.refreshToken = req.user.refreshToken;
-      logger.debug('Updated auth manager with user OAuth tokens');
+      logger.debug('Updated auth manager with user OAuth tokens from req.user');
+    }
+    return next();
+  } else if (authMethod === 'oauth' && req.session && req.session.oauthToken) {
+    // Alternative: check for token in session
+    if (authManager.accessToken !== req.session.oauthToken) {
+      authManager.accessToken = req.session.oauthToken;
+      authManager.refreshToken = req.session.refreshToken || null;
+      logger.debug('Updated auth manager with OAuth tokens from session');
     }
     return next();
   } else if (authMethod === 'apikey' && authManager.accessKey) {
@@ -167,26 +175,31 @@ function isAuthenticated(req, res, next) {
 function createOnshapeClient(req) {
   // Get application's authManager
   const authManager = req.app.get('authManager');
-  const authMethod = process.env.ONSHAPE_AUTH_METHOD || 'API_KEY';
-  
-  logger.debug(`Using auth method: ${authMethod}`);
   
   // Update auth manager based on authentication state
-  if (authMethod === 'OAUTH' && req.user && req.user.accessToken) {
-    // Update with OAuth token
+  if (req.user && req.user.accessToken) {
+    // Update with OAuth token from req.user
     authManager.accessToken = req.user.accessToken;
     authManager.refreshToken = req.user.refreshToken;
     authManager.setMethod('oauth');
-    logger.debug('Using OAuth token authentication');
-  } else {
-    // Use API key
+    logger.debug('Using OAuth token from req.user');
+  } else if (req.session && req.session.oauthToken) {
+    // Use token from session
+    authManager.accessToken = req.session.oauthToken;
+    authManager.refreshToken = req.session.refreshToken || null;
+    authManager.setMethod('oauth');
+    logger.debug('Using OAuth token from session');
+  } else if (authManager.accessKey && authManager.secretKey) {
+    // Fallback to API key
     authManager.setMethod('apikey');
     logger.debug('Using API key authentication');
   }
   
+  logger.debug(`Auth manager method after update: ${authManager.getMethod()}`);
+  
   // Create client with the application's auth manager instance
   return onjs.createClient({
-    authManager: authManager,
+    authManager: authManager,  // Pass the manager directly!
     unitSystem: "inch",
     baseUrl: config.onshape.baseUrl,
   });
@@ -204,6 +217,17 @@ app.get('/oauthRedirect', function(req, res, next) {
   
   // Make sure req.user contains the tokens
   if (req.user && req.user.accessToken) {
+    // Store tokens in session for non-passport requests
+    req.session.oauthToken = req.user.accessToken;
+    req.session.refreshToken = req.user.refreshToken || null;
+    
+    // Important: Update the auth manager with tokens
+    const authManager = req.app.get('authManager');
+    authManager.accessToken = req.user.accessToken;
+    authManager.refreshToken = req.user.refreshToken || null;
+    authManager.setMethod('oauth');
+    logger.info('Updated global auth manager with OAuth tokens');
+    
     // Pass tokens back to client
     res.redirect(`/?token=${req.user.accessToken}&refresh=${req.user.refreshToken || ''}`);
   } else {
@@ -224,12 +248,11 @@ app.get('/api/documents', isAuthenticated, async (req, res) => {
     // Get the central auth manager
     const authManager = req.app.get('authManager');
     
+    // Log the current auth state for debugging
+    logger.debug(`Auth state: method=${authManager.getMethod()}, hasToken=${!!authManager.accessToken}, hasApiKey=${!!authManager.accessKey}`);
+    
     // Create client using the central auth manager
-    const client = onjs.createClient({
-      authManager: authManager,
-      unitSystem: "inch",
-      baseUrl: config.onshape.baseUrl,
-    });
+    const client = createOnshapeClient(req);
     
     // Make API request
     const documents = await client.api.get('/documents');
