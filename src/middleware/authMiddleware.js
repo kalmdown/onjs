@@ -13,6 +13,13 @@ const log = logger.scope('AuthMiddleware');
  * @param {Object} authManager - Auth manager instance
  */
 function configureOAuth(authManager) {
+  // Check if we have OAuth credentials before configuring
+  if (!config.onshape.clientId || !config.onshape.clientSecret) {
+    log.warn('OAuth credentials not found. OAuth authentication will not be available.');
+    log.warn('Set ONSHAPE_CLIENT_ID and ONSHAPE_CLIENT_SECRET environment variables to enable OAuth.');
+    return;
+  }
+
   // Configure OAuth2 strategy for Onshape
   log.info('Configuring OAuth2 strategy with:', {
     authorizationURL: config.onshape.authorizationUrl,
@@ -21,41 +28,48 @@ function configureOAuth(authManager) {
     callbackURL: config.onshape.callbackUrl,
   });
 
-  passport.use(
-    new OAuth2Strategy(
-      {
-        authorizationURL: config.onshape.authorizationUrl,
-        tokenURL: config.onshape.tokenUrl,
-        clientID: config.onshape.clientId,
-        clientSecret: config.onshape.clientSecret,
-        callbackURL: config.onshape.callbackUrl,
-        scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete',
-        state: true // Enable state parameter for CSRF protection
-      },
-      function (accessToken, refreshToken, profile, done) {
-        log.debug('OAuth tokens received:', !!accessToken, !!refreshToken);
-        log.debug('Token length:', accessToken ? accessToken.length : 0);
-   
-        // Store tokens with the user profile
-        return done(null, {
-          accessToken,
-          refreshToken,
-        });
-      }
-    )
-  );
+  try {
+    passport.use(
+      new OAuth2Strategy(
+        {
+          authorizationURL: config.onshape.authorizationUrl,
+          tokenURL: config.onshape.tokenUrl,
+          clientID: config.onshape.clientId,
+          clientSecret: config.onshape.clientSecret,
+          callbackURL: config.onshape.callbackUrl,
+          scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete',
+          state: true // Enable state parameter for CSRF protection
+        },
+        function (accessToken, refreshToken, profile, done) {
+          log.debug('OAuth tokens received:', !!accessToken, !!refreshToken);
+          log.debug('Token length:', accessToken ? accessToken.length : 0);
+     
+          // Store tokens with the user profile
+          return done(null, {
+            accessToken,
+            refreshToken,
+          });
+        }
+      )
+    );
 
-  // Serialize user to session
-  passport.serializeUser((user, done) => {
-    log.debug('Serializing user to session');
-    done(null, user);
-  });
+    // Serialize user to session
+    passport.serializeUser((user, done) => {
+      log.debug('Serializing user to session');
+      done(null, user);
+    });
 
-  // Deserialize user from session
-  passport.deserializeUser((user, done) => {
-    log.debug('Deserializing user from session');
-    done(null, user);
-  });
+    // Deserialize user from session
+    passport.deserializeUser((user, done) => {
+      log.debug('Deserializing user from session');
+      done(null, user);
+    });
+    
+    return true;
+  } catch (error) {
+    log.error(`Error configuring OAuth: ${error.message}`);
+    return false;
+  }
 }
 
 /**
@@ -120,6 +134,15 @@ function isAuthenticated(req, res, next) {
     });
   } else {
     log.info('User not authenticated, redirecting to OAuth login');
+    
+    // Check if OAuth is available before redirecting
+    if (!config.onshape.clientId) {
+      return res.status(503).json({
+        error: 'Authentication unavailable',
+        message: 'OAuth authentication is not configured. Set ONSHAPE_CLIENT_ID and ONSHAPE_CLIENT_SECRET environment variables.'
+      });
+    }
+    
     return res.redirect('/oauth/login');
   }
 }

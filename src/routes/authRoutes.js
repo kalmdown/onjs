@@ -1,4 +1,4 @@
-// src\routes\authRoutes.js
+// src/routes/authRoutes.js - Create a fixed version with oauthRedirect support
 const express = require('express');
 const router = express.Router();
 const { passport } = require('../middleware/authMiddleware');
@@ -15,19 +15,63 @@ const log = logger.scope('AuthRoutes');
 router.get("/login", passport.authenticate("oauth2"));
 
 /**
+ * @route GET /oauthRedirect - Direct callback from Onshape
+ * @description OAuth callback endpoint that matches what Onshape is using
+ * @access Public
+ */
+router.get('/oauthRedirect', function(req, res, next) {
+  log.info('OAuth callback received at /oauthRedirect path');
+  log.info('Full URL:', req.originalUrl);
+  log.info('Code present:', !!req.query.code);
+  log.info('State present:', !!req.query.state);
+  
+  next();
+}, passport.authenticate('oauth2', { 
+  failureRedirect: '/?error=auth_failed',
+  session: true
+}), function(req, res) {
+  log.info('OAuth authentication successful');
+  log.info('User object:', req.user ? 'Present' : 'Missing');
+  log.info('Access token:', req.user?.accessToken ? 'Present (length: ' + req.user.accessToken.length + ')' : 'Missing');
+  
+  if (req.user && req.user.accessToken) {
+    log.debug('Token length:', req.user.accessToken.length);
+    log.debug('Refresh token present:', !!req.user.refreshToken);
+    
+    // Store tokens in session for non-passport requests
+    req.session.oauthToken = req.user.accessToken;
+    req.session.refreshToken = req.user.refreshToken || null;
+    
+    // Update the auth manager with tokens
+    const authManager = req.app.get('authManager');
+    if (authManager) {
+      authManager.accessToken = req.user.accessToken;
+      authManager.refreshToken = req.user.refreshToken || null;
+      authManager.setMethod('oauth');
+      log.info('Updated global auth manager with OAuth tokens');
+    } else {
+      log.warn('No auth manager found in app context');
+    }
+    
+    // Include tokens in URL for client-side
+    const redirectUrl = `/?token=${encodeURIComponent(req.user.accessToken)}&refresh=${encodeURIComponent(req.user.refreshToken || '')}`;
+    log.info('Redirecting to:', redirectUrl);
+    res.redirect(redirectUrl);
+  } else {
+    log.error('Missing tokens in user object after OAuth authentication');
+    res.redirect('/?error=missing_tokens');
+  }
+});
+
+/**
  * @route GET /oauth/callback
- * @description OAuth callback endpoint
+ * @description Original OAuth callback endpoint (keeping for backward compatibility)
  * @access Public
  */
 router.get('/callback', function(req, res, next) {
-  log.info('OAuth callback received, code:', req.query.code ? 'Present (length: ' + req.query.code.length + ')' : 'Missing');
+  log.info('OAuth callback received at /oauth/callback path');
   log.info('Full URL:', req.originalUrl);
-  log.info('Query string:', JSON.stringify(req.query));
-  
-  // For debugging, log query parameters without actual values
-  if (process.env.NODE_ENV === 'development') {
-    log.debug('Query parameters:', Object.keys(req.query));
-  }
+  log.info('Code present:', !!req.query.code);
   
   next();
 }, passport.authenticate('oauth2', { 
