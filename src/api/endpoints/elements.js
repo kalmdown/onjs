@@ -1,4 +1,4 @@
-// src/api/endpoints/elements.js (Updated to use Element model)
+// src\api\endpoints\elements.js
 const logger = require('../../utils/logger');
 const { NotFoundError, ValidationError } = require('../../utils/errors');
 const { Element } = require('../../models');
