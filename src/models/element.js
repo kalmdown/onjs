@@ -1,4 +1,4 @@
-// src/models/element.js
+// src\models\element.js
 const { NotFoundError } = require('../utils/errors');
 
 /**

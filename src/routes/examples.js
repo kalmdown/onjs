@@ -2,7 +2,7 @@
 // src/routes/examples.js
 const express = require('express');
 const router = express.Router();
-const { isAuthenticated, createClientFromRequest } = require('../middleware/auth');
+const { isAuthenticated, createClientFromRequest } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
 const { OnshapeClient } = require('../api/client');
 

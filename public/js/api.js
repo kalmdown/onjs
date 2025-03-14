@@ -1,4 +1,7 @@
-import { authToken } from './auth.js';
+// public/js/api.js
+
+// Import the function that returns the token, not the token itself
+import { getToken as authToken } from './clientAuth.js';
 import { logError, logSuccess, logInfo, logDebug } from './utils/logging.js';
 
 // State
@@ -18,9 +21,10 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
       }
     };
     
-    // Add auth token if available
-    if (authToken) {
-      options.headers['Authorization'] = `Bearer ${authToken}`;
+    // Add auth token if available - call the function to get the token
+    const token = authToken();
+    if (token) {
+      options.headers['Authorization'] = `Bearer ${token}`;
     }
     
     // Add body data for POST/PUT requests
@@ -76,7 +80,8 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
  * Fetch documents from Onshape
  */
 export async function fetchDocuments() {
-  if (!authToken) {
+  const token = authToken();
+  if (!token) {
     logError('Not authenticated');
     return [];
   }
@@ -90,13 +95,15 @@ export async function fetchDocuments() {
     
     // Update select dropdown
     const documentSelect = document.getElementById('documentSelect');
-    documentSelect.innerHTML = '<option value="">Create a new document</option>';
-    documents.forEach(doc => {
-      const option = document.createElement('option');
-      option.value = doc.id;
-      option.textContent = doc.name;
-      documentSelect.appendChild(option);
-    });
+    if (documentSelect) {
+      documentSelect.innerHTML = '<option value="">Create a new document</option>';
+      documents.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.id;
+        option.textContent = doc.name;
+        documentSelect.appendChild(option);
+      });
+    }
     
     logSuccess(`Found ${documents.length} documents`);
     return documents;

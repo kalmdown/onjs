@@ -6,12 +6,13 @@ const session = require('express-session');
 const passport = require('passport');
 const config = require('./config');
 const AuthManager = require('./src/auth/auth-manager');
+const authMiddleware = require('./src/middleware/authMiddleware');
 const logger = require('./src/utils/logger');
-const { configureOAuth } = require('./src/middleware/auth');
+const { configureOAuth } = require('./src/middleware/authMiddleware');
 const errorMiddleware = require('./src/middleware/error');
 
 // Import route modules
-const authRoutes = require('./src/routes/auth');
+const authRoutes = require('./src/routes/authRoutes');
 const documentRoutes = require('./src/routes/documents');
 const elementRoutes = require('./src/routes/elements');
 const featureRoutes = require('./src/routes/features');
@@ -37,6 +38,17 @@ const authManager = new AuthManager({
   redirectUri: config.onshape.callbackUrl
 });
 
+// Configure fallback authentication if needed
+if (!authManager.getMethod()) {
+  // Use API key as fallback if available
+  if (process.env.ONSHAPE_ACCESS_KEY && process.env.ONSHAPE_SECRET_KEY) {
+    authManager.accessKey = process.env.ONSHAPE_ACCESS_KEY;
+    authManager.secretKey = process.env.ONSHAPE_SECRET_KEY;
+    authManager.setMethod('apikey');
+    log.info('Using API key authentication as fallback');
+  }
+}
+
 // Initialize Express app
 const app = express();
 
@@ -52,7 +64,16 @@ app.use((req, res, next) => {
 // Configure middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session(config.session));
+app.use(session({
+  ...config.session,
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 

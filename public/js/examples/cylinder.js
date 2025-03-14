@@ -1,5 +1,5 @@
 import { apiCall } from '../api.js';
-import { getAuthToken } from '../auth.js';
+import { getToken as getAuthToken } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logSuccess, logError } from '../utils/logging.js';
 

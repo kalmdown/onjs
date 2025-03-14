@@ -3,7 +3,7 @@
  * Interface to Onshape Parts
  */
 
-const { OnshapeFeatureError } = require('../utils/x_errors');
+const { FeatureError } = require('../utils/errors');
 
 /**
  * Represents a part in an Onshape part studio

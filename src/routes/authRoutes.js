@@ -1,7 +1,7 @@
-// src\routes\auth.js
+// src\routes\authRoutes.js
 const express = require('express');
 const router = express.Router();
-const { passport } = require('../middleware/auth');
+const { passport } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
 
 // Create a scoped logger
@@ -20,7 +20,9 @@ router.get("/login", passport.authenticate("oauth2"));
  * @access Public
  */
 router.get('/callback', function(req, res, next) {
-  log.info('OAuth callback received, code present:', !!req.query.code);
+  log.info('OAuth callback received, code:', req.query.code ? 'Present (length: ' + req.query.code.length + ')' : 'Missing');
+  log.info('Full URL:', req.originalUrl);
+  log.info('Query string:', JSON.stringify(req.query));
   
   // For debugging, log query parameters without actual values
   if (process.env.NODE_ENV === 'development') {
@@ -29,11 +31,13 @@ router.get('/callback', function(req, res, next) {
   
   next();
 }, passport.authenticate('oauth2', { 
-  failureRedirect: '/?error=auth_failed' 
+  failureRedirect: '/?error=auth_failed',
+  session: true
 }), function(req, res) {
   log.info('OAuth authentication successful');
+  log.info('User object:', req.user ? 'Present' : 'Missing');
+  log.info('Access token:', req.user?.accessToken ? 'Present (length: ' + req.user.accessToken.length + ')' : 'Missing');
   
-  // Token debug info
   if (req.user && req.user.accessToken) {
     log.debug('Token length:', req.user.accessToken.length);
     log.debug('Refresh token present:', !!req.user.refreshToken);
@@ -53,10 +57,12 @@ router.get('/callback', function(req, res, next) {
       log.warn('No auth manager found in app context');
     }
     
-    // Pass tokens back to client and redirect
-    res.redirect(`/?token=${encodeURIComponent(req.user.accessToken)}&refresh=${encodeURIComponent(req.user.refreshToken || '')}`);
+    // Include tokens in URL for client-side
+    const redirectUrl = `/?token=${encodeURIComponent(req.user.accessToken)}&refresh=${encodeURIComponent(req.user.refreshToken || '')}`;
+    log.info('Redirecting to:', redirectUrl);
+    res.redirect(redirectUrl);
   } else {
-    log.error('Missing tokens in user object:', req.user);
+    log.error('Missing tokens in user object after OAuth authentication');
     res.redirect('/?error=missing_tokens');
   }
 });
