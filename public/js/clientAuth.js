@@ -99,7 +99,33 @@ function getAuthToken() {
  * This redirects to the Onshape OAuth page
  */
 function authenticate() {
-  window.location = '/oauth/login';
+  console.log("Authenticate function called!");
+  
+  // Display a logging message in the UI
+  const logOutput = document.getElementById('logOutput');
+  if (logOutput) {
+    const entry = document.createElement('div');
+    entry.className = 'log-info';
+    const timestamp = new Date().toLocaleTimeString();
+    entry.textContent = `[${timestamp}] Redirecting to Onshape for authentication...`;
+    logOutput.appendChild(entry);
+    logOutput.scrollTop = logOutput.scrollHeight;
+  }
+  
+  // Use href for more reliable redirect with a slight delay
+  try {
+    setTimeout(() => {
+      window.location.href = '/oauth/login';
+    }, 300); // Small delay to give the UI time to update
+  } catch (e) {
+    console.error("Redirect error:", e);
+    if (logOutput) {
+      const errorEntry = document.createElement('div');
+      errorEntry.className = 'log-error';
+      errorEntry.textContent = `[${new Date().toLocaleTimeString()}] Error redirecting to login: ${e.message}`;
+      logOutput.appendChild(errorEntry);
+    }
+  }
 }
 
 /**
@@ -115,7 +141,7 @@ function logout() {
   localStorage.removeItem('refreshToken');
   
   // Redirect to logout endpoint
-  window.location = '/oauth/logout';
+  window.location.href = '/oauth/logout';
 }
 
 /**
@@ -171,7 +197,21 @@ function showAuthError(error) {
 
 // Initialize auth when the page loads
 document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM loaded, initializing auth");
   init();
+  
+  // Add direct event listener for authentication button
+  const btnAuthenticate = document.getElementById('btnAuthenticate');
+  if (btnAuthenticate) {
+    console.log("Directly attaching event to auth button");
+    btnAuthenticate.addEventListener('click', function(e) {
+      console.log("Auth button clicked (direct listener)");
+      e.preventDefault(); // Prevent default form submission
+      authenticate();
+    });
+  } else {
+    console.error("Auth button not found in DOMContentLoaded");
+  }
 });
 
 // Export everything that might be needed
