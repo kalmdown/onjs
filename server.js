@@ -57,6 +57,66 @@ const authManager = new AuthManager({
   redirectUri: config.onshape.callbackUrl
 });
 
+// Add this to make sure '/' returns index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API error handling middleware - add this before app.listen()
+app.use((err, req, res, next) => {
+  // Extract useful information from the error
+  const statusCode = err.statusCode || err.response?.status || 500;
+  const message = err.message || 'Internal server error';
+  const errorDetails = {
+    message,
+    status: statusCode,
+    path: req.path
+  };
+  
+  // Add more details for debugging (only in development)
+  if (process.env.NODE_ENV !== 'production') {
+    errorDetails.stack = err.stack;
+    errorDetails.originalError = err.originalError || null;
+    if (err.response?.data) {
+      errorDetails.responseData = err.response.data;
+    }
+  }
+  
+  // Log the error
+  logger.error(`API Error (${statusCode}): ${message}`, err);
+  
+  // Handle authentication errors
+  if (statusCode === 401) {
+    // Clear any invalid tokens from session
+    if (req.session) {
+      delete req.session.oauthToken;
+      delete req.session.refreshToken;
+    }
+    
+    // For API requests, return JSON error
+    if (req.xhr || req.path.startsWith('/api/')) {
+      return res.status(401).json({ 
+        error: 'Authentication failed',
+        message: 'Your session has expired or is invalid. Please log in again.'
+      });
+    }
+    
+    // For browser requests, redirect to login
+    return res.redirect('/oauth/login');
+  }
+  
+  // Handle other errors
+  res.status(statusCode).json({
+    error: statusCode >= 500 ? 'Server error' : 'Request error',
+    message,
+    details: process.env.NODE_ENV !== 'production' ? errorDetails : undefined
+  });
+});
+
+app.listen(config.port, () => {
+  console.log(`HTTP Server running on port ${config.port}`);
+});
+
 // Determine the best authentication method based on available credentials
 if (process.env.ONSHAPE_AUTH_METHOD === 'OAUTH' || 
     (config.onshape.clientId && config.onshape.clientSecret)) {
@@ -225,14 +285,20 @@ function createOnshapeClient(req) {
   logger.debug(`Auth manager method after update: ${authManager.getMethod()}`);
   
   // Create client with the application's auth manager instance
-  return onjs.createClient({
+  const client = onjs.createClient({
     authManager: authManager,
     unitSystem: "inch",
     baseUrl: process.env.API_URL || 'https://cad.onshape.com/api/v6',
   });
+  
+  // Add logging to inspect the client
+  logger.debug(`Client created with auth method: ${client.auth ? client.auth.getMethod() : 'unknown'}`);
+  logger.debug(`Token available: ${!!authManager.accessToken}`);
+  logger.debug(`Token first 10 chars: ${authManager.accessToken ? authManager.accessToken.substring(0, 10) + '...' : 'none'}`);
+
+  return client;
 }
 
-// OAuth routes
 // OAuth routes
 app.get("/oauth/login", passport.authenticate("oauth2"));
 
@@ -265,6 +331,12 @@ app.get('/oauthRedirect', function(req, res, next) {
     console.error('Missing tokens in user object:', req.user);
     res.redirect('/?error=missing_tokens');
   }
+});
+
+app.get("/oauth/logout", (req, res) => {
+  req.logout(() => {
+    res.redirect("/");
+  });
 });
 
 // Example route handler for documents API
@@ -320,7 +392,12 @@ app.post("/api/documents", isAuthenticated, async (req, res, next) => {
     }
 
     const client = createOnshapeClient(req);
-    const document = await client.createDocument(name, description);
+    // Use the appropriate method to create a document
+    const document = await client.api.post('/documents', {
+      name,
+      description: description || "Created with Onshape JavaScript client"
+    });
+    
     res.json(document);
   } catch (error) {
     next(error);
@@ -342,40 +419,73 @@ app.post("/api/examples/cylinder", isAuthenticated, async (req, res, next) => {
     const client = createOnshapeClient(req);
 
     // Get or create document
-    let onshapeDocument;  // Changed from 'document' to 'onshapeDocument'
+    let onshapeDocument;
     if (documentId) {
-      onshapeDocument = await client.getDocument({ documentId });
+      onshapeDocument = await client.api.get(`/documents/${documentId}`);
     } else {
-      onshapeDocument = await client.createDocument("Cylinder Example");
+      onshapeDocument = await client.api.post('/documents', { 
+        name: "Cylinder Example" 
+      });
     }
 
-    // Get part studio
-    const partStudio = await client.getPartStudio({
-      document: onshapeDocument,  // Update this parameter name too
-      wipe: true,
-    });
+    // Get or create part studio element
+    const elements = await client.api.get(`/documents/${onshapeDocument.id}/elements`);
+    let partStudioElement = elements.find(el => el.type === 'PARTSTUDIO');
+    
+    if (!partStudioElement) {
+      // Create a new part studio
+      partStudioElement = await client.api.post(
+        `/documents/${onshapeDocument.id}/w/main/elements`,
+        { name: "Part Studio", elementType: "PARTSTUDIO" }
+      );
+    }
 
     // Create a sketch on the top plane
-    const sketch = await Sketch.create({
-      partStudio,
-      plane: partStudio.features.topPlane,
-      name: "Base Sketch",
-    });
-
+    const sketchFeature = {
+      type: 'sketch',
+      name: 'Base Sketch',
+      parameters: {
+        plane: { type: 'standard', name: 'TOP' }
+      }
+    };
+    
+    const sketchResponse = await client.api.post(
+      `/documents/${onshapeDocument.id}/w/main/elements/${partStudioElement.id}/features`,
+      { feature: sketchFeature }
+    );
+    
+    const sketchId = sketchResponse.feature.id;
+    
     // Add a circle to the sketch
-    await sketch.addCircle([0, 0], 0.5);
-
+    await client.api.post(
+      `/documents/${onshapeDocument.id}/w/main/elements/${partStudioElement.id}/sketches/${sketchId}/entities`,
+      { type: 'circle', radius: 0.5, center: [0, 0] }
+    );
+    
+    // Close the sketch
+    await client.api.post(
+      `/documents/${onshapeDocument.id}/w/main/elements/${partStudioElement.id}/sketches/${sketchId}`,
+      { action: 'close' }
+    );
+    
     // Extrude the sketch
-    const extrude = await Extrude.create({
-      partStudio,
-      faces: await sketch.getEntities(),
-      distance: 1,
-      name: "Cylinder Extrude",
-    });
+    const extrudeFeature = {
+      type: 'extrude',
+      name: 'Cylinder Extrude',
+      parameters: {
+        entities: { sketchId: sketchId },
+        direction: { type: 'positive', distance: 1 }
+      }
+    };
+    
+    await client.api.post(
+      `/documents/${onshapeDocument.id}/w/main/elements/${partStudioElement.id}/features`,
+      { feature: extrudeFeature }
+    );
 
     res.json({
       success: true,
-      document: onshapeDocument,  // Update this property too
+      document: onshapeDocument,
       link: `https://cad.onshape.com/documents/${onshapeDocument.id}`,
     });
   } catch (error) {
@@ -400,16 +510,12 @@ app.post("/api/examples/lamp", isAuthenticated, async (req, res, next) => {
     // Get or create document
     let onshapeDocument;
     if (documentId) {
-      onshapeDocument = await client.getDocument({ documentId });
+      onshapeDocument = await client.api.get(`/documents/${documentId}`);
     } else {
-      onshapeDocument = await client.createDocument("Lamp Example");
+      onshapeDocument = await client.api.post('/documents', { 
+        name: "Lamp Example" 
+      });
     }
-
-    // Get part studio
-    const partStudio = await client.getPartStudio({
-      document: onshapeDocument,
-      wipe: true,
-    });
 
     // Implementation would follow the lamp example pattern
     // For brevity, we'll just return success
@@ -443,33 +549,27 @@ app.post("/api/convert-svg", isAuthenticated, async (req, res, next) => {
     const client = createOnshapeClient(req);
 
     // Get or create document
-    let onshapeDocument;  // Changed from 'document' to 'onshapeDocument'
+    let onshapeDocument;
     if (documentId) {
-      onshapeDocument = await client.getDocument({ documentId });
+      onshapeDocument = await client.api.get(`/documents/${documentId}`);
     } else {
-      onshapeDocument = await client.createDocument("SVG Conversion");
+      onshapeDocument = await client.api.post('/documents', { 
+        name: "SVG Conversion" 
+      });
     }
-
-    // Get part studio
-    const partStudio = await client.getPartStudio({
-      document: onshapeDocument,  // Update parameter name
-      wipe: true,
-    });
 
     // Implementation would involve SVG parsing and conversion
     // For brevity, we'll just return success
 
     res.json({
       success: true,
-      document: onshapeDocument,  // Update property name
+      document: onshapeDocument,
       link: `https://cad.onshape.com/documents/${onshapeDocument.id}`,
     });
   } catch (error) {
     next(error);
   }
 });
-
-// Add these routes before your app.listen() call
 
 // Get document workspaces
 app.get('/api/documents/:documentId/workspaces', isAuthenticated, async (req, res, next) => {
@@ -485,7 +585,8 @@ app.get('/api/documents/:documentId/workspaces', isAuthenticated, async (req, re
     const client = createOnshapeClient(req);
     const documentId = req.params.documentId;
     
-    const workspaces = await client.getWorkspaces({ documentId });
+    // Use client.api.get instead of client.getWorkspaces
+    const workspaces = await client.api.get(`/documents/${documentId}/workspaces`);
     res.json(workspaces);
   } catch (error) {
     next(error);
@@ -506,7 +607,8 @@ app.get('/api/documents/:documentId/elements', isAuthenticated, async (req, res,
     const client = createOnshapeClient(req);
     const documentId = req.params.documentId;
     
-    const elements = await client.getElements({ documentId });
+    // Use client.api.get instead of client.getElements
+    const elements = await client.api.get(`/documents/${documentId}/elements`);
     res.json(elements);
   } catch (error) {
     next(error);
@@ -527,8 +629,8 @@ app.get('/api/documents/:documentId/w/:workspaceId/elements', isAuthenticated, a
     const client = createOnshapeClient(req);
     const { documentId, workspaceId } = req.params;
     
-    // For now, reuse the existing elements endpoint
-    const elements = await client.getElements({ documentId });
+    // Use client.api.get with the workspace-specific URL
+    const elements = await client.api.get(`/documents/${documentId}/w/${workspaceId}/elements`);
     res.json({ elements: elements });
   } catch (error) {
     next(error);
@@ -636,16 +738,19 @@ app.post('/api/documents/:documentId/w/:workspaceId/elements', isAuthenticated, 
     const { documentId, workspaceId } = req.params;
     const { name, elementType } = req.body;
     
-    const element = await client.createElement({ documentId, workspaceId, name, elementType });
+    // Use client.api.post instead of client.createElement
+    const element = await client.api.post(
+      `/documents/${documentId}/w/${workspaceId}/elements`,
+      { name, elementType }
+    );
+    
     res.json(element);
   } catch (error) {
     next(error);
   }
 });
 
-// Fix the feature creation route in server.js - update to match the client endpoint format
-
-// Find this route:
+// Features endpoint
 app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/features', isAuthenticated, async (req, res, next) => {
   try {
     // Get the auth manager
@@ -658,9 +763,14 @@ app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/features
 
     const client = createOnshapeClient(req);
     const { documentId, workspaceId, elementId } = req.params;
-    const feature = req.body; // This needs to be the feature object directly
+    const feature = req.body.feature || req.body; // Support both { feature } and direct feature object
     
-    const result = await client.createFeature({ documentId, workspaceId, elementId, feature });
+    // Use client.api.post instead of client.createFeature
+    const result = await client.api.post(
+      `/documents/${documentId}/w/${workspaceId}/elements/${elementId}/features`,
+      { feature }
+    );
+    
     res.json(result);
   } catch (error) {
     next(error);
@@ -681,13 +791,12 @@ app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/sketches
     const client = createOnshapeClient(req);
     const { documentId, workspaceId, elementId, sketchId } = req.params;
     
-    const entity = await client.addSketchEntity({
-      documentId, 
-      workspaceId, 
-      elementId, 
-      sketchId,
-      entity: req.body
-    });
+    // Use client.api.post instead of client.addSketchEntity
+    const entity = await client.api.post(
+      `/documents/${documentId}/w/${workspaceId}/elements/${elementId}/sketches/${sketchId}/entities`,
+      req.body
+    );
+    
     res.json(entity);
   } catch (error) {
     next(error);
@@ -710,12 +819,12 @@ app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/sketches
     const { action } = req.body;
     
     if (action === 'close') {
-      const result = await client.closeSketch({
-        documentId, 
-        workspaceId, 
-        elementId, 
-        sketchId
-      });
+      // Use client.api.post instead of client.closeSketch
+      const result = await client.api.post(
+        `/documents/${documentId}/w/${workspaceId}/elements/${elementId}/sketches/${sketchId}`,
+        { action: 'close' }
+      );
+      
       res.json(result);
     } else {
       res.status(400).json({ error: 'Unsupported action' });
@@ -723,70 +832,4 @@ app.post('/api/documents/:documentId/w/:workspaceId/elements/:elementId/sketches
   } catch (error) {
     next(error);
   }
-});
-
-// Add this to make sure '/' returns index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-/* // Start server
-const httpsOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'localhost.pem'))
-}; */
-
-// API error handling middleware - add this before app.listen()
-app.use((err, req, res, next) => {
-  // Extract useful information from the error
-  const statusCode = err.statusCode || err.response?.status || 500;
-  const message = err.message || 'Internal server error';
-  const errorDetails = {
-    message,
-    status: statusCode,
-    path: req.path
-  };
-  
-  // Add more details for debugging (only in development)
-  if (process.env.NODE_ENV !== 'production') {
-    errorDetails.stack = err.stack;
-    errorDetails.originalError = err.originalError || null;
-    if (err.response?.data) {
-      errorDetails.responseData = err.response.data;
-    }
-  }
-  
-  // Log the error
-  logger.error(`API Error (${statusCode}): ${message}`, err);
-  
-  // Handle authentication errors
-  if (statusCode === 401) {
-    // Clear any invalid tokens from session
-    if (req.session) {
-      delete req.session.oauthToken;
-      delete req.session.refreshToken;
-    }
-    
-    // For API requests, return JSON error
-    if (req.xhr || req.path.startsWith('/api/')) {
-      return res.status(401).json({ 
-        error: 'Authentication failed',
-        message: 'Your session has expired or is invalid. Please log in again.'
-      });
-    }
-    
-    // For browser requests, redirect to login
-    return res.redirect('/oauth/login');
-  }
-  
-  // Handle other errors
-  res.status(statusCode).json({
-    error: statusCode >= 500 ? 'Server error' : 'Request error',
-    message,
-    details: process.env.NODE_ENV !== 'production' ? errorDetails : undefined
-  });
-});
-
-app.listen(config.port, () => {
-  console.log(`HTTP Server running on port ${config.port}`);
 });
