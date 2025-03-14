@@ -1,38 +1,31 @@
 // src\entities\parts.js
-{/ src\entities\parts.js
-    "name": "svg-to-onshape",
-    "description": "Convert SVG files to Onshape models",
-    "main": "server.js",
-    "scripts": {
-        "start": "node server.js",quire('../utils/errors');
-        "dev": "nodemon server.js",
-        "test": "jest",
-        "test:unit": "jest sketch.test.js",resents a part in an Onshape part studio
-        "test:integration": "jest sketch.integration.test.js --runInBand"
-    },
-    "dependencies": {
-        "axios": "^1.6.2",io The part studio that owns the part
-        "body-parser": "^1.20.2",odel from the API
-        "express": "^4.18.2",
-        "express-session": "^1.17.3",
-        "passport": "^0.7.0",io;
-        "passport-oauth2": "^1.7.0",is._model = model;
-        "svg-parser": "^2.0.4"io._api;
-    },o._client;
-    "devDependencies": {
-        "dotenv": "^16.4.7",
-        "jest": "^29.7.0",
-        "nodemon": "^3.0.1",et the part ID
-        "puppeteer": "^24.4.0"tring} Part ID
-    },
-    "engines": {id() {
-        "node": ">=18.0.0"model.partId;
-    },
-    "author": "", 
-    "license": "MIT"  /**
+const { FeatureError } = require('../utils/errors');
 
-
-}   * Get the part name
+/**
+ * Represents a part in an Onshape part studio
+ */
+class Part {
+  /**
+   * @param {Object} partStudio The part studio that owns the part
+   * @param {Object} model The part model from the API
+   */
+  constructor(partStudio, model) {
+    this.partStudio = partStudio;
+    this._model = model;
+    this._api = partStudio._api;
+    this._client = partStudio._client;
+  }
+  
+  /**
+   * Get the part ID
+   * @returns {string} Part ID
+   */
+  get id() {
+    return this._model.partId;
+  }
+  
+  /**
+   * Get the part name
    * @returns {string} Part name
    */
   get name() {
@@ -70,7 +63,7 @@
       return response.result.value.map(item => item.value);
     } catch (error) {
       console.error(`Error getting ${entityType} entities:`, error);
-      throw new OnshapeFeatureError(`Failed to get ${entityType} entities`, error);
+      throw new FeatureError(`Failed to get ${entityType} entities`, error);
     }
   }
   
@@ -140,13 +133,13 @@
           !response.result.value || 
           !response.result.value[0] ||
           !response.result.value[0].value) {
-        throw new OnshapeFeatureError("Could not find closest face");
+        throw new FeatureError("Could not find closest face");
       }
       
       return response.result.value[0].value;
     } catch (error) {
       console.error("Error finding closest face:", error);
-      throw new OnshapeFeatureError("Failed to find closest face", error);
+      throw new FeatureError("Failed to find closest face", error);
     }
   }
 }

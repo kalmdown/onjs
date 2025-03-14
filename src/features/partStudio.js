@@ -2,8 +2,8 @@
 /**
  * Represents an Onshape Part Studio
  */
-const { OnshapeFeatureError } = require('../utils/x_errors');
-const logger = require('../utils/x_logger');
+const { FeatureError } = require('../utils_errors');
+const logger = require('../utils/logger');
 
 // Create scoped logger
 const log = logger.scope('PartStudio');

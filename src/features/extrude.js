@@ -4,7 +4,7 @@
  */
 
 const { createExtrude } = require('../api/schema');
-const { OnshapeFeatureError } = require('../utils/x_errors');
+const { FeatureError } = require('../utils/errors');
 
 /**
  * Represents an extrusion feature in Onshape

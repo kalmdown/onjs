@@ -1,5 +1,4 @@
-// src\middleware\auth.js
-// src/middleware/auth.js
+// src\middleware\authMiddleware.js
 const passport = require('passport');
 const { Strategy: OAuth2Strategy } = require("passport-oauth2");
 const logger = require('../utils/logger');
@@ -15,6 +14,13 @@ const log = logger.scope('AuthMiddleware');
  */
 function configureOAuth(authManager) {
   // Configure OAuth2 strategy for Onshape
+  log.info('Configuring OAuth2 strategy with:', {
+    authorizationURL: config.onshape.authorizationUrl,
+    tokenURL: config.onshape.tokenUrl,
+    clientID: config.onshape.clientId ? 'Set' : 'Not set',
+    callbackURL: config.onshape.callbackUrl,
+  });
+
   passport.use(
     new OAuth2Strategy(
       {
@@ -23,7 +29,8 @@ function configureOAuth(authManager) {
         clientID: config.onshape.clientId,
         clientSecret: config.onshape.clientSecret,
         callbackURL: config.onshape.callbackUrl,
-        scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'
+        scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete',
+        state: true // Enable state parameter for CSRF protection
       },
       function (accessToken, refreshToken, profile, done) {
         log.debug('OAuth tokens received:', !!accessToken, !!refreshToken);
@@ -68,6 +75,7 @@ function isAuthenticated(req, res, next) {
   
   // Check auth method and credentials
   const authMethod = authManager.getMethod();
+  log.debug(`Current auth method: ${authMethod || 'none'}`);
   
   // Handle different authentication scenarios
   if (authMethod === 'oauth') {

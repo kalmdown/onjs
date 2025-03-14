@@ -4,7 +4,7 @@
  */
 
 // Import modules
-import { initAuth } from './auth.js';
+import { initAuth } from './clientAuth.js';
 import { fetchDocuments } from './api.js';
 import { setupUI, registerEventHandlers } from './ui.js';
 import { initLogger, logInfo, logError } from './utils/logging.js';

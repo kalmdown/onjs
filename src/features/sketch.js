@@ -4,9 +4,9 @@
  */
 
 const { generateId, createSketch, createCircle, createLine } = require('../api/schema');
-const { OnshapeFeatureError, OnshapeParameterError } = require('../utils/x_errors');
+const { FeatureError, OnshapeParameterError } = require('../utils/errors');
 const { Point2D, UnitSystem, inchesToMeters } = require('../utils/misc');
-const logger = require('../utils/x_logger');
+const logger = require('../utils/logger');
 
 // Create a scoped logger for the Sketch class
 const log = logger.scope('Sketch');
@@ -115,7 +115,7 @@ class Sketch {
       return response;
     } catch (error) {
       log.error("Error creating sketch:", error);
-      throw new OnshapeFeatureError("Failed to create sketch", error);
+      throw new FeatureError("Failed to create sketch", error);
     }
   }
   
@@ -126,7 +126,7 @@ class Sketch {
    */
   _loadResponse(response) {
     if (!response || !response.feature) {
-      throw new OnshapeFeatureError("Invalid API response - missing feature data");
+      throw new FeatureError("Invalid API response - missing feature data");
     }
     
     this.featureId = response.feature.featureId;
@@ -136,7 +136,7 @@ class Sketch {
     this.featureState = response.feature.featureStatus;
     
     if (!this.featureId) {
-      throw new OnshapeFeatureError("Failed to get valid feature ID from response");
+      throw new FeatureError("Failed to get valid feature ID from response");
     }
     
     return this.featureId;
@@ -284,7 +284,7 @@ class Sketch {
    */
   async getEntities() {
     if (!this.featureId) {
-      throw new OnshapeFeatureError("Sketch has no feature ID - did you call create()?");
+      throw new FeatureError("Sketch has no feature ID - did you call create()?");
     }
     
     const script = `
@@ -319,7 +319,7 @@ class Sketch {
       };
     } catch (error) {
       log.error("Error getting sketch entities:", error);
-      throw new OnshapeFeatureError("Failed to get sketch entities", error);
+      throw new FeatureError("Failed to get sketch entities", error);
     }
   }
 }

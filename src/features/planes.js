@@ -3,7 +3,7 @@
  * Interface to Onshape Planes
  */
 
-const { OnshapeFeatureError } = require('../utils/x_errors');
+const { FeatureError } = require('../utils/errors');
 
 /**
  * Default plane orientations
@@ -96,13 +96,13 @@ class DefaultPlane extends Plane {
           !response.result.value || 
           !response.result.value[0] ||
           !response.result.value[0].value) {
-        throw new OnshapeFeatureError(`Could not find default plane: ${this.orientation}`);
+        throw new FeatureError(`Could not find default plane: ${this.orientation}`);
       }
       
       return [response.result.value[0].value];
     } catch (error) {
       console.error(`Error getting ${this.orientation} plane ID:`, error);
-      throw new OnshapeFeatureError(`Failed to get ${this.orientation} plane ID`, error);
+      throw new FeatureError(`Failed to get ${this.orientation} plane ID`, error);
     }
     */
   }
@@ -206,7 +206,7 @@ class OffsetPlane extends Plane {
       return response;
     } catch (error) {
       console.error("Error creating offset plane:", error);
-      throw new OnshapeFeatureError("Failed to create offset plane", error);
+      throw new FeatureError("Failed to create offset plane", error);
     }
   }
   
@@ -217,7 +217,7 @@ class OffsetPlane extends Plane {
    */
   async getTransientIds() {
     if (!this.featureId) {
-      throw new OnshapeFeatureError("Cannot get transient ID for plane without a feature ID");
+      throw new FeatureError("Cannot get transient ID for plane without a feature ID");
     }
     
     const script = `
@@ -237,13 +237,13 @@ class OffsetPlane extends Plane {
       );
       
       if (!response.result || !response.result.value) {
-        throw new OnshapeFeatureError("Failed to get transient ID for offset plane");
+        throw new FeatureError("Failed to get transient ID for offset plane");
       }
       
       return [response.result.value];
     } catch (error) {
       console.error("Error getting offset plane ID:", error);
-      throw new OnshapeFeatureError("Failed to get offset plane ID", error);
+      throw new FeatureError("Failed to get offset plane ID", error);
     }
   }
   

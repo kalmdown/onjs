@@ -1,4 +1,4 @@
-// src\api\endpoints\documents.js
+// src/api/endpoints/documents.js
 const logger = require('../../utils/logger');
 const { NotFoundError, ValidationError } = require('../../utils/errors');
 const { Document } = require('../../models');
@@ -152,14 +152,13 @@ class DocumentsApi {
       throw error;
     }
   }
-}
 
-/**
- * Create a public document (works with Free accounts)
- * @param {String} name - Document name
- * @returns {Promise<Document>} Created document
- */
-async createPublicDocument(name) {
+  /**
+   * Create a public document (works with Free accounts)
+   * @param {String} name - Document name
+   * @returns {Promise<Document>} Created document
+   */
+  async createPublicDocument(name) {
     if (!name) {
       throw new ValidationError('Document name is required');
     }
@@ -204,5 +203,6 @@ async createPublicDocument(name) {
       throw error;
     }
   }
-  
+}
+
 module.exports = DocumentsApi;
