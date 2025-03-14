@@ -1,5 +1,5 @@
 import { apiCall } from '../api.js';
-import { getAuthToken } from '../clientAuth.js';
+import { getToken } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logSuccess, logError } from '../utils/logging.js';
 
@@ -12,7 +12,7 @@ import { logInfo, logSuccess, logError } from '../utils/logging.js';
  * 3. Cutting into the cylinder to create the cup hollow
  */
 export async function runExample3() {
-  if (!getAuthToken()) {
+  if (!getToken()) {
     logError('Please authenticate first');
     return;
   }
