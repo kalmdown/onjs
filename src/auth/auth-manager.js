@@ -246,6 +246,49 @@ class AuthManager {
     }
   }
   
+ /**
+ * Refresh the OAuth token if it's expired or about to expire
+ * @returns {Promise<boolean>} True if token was refreshed
+ */
+async refreshTokenIfNeeded() {
+  // Skip if not using OAuth or no refresh token
+  if (this.getMethod() !== 'oauth' || !this.refreshToken) {
+    return false;
+  }
+  
+  // Implement token expiry check if possible
+  // If you're storing the token expiry time, check it here
+  
+  try {
+    const tokenUrl = 'https://oauth.onshape.com/oauth/token';
+    const params = new URLSearchParams();
+    params.append('grant_type', 'refresh_token');
+    params.append('refresh_token', this.refreshToken);
+    
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    };
+    
+    // Add basic auth header for client credentials
+    const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+    headers['Authorization'] = `Basic ${auth}`;
+    
+    const response = await axios.post(tokenUrl, params, { headers });
+    
+    // Update tokens
+    this.accessToken = response.data.access_token;
+    if (response.data.refresh_token) {
+      this.refreshToken = response.data.refresh_token;
+    }
+    
+    logger.debug('OAuth token refreshed successfully');
+    return true;
+  } catch (error) {
+    logger.error('Failed to refresh token:', error.message);
+    return false;
+  }
+}
+
   /**
    * Create and initialize OAuth client for web authentication flow
    * @param {Object} options - OAuth client options
