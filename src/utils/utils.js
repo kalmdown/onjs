@@ -6,7 +6,7 @@
  */
 
 const axios = require('axios');
-const { OnshapeApiError } = require('./errors');
+const { OnshapeApiError } = require('./x_errors');
 
 class RestApi {
   /**

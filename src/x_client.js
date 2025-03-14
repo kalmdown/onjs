@@ -1,13 +1,13 @@
-// src\client.js
+// src\x_client.js
 /**
  * Main client for Onshape API interactions
  * Provides a simplified interface for accessing Onshape API functionality
  */
 const RestApi = require('./api/rest-api');
-const { createAuth } = require('./auth'); // Import the unified auth interface
-const endpoints = require('./api/endpoints');
-const { OnshapeApiError } = require('./utils/errors');
-const logger = require('./utils/logger');
+const { createAuth } = require('./auth/x_index'); // Import the unified auth interface
+const endpoints = require('./api/x_endpoints');
+const { OnshapeApiError } = require('./utils/x_errors');
+const logger = require('./utils/x_logger');
 
 // Get feature classes
 const PartStudio = require('./features/partStudio');

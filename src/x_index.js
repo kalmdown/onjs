@@ -1,10 +1,10 @@
-// src\index.js
+// src\x_index.js
 /**
  * OnJS - Onshape JavaScript API Client
  */
 
 // Core client
-const OnshapeClient = require('./client');
+const OnshapeClient = require('./x_client');
 
 // Feature classes
 const Sketch = require('./features/sketch');

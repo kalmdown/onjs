@@ -1,15 +1,16 @@
-// src/utils/logger.js
+// src\utils\x_logger.js
 const fs = require('fs');
 const path = require('path');
 
 /**
- * Custom logger that provides scoped logging capabilities
+ * Custom logger that buffers output and can write to file
+ * to prevent asynchronous logging errors in tests
  */
 class Logger {
   constructor(options = {}) {
     this.buffer = [];
-    this.logLevel = options.logLevel || process.env.LOG_LEVEL || 'info';
-    this.logToFile = options.logToFile || process.env.LOG_TO_FILE === 'true';
+    this.logLevel = options.logLevel || 'info';
+    this.logToFile = options.logToFile || false;
     this.logDir = options.logDir || 'logs';
     this.logLevels = {
       debug: 0,
@@ -23,7 +24,8 @@ class Logger {
       fs.mkdirSync(this.logDir, { recursive: true });
     }
     
-    // Use buffered logs in test environment
+    // Use buffered or direct logging based on environment
+    // Buffer logs in test environment to prevent "Cannot log after tests are done" errors
     this.useBufferedLogs = process.env.NODE_ENV === 'test';
   }
 
@@ -42,7 +44,7 @@ class Logger {
       if (this.useBufferedLogs) {
         this.buffer.push({ level: 'info', message, args, timestamp: new Date() });
       } else {
-        console.log(`[INFO] ${message}`, ...args);
+        console.log(message, ...args);
       }
       
       if (this.logToFile) {
@@ -59,7 +61,7 @@ class Logger {
       if (this.useBufferedLogs) {
         this.buffer.push({ level: 'debug', message, args, timestamp: new Date() });
       } else {
-        console.debug(`[DEBUG] ${message}`, ...args);
+        console.debug(message, ...args);
       }
       
       if (this.logToFile) {
@@ -81,7 +83,7 @@ class Logger {
           timestamp: new Date() 
         });
       } else {
-        console.error(`[ERROR] ${message}`, error);
+        console.error(message, error);
       }
       
       if (this.logToFile) {
@@ -98,7 +100,7 @@ class Logger {
       if (this.useBufferedLogs) {
         this.buffer.push({ level: 'warn', message, args, timestamp: new Date() });
       } else {
-        console.warn(`[WARN] ${message}`, ...args);
+        console.warn(message, ...args);
       }
       
       if (this.logToFile) {
@@ -113,6 +115,11 @@ class Logger {
    */
   _writeToFile(filename, content) {
     try {
+      // Create logs directory if it doesn't exist
+      if (!fs.existsSync(this.logDir)) {
+        fs.mkdirSync(this.logDir, { recursive: true });
+      }
+      
       fs.appendFileSync(
         path.join(this.logDir, filename),
         `${new Date().toISOString()} - ${content}\n`
@@ -144,6 +151,7 @@ class Logger {
 
   /**
    * Flush buffered logs
+   * Call this after tests are complete or in an afterAll hook
    */
   flush(options = {}) {
     if (!this.buffer.length) return;
@@ -154,16 +162,16 @@ class Logger {
       this.buffer.forEach(log => {
         switch (log.level) {
           case 'debug':
-            console.debug(`[DEBUG] ${log.message}`, ...(log.args || []));
+            console.debug(log.message, ...(log.args || []));
             break;
           case 'info':
-            console.log(`[INFO] ${log.message}`, ...(log.args || []));
+            console.log(log.message, ...(log.args || []));
             break;
           case 'warn':
-            console.warn(`[WARN] ${log.message}`, ...(log.args || []));
+            console.warn(log.message, ...(log.args || []));
             break;
           case 'error':
-            console.error(`[ERROR] ${log.message}`, log.error);
+            console.error(log.message, log.error);
             break;
         }
       });

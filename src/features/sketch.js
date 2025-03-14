@@ -4,9 +4,9 @@
  */
 
 const { generateId, createSketch, createCircle, createLine } = require('../api/schema');
-const { OnshapeFeatureError, OnshapeParameterError } = require('../utils/errors');
+const { OnshapeFeatureError, OnshapeParameterError } = require('../utils/x_errors');
 const { Point2D, UnitSystem, inchesToMeters } = require('../utils/misc');
-const logger = require('../utils/logger');
+const logger = require('../utils/x_logger');
 
 // Create a scoped logger for the Sketch class
 const log = logger.scope('Sketch');

@@ -1,51 +1,71 @@
 // src\utils\errors.js
 /**
- * Error classes for the Onshape client
- */
-
-/**
  * Base error class for Onshape client
  */
 class OnshapeError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
+    constructor(message, statusCode = 500) {
+      super(message);
+      this.name = this.constructor.name;
+      this.statusCode = statusCode;
+      Error.captureStackTrace(this, this.constructor);
+    }
   }
-}
-
-/**
- * Error for invalid parameters
- */
-class OnshapeParameterError extends OnshapeError {
-  constructor(message) {
-    super(`Parameter error: ${message}`);
+  
+  /**
+   * Error for authentication issues
+   */
+  class AuthenticationError extends OnshapeError {
+    constructor(message) {
+      super(`Authentication error: ${message}`, 401);
+    }
   }
-}
-
-/**
- * Error for API responses
- */
-class OnshapeApiError extends OnshapeError {
-  constructor(message, originalError) {
-    super(`API error: ${message}`);
-    this.originalError = originalError;
+  
+  /**
+   * Error for invalid parameters
+   */
+  class ValidationError extends OnshapeError {
+    constructor(message) {
+      super(`Validation error: ${message}`, 400);
+    }
   }
-}
-
-/**
- * Error for feature operations
- */
-class OnshapeFeatureError extends OnshapeError {
-  constructor(message, originalError) {
-    super(`Feature error: ${message}`);
-    this.originalError = originalError;
+  
+  /**
+   * Error for API responses
+   */
+  class ApiError extends OnshapeError {
+    constructor(message, statusCode = 500, originalError = null) {
+      super(`API error: ${message}`, statusCode);
+      this.originalError = originalError;
+      this.responseData = originalError?.response?.data;
+    }
   }
-}
-
-module.exports = {
-  OnshapeError,
-  OnshapeParameterError,
-  OnshapeApiError,
-  OnshapeFeatureError
-};
+  
+  /**
+   * Error for not found resources
+   */
+  class NotFoundError extends OnshapeError {
+    constructor(resource, id) {
+      super(`${resource} not found with id: ${id}`, 404);
+      this.resource = resource;
+      this.resourceId = id;
+    }
+  }
+  
+  /**
+   * Error for feature operations
+   */
+  class FeatureError extends OnshapeError {
+    constructor(message, originalError = null) {
+      super(`Feature error: ${message}`, originalError?.statusCode || 500);
+      this.originalError = originalError;
+    }
+  }
+  
+  module.exports = {
+    OnshapeError,
+    AuthenticationError,
+    ValidationError,
+    ApiError,
+    NotFoundError,
+    FeatureError
+  };

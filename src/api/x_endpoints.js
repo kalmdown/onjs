@@ -1,4 +1,4 @@
-// src\api\endpoints.js
+// src\api\x_endpoints.js
 /**
  * Different endpoints exposed to the RestApi object.
  * 

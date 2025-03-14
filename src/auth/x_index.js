@@ -1,5 +1,5 @@
-// src\auth\index.js
-const AuthManager = require('./auth-manager');
+// src\auth\x_index.js
+const AuthManager = require('./x_auth-manager');
 
 /**
  * Create an authenticated client for Onshape API

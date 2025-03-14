@@ -1,10 +1,10 @@
-// src\api\simple-rest-api.js
+// src\api\x_simple-rest-api.js
 /**
  * Simplified Onshape REST API client - verified working version
  */
 const axios = require('axios');
-const AuthManager = require('../auth/auth-manager');
-const logger = require('../utils/logger');
+const AuthManager = require('../auth/x_auth-manager');
+const logger = require('../utils/x_logger');
 
 class SimpleRestApi {
   /**
@@ -21,7 +21,7 @@ class SimpleRestApi {
   constructor(options = {}) {
     this.baseUrl = options.baseUrl || process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v10';
     this.debug = options.debug || false;
-    this.logger = options.logger || require('../utils/logger').scope('SimpleRestApi');
+    this.logger = options.logger || require('../utils/x_logger').scope('SimpleRestApi');
     
     // Initialize auth manager
     if (options.authManager) {
@@ -30,7 +30,7 @@ class SimpleRestApi {
       this.logger.info('Using provided auth manager instance');
     } else {
       // Create new auth manager with options
-      const AuthManager = require('../auth/auth-manager');
+      const AuthManager = require('../auth/x_auth-manager');
       try {
         this.authManager = new AuthManager({
           authType: options.authType || process.env.ONSHAPE_AUTH_METHOD || 'api_key',
