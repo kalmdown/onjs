@@ -9,62 +9,76 @@ let apiCalls = []; // Array to store API calls
  * Make an API call to the backend server
  */
 export async function apiCall(endpoint, method = 'GET', body = null) {
-  if (!authToken) {
-    throw new Error('Not authenticated');
-  }
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${authToken}`
-  };
-  
-  const options = { method, headers };
-  
-  if (body && (method === 'POST' || method === 'PUT')) {
-    options.body = JSON.stringify(body);
-    logInfo(`Making ${method} request to /api/${endpoint} with payload: ${JSON.stringify(body)}`); // Log the payload
-  }
-  
-  logInfo(`Making ${method} request to /api/${endpoint}`); // Log the endpoint
-  
-  // Store the API call
-  apiCalls.push({
-    url: `/api/${endpoint}`,
-    method: method,
-    headers: headers,
-    body: body
-  });
-
   try {
+    // Build the options for the fetch request
+    const options = { 
+      method, 
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    // Add auth token if available
+    if (authToken) {
+      options.headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    // Add body data for POST/PUT requests
+    if (body && (method === 'POST' || method === 'PUT')) {
+      options.body = JSON.stringify(body);
+      logInfo(`Making ${method} request to /api/${endpoint} with payload: ${JSON.stringify(body)}`);
+    } else {
+      logInfo(`Making ${method} request to /api/${endpoint}`);
+    }
+    
+    // Store the API call
+    apiCalls.push({
+      url: `/api/${endpoint}`,
+      method: method,
+      headers: options.headers,
+      body: body
+    });
+
+    // Make the request
     const response = await fetch(`/api/${endpoint}`, options);
     
+    // Handle non-success responses
     if (!response.ok) {
       let errorData;
       try {
         errorData = await response.json();
-        console.error('API error details:', errorData); // Log detailed error
+        console.error('API error details:', errorData);
       } catch (jsonError) {
         errorData = { error: `API error: ${response.status} - Failed to parse JSON response` };
+      }
+      
+      // Check for authentication errors
+      if (response.status === 401) {
+        // Redirect to login for authentication errors
+        logError('Authentication required. Redirecting to login...');
+        setTimeout(() => {
+          window.location.href = '/oauth/login';
+        }, 1000);
       }
       
       throw new Error(errorData.error || `API error: ${response.status}`);
     }
     
-    return response.json();
+    return await response.json();
   } catch (error) {
-    console.error('Full API call error:', error); // More detailed logging
-    logError(`API call failed: ${error.message}`);  // Log the error
-    throw error;  // Re-throw the error so the calling function can handle it
+    console.error('Full API call error:', error);
+    logError(`API call failed: ${error.message}`);
+    throw error;
   }
 }
 
 /**
  * Fetch documents from Onshape
  */
-export async function fetchDocuments(logInfo) { // Accept logInfo as an argument
+export async function fetchDocuments() {
   if (!authToken) {
     logError('Not authenticated');
-    return;
+    return [];
   }
   
   logInfo('Fetching documents...');
@@ -168,20 +182,12 @@ export async function fetchPlanesForPartStudio(documentId, partStudioId, include
       throw new Error('No workspace found for document');
     }
     
-    // Add includeCustomPlanes parameter to API call
-    const url = `/api/documents/${documentId}/w/${defaultWorkspace.id}/e/${partStudioId}/planes?includeCustomPlanes=${includeCustomPlanes}`;
-    logDebug(`Making request to: ${url}`);
+    // Make API request to get planes through our server API
+    const endpoint = `documents/${documentId}/w/${defaultWorkspace.id}/e/${partStudioId}/planes?includeCustomPlanes=${includeCustomPlanes}`;
+    const data = await apiCall(endpoint);
     
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
     logDebug('Planes response:', data);
     
-    // Return planes from server response without adding default planes client-side
-    // This prevents duplication of default planes
     return data.planes || [];
   } catch (error) {
     logError(`API error fetching planes: ${error.message}`);

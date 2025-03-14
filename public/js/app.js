@@ -7,28 +7,36 @@
 import { initAuth } from './auth.js';
 import { fetchDocuments } from './api.js';
 import { setupUI, registerEventHandlers } from './ui.js';
-import { initLogger, logInfo } from './utils/logging.js';
+import { initLogger, logInfo, logError } from './utils/logging.js';
 // Import selectors - these need to be loaded even if not used directly
 import './partStudioSelector.js';
 import './planeSelector.js';
 
 // Define a function to initialize the application with dependencies
 async function initializeApp(dependencies) {
-  // Initialize logging
-  dependencies.initLogger();
-  
-  // Set up UI elements
-  dependencies.setupUI();
-  
-  // Register event handlers
-  dependencies.registerEventHandlers();
-  
-  // Initialize authentication
-  const isAuthenticated = await dependencies.initAuth();
-  
-  // If authenticated, fetch documents
-  if (isAuthenticated) {
-    dependencies.fetchDocuments(dependencies.logInfo); // Pass logInfo to fetchDocuments
+  try {
+    // Initialize logging
+    dependencies.initLogger();
+    
+    // Set up UI elements
+    dependencies.setupUI();
+    
+    // Register event handlers
+    dependencies.registerEventHandlers();
+    
+    // Initialize authentication
+    const isAuthenticated = await dependencies.initAuth();
+    
+    // If authenticated, fetch documents
+    if (isAuthenticated) {
+      dependencies.logInfo('Authentication successful, fetching documents...');
+      await dependencies.fetchDocuments();
+    } else {
+      dependencies.logInfo('Not authenticated. Please click "Authenticate with Onshape" to begin.');
+    }
+  } catch (error) {
+    dependencies.logError(`Error initializing application: ${error.message}`);
+    console.error('Initialization error:', error);
   }
 }
 
@@ -39,10 +47,22 @@ const dependencies = {
   setupUI: setupUI,
   registerEventHandlers: registerEventHandlers,
   initLogger: initLogger,
-  logInfo: logInfo // Add logInfo to dependencies
+  logInfo: logInfo,
+  logError: logError
 };
 
 // Initialize the application with dependencies
 document.addEventListener('DOMContentLoaded', () => {
-  initializeApp(dependencies);
+  initializeApp(dependencies)
+    .catch(error => {
+      console.error('Application initialization error:', error);
+      // Show a friendly error message to the user
+      const logOutput = document.getElementById('logOutput');
+      if (logOutput) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'log-error';
+        errorDiv.textContent = `Application error: ${error.message}`;
+        logOutput.appendChild(errorDiv);
+      }
+    });
 });

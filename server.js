@@ -125,7 +125,8 @@ passport.use(
     },
     function (accessToken, refreshToken, profile, done) {
       logger.debug('OAuth tokens received:', !!accessToken, !!refreshToken);
-      
+      logger.debug('Token length:', accessToken ? accessToken.length : 0);
+ 
       // Store tokens with the user profile
       return done(null, {
         accessToken,
@@ -232,6 +233,7 @@ function createOnshapeClient(req) {
 }
 
 // OAuth routes
+// OAuth routes
 app.get("/oauth/login", passport.authenticate("oauth2"));
 
 app.get('/oauthRedirect', function(req, res, next) {
@@ -241,8 +243,11 @@ app.get('/oauthRedirect', function(req, res, next) {
 }, passport.authenticate('oauth2', { failureRedirect: '/?error=auth_failed' }), function(req, res) {
   console.log('OAuth successful, user:', !!req.user);
   
-  // Make sure req.user contains the tokens
+  // Log more details about the token for debugging
   if (req.user && req.user.accessToken) {
+    console.log('Token length:', req.user.accessToken.length);
+    console.log('Token prefix:', req.user.accessToken.substring(0, 10) + '...');
+    
     // Store tokens in session for non-passport requests
     req.session.oauthToken = req.user.accessToken;
     req.session.refreshToken = req.user.refreshToken || null;
@@ -255,17 +260,11 @@ app.get('/oauthRedirect', function(req, res, next) {
     logger.info('Updated global auth manager with OAuth tokens');
     
     // Pass tokens back to client
-    res.redirect(`/?token=${req.user.accessToken}&refresh=${req.user.refreshToken || ''}`);
+    res.redirect(`/?token=${encodeURIComponent(req.user.accessToken)}&refresh=${encodeURIComponent(req.user.refreshToken || '')}`);
   } else {
     console.error('Missing tokens in user object:', req.user);
     res.redirect('/?error=missing_tokens');
   }
-});
-
-app.get("/oauth/logout", (req, res) => {
-  req.logout(() => {
-    res.redirect("/");
-  });
 });
 
 // Example route handler for documents API

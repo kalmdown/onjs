@@ -17,16 +17,17 @@ export async function initAuth() {
     urlToken ? 'Token present' : 'No token', 
     urlRefresh ? 'Refresh present' : 'No refresh token');
 
-  if (urlToken && urlRefresh) {
+  if (urlToken) {
     console.log('Setting auth token from URL');
     authToken = urlToken;
-    refreshToken = urlRefresh;
+    refreshToken = urlRefresh || null;
     localStorage.setItem('onshapeAuthToken', authToken);
-    localStorage.setItem('onshapeRefreshToken', refreshToken);
+    if (refreshToken) {
+      localStorage.setItem('onshapeRefreshToken', refreshToken);
+    }
     updateAuthStatus(true);
     // Clean URL
     window.history.replaceState({}, document.title, '/');
-    // Fetch documents
     return true;
   } else if (urlError) {
     logError(`Authentication error: ${urlError}`);
@@ -39,19 +40,24 @@ export async function initAuth() {
     if (authToken) {
       console.log('Found stored auth token');
       
-      // Validate the token by making a request to a protected endpoint
+      // Validate the token by making a request to the auth status endpoint
       try {
-        await apiCall('documents');
-        updateAuthStatus(true);
-        return true;
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        
+        if (data.authenticated) {
+          updateAuthStatus(true);
+          return true;
+        } else {
+          // Token is invalid
+          logError('Stored token is invalid, please re-authenticate');
+          clearAuthTokens();
+          return false;
+        }
       } catch (error) {
-        // Token is invalid
-        logError('Stored token is invalid, please re-authenticate');
-        authToken = null;
-        refreshToken = null;
-        localStorage.removeItem('onshapeAuthToken');
-        localStorage.removeItem('onshapeRefreshToken');
-        updateAuthStatus(false);
+        // Token validation request failed
+        logError('Failed to validate token, please re-authenticate');
+        clearAuthTokens();
         return false;
       }
     } else {
@@ -59,6 +65,17 @@ export async function initAuth() {
       return false;
     }
   }
+}
+
+/**
+ * Clear authentication tokens
+ */
+function clearAuthTokens() {
+  authToken = null;
+  refreshToken = null;
+  localStorage.removeItem('onshapeAuthToken');
+  localStorage.removeItem('onshapeRefreshToken');
+  updateAuthStatus(false);
 }
 
 /**
@@ -90,15 +107,11 @@ export function updateAuthStatus(isAuthenticated) {
 /**
  * Authenticate with Onshape using OAuth
  */
-export async function authenticate() {
+export function authenticate() {
   logInfo('Starting authentication process...');
   
-  try {
-    // Use the Passport OAuth route
-    window.location.href = '/oauth/login';
-  } catch (error) {
-    logError(`Authentication error: ${error.message}`);
-  }
+  // Proper OAuth flow: redirect to server endpoint that handles OAuth
+  window.location.href = '/oauth/login';
 }
 
 /**
@@ -109,5 +122,4 @@ export function getAuthToken() {
 }
 
 // Import from other modules
-import { apiCall } from './api.js';
 import { logInfo, logError } from './utils/logging.js';
