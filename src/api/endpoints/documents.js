@@ -1,4 +1,4 @@
-// src/api/endpoints/documents.js (Updated to use Document model)
+// src\api\endpoints\documents.js
 const logger = require('../../utils/logger');
 const { NotFoundError, ValidationError } = require('../../utils/errors');
 const { Document } = require('../../models');
@@ -154,4 +154,55 @@ class DocumentsApi {
   }
 }
 
+/**
+ * Create a public document (works with Free accounts)
+ * @param {String} name - Document name
+ * @returns {Promise<Document>} Created document
+ */
+async createPublicDocument(name) {
+    if (!name) {
+      throw new ValidationError('Document name is required');
+    }
+    
+    try {
+      const document = await this.api.post('/documents', {
+        name,
+        isPublic: true // Required for Free accounts
+      });
+      
+      this.logger.info(`Created public document: ${document.name} (${document.id})`);
+      return new Document(document, this.client);
+    } catch (error) {
+      this.logger.error('Failed to create public document:', error.message);
+      throw error;
+    }
+  }
+  
+  /**
+   * Find public documents by search query (works with Free accounts)
+   * @param {String} query - Search query
+   * @param {Object} [options] - Search options
+   * @param {Number} [options.limit=20] - Maximum results to return
+   * @returns {Promise<Array<Document>>} Matching documents
+   */
+  async findPublicDocuments(query, options = {}) {
+    try {
+      const queryParams = {
+        q: query,
+        filter: 'public',
+        limit: options.limit || 20
+      };
+      
+      const response = await this.api.get('/documents', queryParams);
+      
+      this.logger.debug(`Found ${response.items?.length || 0} public documents for query: ${query}`);
+      
+      // Convert to Document models
+      return (response.items || []).map(doc => new Document(doc, this.client));
+    } catch (error) {
+      this.logger.error(`Failed to find public documents for query ${query}:`, error.message);
+      throw error;
+    }
+  }
+  
 module.exports = DocumentsApi;

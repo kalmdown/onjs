@@ -1,5 +1,4 @@
 // src\api\rest-client.js
-// src/api/rest-client.js
 const axios = require('axios');
 const logger = require('../utils/logger');
 const { ApiError } = require('../utils/errors');
@@ -72,7 +71,8 @@ class RestClient {
         this.logger.debug(`${method} ${cleanPath}`, {
           hasBody: !!bodyString,
           bodySize: bodyString ? bodyString.length : 0,
-          queryParams: Object.keys(queryParams)
+          queryParams: Object.keys(queryParams),
+          headers: this._sanitizeHeadersForLogging(headers)
         });
       } else {
         this.logger.debug(`${method} ${cleanPath}`);
@@ -141,6 +141,26 @@ class RestClient {
         error
       );
     }
+  }
+
+  /**
+   * Sanitize headers for logging (hide sensitive information)
+   * @private
+   */
+  _sanitizeHeadersForLogging(headers) {
+    const sanitized = {...headers};
+    if (sanitized.Authorization) {
+      // Mask most of the auth token
+      const authParts = sanitized.Authorization.split(' ');
+      if (authParts.length > 1) {
+        const prefix = authParts[0];
+        const token = authParts[1];
+        sanitized.Authorization = `${prefix} ${token.substring(0, 6)}...${token.substring(token.length - 4)}`;
+      } else {
+        sanitized.Authorization = 'Bearer ***masked***';
+      }
+    }
+    return sanitized;
   }
 
   /**
