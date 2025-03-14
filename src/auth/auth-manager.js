@@ -256,10 +256,9 @@ async refreshTokenIfNeeded() {
     return false;
   }
   
-  // Implement token expiry check if possible
-  // If you're storing the token expiry time, check it here
-  
   try {
+    logger.debug('Attempting to refresh OAuth token...');
+    
     const tokenUrl = 'https://oauth.onshape.com/oauth/token';
     const params = new URLSearchParams();
     params.append('grant_type', 'refresh_token');
@@ -273,7 +272,16 @@ async refreshTokenIfNeeded() {
     const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
     headers['Authorization'] = `Basic ${auth}`;
     
-    const response = await axios.post(tokenUrl, params, { headers });
+    logger.debug('Sending refresh token request...');
+    
+    const response = await axios.post(tokenUrl, params.toString(), { headers });
+    
+    if (!response.data || !response.data.access_token) {
+      logger.error('Token refresh response missing access_token');
+      return false;
+    }
+    
+    logger.debug('Received new token from refresh');
     
     // Update tokens
     this.accessToken = response.data.access_token;
@@ -281,10 +289,13 @@ async refreshTokenIfNeeded() {
       this.refreshToken = response.data.refresh_token;
     }
     
-    logger.debug('OAuth token refreshed successfully');
+    logger.info('OAuth token refreshed successfully');
     return true;
   } catch (error) {
     logger.error('Failed to refresh token:', error.message);
+    if (error.response) {
+      logger.error('Refresh token response:', error.response.data);
+    }
     return false;
   }
 }
