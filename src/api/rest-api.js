@@ -1,7 +1,7 @@
 // src\api\rest-api.js
 const axios = require('axios');
-const { createAuth } = require('../auth');
-const logger = require('../utils/logger');
+const { createAuth } = require('../auth/x_index');
+const logger = require('../utils/x_logger');
 
 class RestApi {
   /**

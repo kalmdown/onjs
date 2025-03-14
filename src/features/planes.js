@@ -3,7 +3,7 @@
  * Interface to Onshape Planes
  */
 
-const { OnshapeFeatureError } = require('../utils/errors');
+const { OnshapeFeatureError } = require('../utils/x_errors');
 
 /**
  * Default plane orientations
