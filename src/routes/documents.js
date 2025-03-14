@@ -1,4 +1,4 @@
-// src/routes/documents.js
+// src\routes\documents.js
 const express = require('express');
 const router = express.Router();
 const { isAuthenticated, createClientFromRequest } = require('../middleware/authMiddleware');

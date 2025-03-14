@@ -4,17 +4,20 @@ import { runExample1 } from './examples/cylinder.js';
 import { runExample2 } from './examples/lamp.js';
 import { runExample3 } from './examples/cup.js';
 import { convertSvg } from './svg-converter.js';
-import { authenticate } from './clientAuth.js';
+import { authenticate, getToken } from './clientAuth.js';
 import { exportApiCalls } from './api.js'; // Import the exportApiCalls function
 import partStudioSelector from './partStudioSelector.js';
 import planeSelector from './planeSelector.js';
+
 // Application state
 let selectedDocument = null;
 let currentSvg = null;
+
 // DOM elements
 let btnAuthenticate, authStatus, svgFile, svgPreview, 
     documentSelect, documentName, btnRefreshDocuments,
     btnExample1, btnExample2, btnExample3, btnConvertSvg, logOutput, btnExportApiCalls;
+
 export function setupUI() {
   // Initialize DOM elements
   btnAuthenticate = document.getElementById('btnAuthenticate');
@@ -31,6 +34,7 @@ export function setupUI() {
   logOutput = document.getElementById('logOutput');
   btnExportApiCalls = document.getElementById('btnExportApiCalls'); // Initialize btnExportApiCalls
 }
+
 export function registerEventHandlers() {
   // Set up event listeners
   btnAuthenticate.addEventListener('click', authenticate);
@@ -46,6 +50,7 @@ export function registerEventHandlers() {
   // Register studio and plane change handlers
   partStudioSelector.onSelect(onPartStudioSelect);
 }
+
 /**
  * Handle document selection change
  */
@@ -71,6 +76,7 @@ function onDocumentSelectChange() {
   
   updateConvertButton();
 }
+
 /**
  * Handle part studio selection change
  */
@@ -82,6 +88,7 @@ function onPartStudioSelect(partStudio) {
     planeSelector.loadPlanes(partStudio.documentId, partStudio.id);
   }
 }
+
 /**
  * Handle SVG file selection
  */
@@ -104,41 +111,45 @@ function onSvgFileChange(event) {
   };
   reader.readAsText(file);
 }
+
 /**
  * Update the state of the Convert button
  */
 function updateConvertButton() {
-  btnConvertSvg.disabled = !getAuthToken() || !currentSvg;
+  btnConvertSvg.disabled = !getToken() || !currentSvg;
 }
+
 /**
  * Get the currently selected document
  */
 export function getSelectedDocument() {
   return selectedDocument;
 }
+
 /**
  * Get the document name input value
  */
 export function getDocumentName() {
   return documentName.value;
 }
+
 /**
  * Get the current SVG content
  */
 export function getCurrentSvg() {
   return currentSvg;
 }
+
 /**
  * Get the selected part studio
  */
 export function getSelectedPartStudio() {
   return partStudioSelector.getSelectedItem();
 }
+
 /**
  * Get the selected sketch plane
  */
 export function getSelectedPlane() {
   return planeSelector.getSelectedItem();
 }
-// Import from other modules
-import { getAuthToken } from './clientAuth.js';

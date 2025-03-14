@@ -1,4 +1,4 @@
-// public/js/auth.js
+// public/js/clientAuth.js
 // Store token values
 let _authToken = null;
 let _refreshToken = null;
@@ -6,6 +6,7 @@ let _isAuthenticated = false;
 
 /**
  * Initialize authentication
+ * @returns {boolean} Whether authentication was successful
  */
 function init() {
   console.log("Initializing auth module");
@@ -71,6 +72,7 @@ function init() {
 
 /**
  * Check if user is authenticated
+ * @returns {boolean} Whether user is authenticated
  */
 function isAuthenticated() {
   return _isAuthenticated;
@@ -78,6 +80,7 @@ function isAuthenticated() {
 
 /**
  * Get authentication token
+ * @returns {string|null} Authentication token
  */
 function getToken() {
   return _authToken;
@@ -85,15 +88,19 @@ function getToken() {
 
 /**
  * Alternative name for getToken for backward compatibility
+ * @returns {string|null} Authentication token
  */
 function getAuthToken() {
   return _authToken;
 }
 
 /**
- * Direct access to the token (for backward compatibility)
+ * Initiate authentication process
+ * This redirects to the Onshape OAuth page
  */
-const authToken = _authToken;
+function authenticate() {
+  window.location = '/oauth/login';
+}
 
 /**
  * Log out user
@@ -113,85 +120,66 @@ function logout() {
 
 /**
  * Update UI based on authentication state
+ * @param {boolean} isAuthenticated - Whether user is authenticated
  */
 function updateAuthUI(isAuthenticated) {
-  const loginButton = document.getElementById('login-button');
-  const logoutButton = document.getElementById('logout-button');
-  const userPanel = document.getElementById('user-panel');
+  const loginButton = document.getElementById('btnAuthenticate');
+  const authStatus = document.getElementById('authStatus');
   
-  if (loginButton && logoutButton && userPanel) {
+  if (loginButton && authStatus) {
     if (isAuthenticated) {
-      loginButton.style.display = 'none';
-      logoutButton.style.display = 'inline-block';
-      userPanel.style.display = 'block';
+      loginButton.textContent = 'Logout';
+      loginButton.removeEventListener('click', authenticate);
+      loginButton.addEventListener('click', logout);
+      authStatus.textContent = 'Authenticated';
+      authStatus.className = 'ms-3 text-success';
       
-      // Check auth status for more info
-      fetch('/api/auth/status')
-        .then(response => response.json())
-        .then(data => {
-          console.log("Auth status:", data);
-          if (data.method) {
-            const methodDisplay = document.getElementById('auth-method');
-            if (methodDisplay) {
-              methodDisplay.textContent = data.method;
-            }
-          }
-        })
-        .catch(error => console.error("Error fetching auth status:", error));
+      // Enable features that require authentication
+      const btnConvertSvg = document.getElementById('btnConvertSvg');
+      if (btnConvertSvg) {
+        btnConvertSvg.disabled = false;
+      }
     } else {
-      loginButton.style.display = 'inline-block';
-      logoutButton.style.display = 'none';
-      userPanel.style.display = 'none';
+      loginButton.textContent = 'Authenticate with Onshape';
+      loginButton.removeEventListener('click', logout);
+      loginButton.addEventListener('click', authenticate);
+      authStatus.textContent = 'Not authenticated';
+      authStatus.className = 'ms-3 text-secondary';
+      
+      // Disable features that require authentication
+      const btnConvertSvg = document.getElementById('btnConvertSvg');
+      if (btnConvertSvg) {
+        btnConvertSvg.disabled = true;
+      }
     }
   }
 }
 
 /**
  * Show authentication error
+ * @param {string} error - Error message
  */
 function showAuthError(error) {
   const errorContainer = document.getElementById('auth-error');
   if (errorContainer) {
     errorContainer.style.display = 'block';
     errorContainer.textContent = `Authentication failed: ${error}`;
+  } else {
+    console.error('Authentication error:', error);
   }
 }
 
 // Initialize auth when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   init();
-  
-  // Set up logout button handler
-  const logoutButton = document.getElementById('logout-button');
-  if (logoutButton) {
-    logoutButton.addEventListener('click', function(e) {
-      e.preventDefault();
-      logout();
-    });
-  }
-  
-  // Set up login button handler
-  const loginButton = document.getElementById('login-button');
-  if (loginButton) {
-    loginButton.addEventListener('click', function(e) {
-      e.preventDefault();
-      window.location = '/oauth/login';
-    });
-  }
 });
 
 // Export everything that might be needed
 export { 
-  init, 
+  init as initAuth, 
   isAuthenticated, 
   getToken, 
   getAuthToken,
   authenticate,
-  logout,
-  authToken      // This needs to be updated to a function
+  logout
 };
-
-// For scripts that need direct access to the token
-export function getCurrentToken() {
-  return _authToken;
-}

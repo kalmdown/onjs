@@ -1,5 +1,5 @@
 import { apiCall } from './api.js';
-import { getAuthToken } from './clientAuth.js';
+import { getToken } from './clientAuth.js';
 import { getSelectedDocument, getDocumentName, getCurrentSvg } from './ui.js';
 import { logInfo, logSuccess, logError } from './utils/logging.js';
 
@@ -10,7 +10,7 @@ import { logInfo, logSuccess, logError } from './utils/logging.js';
  * features in Onshape.
  */
 export async function convertSvg() {
-  if (!getAuthToken()) {
+  if (!getToken()) {
     logError('Please authenticate first');
     return;
   }

@@ -1,5 +1,5 @@
 import { apiCall } from '../api.js';
-import { getToken as getAuthToken } from '../clientAuth.js';
+import { getToken } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logSuccess, logError } from '../utils/logging.js';
 
@@ -9,7 +9,7 @@ import { logInfo, logSuccess, logError } from '../utils/logging.js';
  * This example creates a circle sketch and extrudes it to create a cylinder.
  */
 export async function runExample1() {
-  if (!getAuthToken()) {
+  if (!getToken()) {
     logError('Please authenticate first');
     return;
   }

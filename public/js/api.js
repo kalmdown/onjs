@@ -1,7 +1,7 @@
 // public/js/api.js
 
 // Import the function that returns the token, not the token itself
-import { getToken as authToken } from './clientAuth.js';
+import { getToken } from './clientAuth.js';
 import { logError, logSuccess, logInfo, logDebug } from './utils/logging.js';
 
 // State
@@ -22,7 +22,7 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
     };
     
     // Add auth token if available - call the function to get the token
-    const token = authToken();
+    const token = getToken();
     if (token) {
       options.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -80,7 +80,7 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
  * Fetch documents from Onshape
  */
 export async function fetchDocuments() {
-  const token = authToken();
+  const token = getToken();
   if (!token) {
     logError('Not authenticated');
     return [];
