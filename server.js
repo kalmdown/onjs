@@ -1,4 +1,8 @@
+
 // server.js - Main application entry point
+
+require('./load-env'); // Add this at the top
+
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
