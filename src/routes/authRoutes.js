@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const { passport } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
+const config = require('../../config'); // Add this line
+const { createFallbackAuthRoutes } = require('../middleware/fix-auth');
 
 // Create a scoped logger
 const log = logger.scope('AuthRoutes');
@@ -153,4 +155,10 @@ router.get("/status", (req, res) => {
   });
 });
 
-module.exports = router;
+// Export either the OAuth routes or fallback routes
+if (config.onshape.clientId && config.onshape.clientSecret) {
+  module.exports = router;
+} else {
+  log.warn('Using fallback auth routes since OAuth is not configured');
+  module.exports = createFallbackAuthRoutes();
+}
