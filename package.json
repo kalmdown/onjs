@@ -1,7 +1,7 @@
 {
-    "name": "svg-to-onshape",
+    "name": "onjs",
     "version": "1.0.0",
-    "description": "Convert SVG files to Onshape models",
+    "description": "Convert onpy to Javascript",
     "main": "server.js",
     "scripts": {
       "start": "node server.js",
