@@ -112,20 +112,8 @@ function authenticate() {
     logOutput.scrollTop = logOutput.scrollHeight;
   }
   
-  // Use href for more reliable redirect with a slight delay
-  try {
-    setTimeout(() => {
-      window.location.href = '/oauth/login';
-    }, 300); // Small delay to give the UI time to update
-  } catch (e) {
-    console.error("Redirect error:", e);
-    if (logOutput) {
-      const errorEntry = document.createElement('div');
-      errorEntry.className = 'log-error';
-      errorEntry.textContent = `[${new Date().toLocaleTimeString()}] Error redirecting to login: ${e.message}`;
-      logOutput.appendChild(errorEntry);
-    }
-  }
+  // Use window.location.href for more reliable redirect without a delay
+  window.location.href = '/oauth/login';
 }
 
 /**
@@ -182,16 +170,27 @@ function updateAuthUI(isAuthenticated) {
 }
 
 /**
- * Show authentication error
+ * Handle authentication errors
  * @param {string} error - Error message
  */
-function showAuthError(error) {
+function handleAuthError(error) {
+  console.error("Authentication error:", error);
+  
+  // Try to show in dedicated auth-error element if it exists
   const errorContainer = document.getElementById('auth-error');
   if (errorContainer) {
     errorContainer.style.display = 'block';
     errorContainer.textContent = `Authentication failed: ${error}`;
-  } else {
-    console.error('Authentication error:', error);
+  }
+  
+  // Also log to the activity log if it exists
+  const logOutput = document.getElementById('logOutput');
+  if (logOutput) {
+    const entry = document.createElement('div');
+    entry.className = 'log-error';
+    entry.textContent = `Authentication error: ${error}`;
+    logOutput.appendChild(entry);
+    logOutput.scrollTop = logOutput.scrollHeight;
   }
 }
 

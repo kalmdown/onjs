@@ -14,7 +14,16 @@ const log = logger.scope('AuthRoutes');
  * @description Initiate OAuth login flow with Onshape
  * @access Public
  */
-router.get("/login", passport.authenticate("oauth2"));
+router.get("/login", function(req, res, next) {
+  log.info('OAuth login initiated');
+  log.info('Auth configuration:', {
+    clientId: !!config.onshape.clientId,
+    clientSecret: !!config.onshape.clientSecret,
+    callbackUrl: config.onshape.callbackUrl,
+    authUrl: config.onshape.authorizationURL
+  });
+  next();
+}, passport.authenticate("oauth2"));
 
 /**
  * @route GET /oauthRedirect - Direct callback from Onshape
