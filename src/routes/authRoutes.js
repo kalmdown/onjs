@@ -16,7 +16,8 @@ const log = logger.scope('AuthRoutes');
  */
 router.get("/login", function(req, res, next) {
   const authManager = req.app.get('authManager');
-  log.info('OAuth login initiated');
+  log.info('OAuth login initiated from: ' + req.headers.referer);
+  log.info('Redirect URL will be: ' + config.onshape.callbackUrl);
   
   // If we're using API key auth, just redirect with a success message
   if (authManager.getMethod() === 'apikey') {
@@ -25,12 +26,16 @@ router.get("/login", function(req, res, next) {
   }
   
   // For OAuth method, proceed with the authentication
-  log.info('Auth configuration:', {
-    clientId: !!config.onshape.clientId,
-    clientSecret: !!config.onshape.clientSecret,
+  log.info('Starting OAuth flow with config:', {
+    clientId: config.onshape.clientId ? 'Set (masked)' : 'Not set',
     callbackUrl: config.onshape.callbackUrl,
     authUrl: config.onshape.authorizationURL
   });
+  
+  // Directly build and log the auth URL to verify it's correct
+  const authUrl = `${config.onshape.authorizationURL}?client_id=${config.onshape.clientId}&response_type=code&redirect_uri=${encodeURIComponent(config.onshape.callbackUrl)}`;
+  log.info('Complete auth URL would be: ' + authUrl);
+  
   next();
 }, passport.authenticate("oauth2"));
 
@@ -41,9 +46,14 @@ router.get("/login", function(req, res, next) {
  */
 router.get('/oauthRedirect', function(req, res, next) {
   log.info('OAuth callback received at /oauthRedirect path');
-  log.info('Full URL:', req.originalUrl);
-  log.info('Code present:', !!req.query.code);
-  log.info('State present:', !!req.query.state);
+  log.info('Request URL: ' + req.originalUrl);
+  log.info('Auth code present: ' + (req.query.code ? 'YES' : 'NO'));
+  log.info('State param: ' + req.query.state);
+  log.info('Error param: ' + (req.query.error || 'none'));
+  
+  // Store these in variables to access them in case authentication fails
+  req.oauthCode = req.query.code;
+  req.oauthState = req.query.state;
   
   next();
 }, passport.authenticate('oauth2', { 
@@ -51,12 +61,11 @@ router.get('/oauthRedirect', function(req, res, next) {
   session: true
 }), function(req, res) {
   log.info('OAuth authentication successful');
-  log.info('User object:', req.user ? 'Present' : 'Missing');
-  log.info('Access token:', req.user?.accessToken ? 'Present (length: ' + req.user.accessToken.length + ')' : 'Missing');
+  log.info('User token available: ' + (req.user?.accessToken ? 'YES' : 'NO'));
   
   if (req.user && req.user.accessToken) {
-    log.debug('Token length:', req.user.accessToken.length);
-    log.debug('Refresh token present:', !!req.user.refreshToken);
+    log.info('Token length: ' + req.user.accessToken.length);
+    log.info('Refresh token available: ' + (req.user.refreshToken ? 'YES' : 'NO'));
     
     // Store tokens in session for non-passport requests
     req.session.oauthToken = req.user.accessToken;

@@ -42,41 +42,44 @@ class AuthManager {
  * Initialize authentication method based on available credentials
  * @private
  */
-  _initMethod() {
-    // First try API key auth if explicitly requested
-    if (process.env.ONSHAPE_AUTH_METHOD &&
-        (process.env.ONSHAPE_AUTH_METHOD.toLowerCase() === 'apikey' || 
-         process.env.ONSHAPE_AUTH_METHOD.toLowerCase() === 'api_key') && 
-        this.accessKey && this.secretKey) {
-      this.setMethod('apikey');
-      this.logger.info('Initialized with API key authentication (explicit setting)');
-      return; // Stop here once method is set
-    }
-    // Then try OAuth if tokens are available
-    else if (this.accessToken) {
-      this.setMethod('oauth');
-      this.logger.info('Initialized with OAuth authentication (token provided)');
-      return; // Stop here once method is set
-    }
-    // Then check if OAuth credentials are available (even without tokens)
-    else if (this.clientId && this.clientSecret) {
-      this.setMethod('oauth');
-      this.logger.info('Initialized with OAuth authentication (credentials provided)');
-      return; // Stop here once method is set
-    }
-    // Otherwise, check for API key credentials as fallback
-    else if (this.accessKey && this.secretKey) {
-      this.setMethod('apikey');
-      this.logger.info('Initialized with API key authentication (fallback)');
-      return; // Stop here once method is set
-    }
-    // Finally, if no valid auth method is available, log a warning
-    else {
-      this.logger.warn('No valid authentication credentials available');
-      this.logger.warn('Set ONSHAPE_CLIENT_ID and ONSHAPE_CLIENT_SECRET or ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY');
-    }
+// In auth-manager.js, improve the _initMethod function
+
+_initMethod() {
+  // Check environment variable first
+  const preferredMethod = process.env.ONSHAPE_AUTH_METHOD?.toLowerCase();
+  
+  // If API key is explicitly requested and credentials exist
+  if ((preferredMethod === 'apikey' || preferredMethod === 'api_key') && 
+      this.accessKey && this.secretKey) {
+    this.setMethod('apikey');
+    this.logger.info('Using API key authentication (explicit setting)');
+    return;
   }
   
+  // If OAuth tokens are already available, use OAuth
+  if (this.accessToken) {
+    this.setMethod('oauth');
+    this.logger.info('Using OAuth authentication (token provided)');
+    return;
+  }
+  
+  // If OAuth credentials are available, prefer OAuth
+  if (this.clientId && this.clientSecret) {
+    this.setMethod('oauth');
+    this.logger.info('Using OAuth authentication (credentials available)');
+    return;
+  }
+  
+  // Fallback to API key if available
+  if (this.accessKey && this.secretKey) {
+    this.setMethod('apikey');
+    this.logger.info('Using API key authentication (fallback)');
+    return;
+  }
+  
+  this.logger.warn('No valid authentication credentials available');
+}
+
   /**
    * Get the current authentication method
    * @returns {string|null} - The current method ('apikey', 'oauth') or null if not set

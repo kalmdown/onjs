@@ -15,17 +15,54 @@ const log = logger.scope('DocumentRoutes');
  */
 router.get('/', isAuthenticated, async (req, res, next) => {
   try {
+    log.info('Fetching documents for authenticated user');
+    
+    // Log authentication method
+    const authManager = req.app.get('authManager');
+    if (authManager) {
+      log.info(`Using auth method: ${authManager.getMethod()}`);
+    }
+    
     // Create client from request
     const client = createClientFromRequest(req, OnshapeClient);
     
-    // Refresh token if needed
-    await client.refreshTokenIfNeeded();
+    if (!client) {
+      log.error('Failed to create Onshape client');
+      return res.status(500).json({ error: 'Failed to create Onshape client' });
+    }
+    
+    // Refresh token if needed (only applies to OAuth)
+    try {
+      await client.refreshTokenIfNeeded();
+    } catch (refreshError) {
+      log.warn(`Token refresh failed: ${refreshError.message}`);
+      // Continue anyway - might be using API key auth
+    }
     
     // Get documents
-    const documents = await client.documents.getDocuments();
-    
-    res.json(documents);
+    try {
+      log.info('Making API call to Onshape to fetch documents');
+      const documents = await client.documents.getDocuments();
+      log.info(`Successfully fetched ${documents.items?.length || 0} documents`);
+      
+      res.json(documents);
+    } catch (apiError) {
+      log.error(`Onshape API error: ${apiError.message}`, apiError);
+      
+      if (apiError.response?.status === 401) {
+        return res.status(401).json({ 
+          error: 'Authentication failed with Onshape API',
+          details: apiError.message
+        });
+      }
+      
+      return res.status(apiError.response?.status || 500).json({
+        error: 'Error fetching documents from Onshape API',
+        details: apiError.message
+      });
+    }
   } catch (error) {
+    log.error(`Unexpected error in document route handler: ${error.message}`, error);
     next(error);
   }
 });
