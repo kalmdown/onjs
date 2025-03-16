@@ -13,16 +13,10 @@ const log = logger.scope('AuthMiddleware');
  * @param {Object} authManager - Auth manager instance
  */
 function configureOAuth(authManager) {
-  // Only configure OAuth if it's the selected authentication method
-  if (authManager.getMethod() !== 'oauth') {
-    log.debug('OAuth configuration skipped - using authentication method:', authManager.getMethod());
-    return false;
-  }
-
   // Check if we have OAuth credentials before configuring
   if (!config.onshape.clientId || !config.onshape.clientSecret) {
     log.warn('OAuth credentials not found. OAuth authentication will not be available.');
-    log.warn('Set ONSHAPE_CLIENT_ID and ONSHAPE_CLIENT_SECRET environment variables to enable OAuth.');
+    log.warn('Set OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET environment variables to enable OAuth.');
     return false;
   }
 
@@ -35,6 +29,7 @@ function configureOAuth(authManager) {
   });
 
   try {
+    // Use a specific name for the strategy ('oauth2')
     passport.use('oauth2',
       new OAuth2Strategy(
         {

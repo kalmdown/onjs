@@ -145,6 +145,16 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Debug authentication status on every request
+app.use((req, res, next) => {
+  if (req.path === '/oauth/login') {
+    const authManager = req.app.get('authManager');
+    log.debug(`Auth request via ${req.path}, method: ${authManager.getMethod()}`);
+    log.debug(`Auth credentials: OAuth=${!!config.onshape.clientId}, APIKey=${!!process.env.ONSHAPE_ACCESS_KEY}`);
+  }
+  next();
+});
+
 // Error handling middleware
 app.use(errorMiddleware);
 

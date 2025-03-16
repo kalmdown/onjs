@@ -18,16 +18,13 @@ router.get("/login", function(req, res, next) {
   const authManager = req.app.get('authManager');
   log.info('OAuth login initiated');
   
-  // Check if we're actually using OAuth
-  if (authManager.getMethod() !== 'oauth') {
-    log.warn(`OAuth login attempted but server is using ${authManager.getMethod()} authentication`);
-    return res.status(400).json({
-      error: 'Authentication method mismatch',
-      message: `Server is configured to use ${authManager.getMethod()} authentication, not OAuth`,
-      authMethod: authManager.getMethod()
-    });
+  // If we're using API key auth, just redirect with a success message
+  if (authManager.getMethod() === 'apikey') {
+    log.info('Using API key authentication - no OAuth needed');
+    return res.redirect('/?auth=apikey&status=success');
   }
   
+  // For OAuth method, proceed with the authentication
   log.info('Auth configuration:', {
     clientId: !!config.onshape.clientId,
     clientSecret: !!config.onshape.clientSecret,

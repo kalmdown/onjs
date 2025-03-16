@@ -50,21 +50,25 @@ class AuthManager {
         this.accessKey && this.secretKey) {
       this.setMethod('apikey');
       this.logger.info('Initialized with API key authentication (explicit setting)');
+      return; // Stop here once method is set
     }
     // Then try OAuth if tokens are available
     else if (this.accessToken) {
       this.setMethod('oauth');
       this.logger.info('Initialized with OAuth authentication (token provided)');
+      return; // Stop here once method is set
     }
     // Then check if OAuth credentials are available (even without tokens)
     else if (this.clientId && this.clientSecret) {
       this.setMethod('oauth');
       this.logger.info('Initialized with OAuth authentication (credentials provided)');
+      return; // Stop here once method is set
     }
     // Otherwise, check for API key credentials as fallback
     else if (this.accessKey && this.secretKey) {
       this.setMethod('apikey');
       this.logger.info('Initialized with API key authentication (fallback)');
+      return; // Stop here once method is set
     }
     // Finally, if no valid auth method is available, log a warning
     else {
@@ -72,6 +76,7 @@ class AuthManager {
       this.logger.warn('Set ONSHAPE_CLIENT_ID and ONSHAPE_CLIENT_SECRET or ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY');
     }
   }
+  
   /**
    * Get the current authentication method
    * @returns {string|null} - The current method ('apikey', 'oauth') or null if not set

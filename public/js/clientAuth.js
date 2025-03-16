@@ -101,13 +101,13 @@ function getAuthToken() {
 function authenticate() {
   console.log("%c[AUTH] User clicked Authenticate button", "color: #FF8C00; font-weight: bold;");
   
-  // Display a logging message in the UI with orange color
+  // Display a logging message in the UI
   const logOutput = document.getElementById('logOutput');
   if (logOutput) {
     const entry = document.createElement('div');
-    entry.className = 'log-auth';  // Use auth-specific class for orange color
+    entry.className = 'log-auth';
     const timestamp = new Date().toLocaleTimeString();
-    entry.textContent = `[${timestamp}] Checking server authentication method...`;
+    entry.textContent = `[${timestamp}] Initializing authentication...`;
     logOutput.appendChild(entry);
     logOutput.scrollTop = logOutput.scrollHeight;
   }
