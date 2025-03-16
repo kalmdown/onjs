@@ -22,18 +22,19 @@ function configureOAuth(authManager) {
 
   // Configure OAuth2 strategy for Onshape
   log.info('Configuring OAuth2 strategy with:', {
-    authorizationURL: config.onshape.authorizationUrl,
-    tokenURL: config.onshape.tokenUrl,
+    authorizationURL: config.onshape.authorizationURL,
+    tokenURL: config.onshape.tokenURL,
     clientID: config.onshape.clientId ? 'Set' : 'Not set',
     callbackURL: config.onshape.callbackUrl,
   });
 
   try {
-    passport.use(
+    // Use a specific name for the strategy ('oauth2')
+    passport.use('oauth2',
       new OAuth2Strategy(
         {
-          authorizationURL: config.onshape.authorizationUrl,
-          tokenURL: config.onshape.tokenUrl,
+          authorizationURL: config.onshape.authorizationURL,
+          tokenURL: config.onshape.tokenURL,
           clientID: config.onshape.clientId,
           clientSecret: config.onshape.clientSecret,
           callbackURL: config.onshape.callbackUrl,
