@@ -183,49 +183,50 @@ function isAuthenticated(req, res, next) {
 }
 
 /**
- * Create an Onshape client for the current user
+ * Create an API client from the request
  * @param {Object} req - Express request object
- * @param {Object} onshapeClient - Onshape client factory
- * @returns {Object} Configured Onshape client
+ * @param {Function} ClientClass - Client class constructor (e.g. OnshapeClient)
+ * @returns {Object} Configured API client instance
  */
-function createClientFromRequest(req, onshapeClient) {
-  // Get application's authManager
-  const authManager = req.app.get('authManager');
-  
-  if (!authManager) {
-    throw new AuthenticationError('No auth manager found in app context');
+function createClientFromRequest(req, ClientClass) {
+  try {
+    // Get the auth manager from app
+    const authManager = req.app.get('authManager');
+    
+    if (!authManager) {
+      log.error('No auth manager found in app context');
+      return null;
+    }
+    
+    // Log detailed info for debugging
+    log.debug(`Creating client from request: authMethod=${authManager.getMethod()}`, {
+      hasUserToken: !!req.user?.accessToken,
+      hasSessionToken: !!req.session?.oauthToken,
+      hasManagerToken: !!authManager.accessToken,
+      authMethod: authManager.getMethod()
+    });
+    
+    // For OAuth method, ensure we have the latest token from user or session
+    if (req.user && req.user.accessToken && authManager.getMethod() === 'oauth') {
+      authManager.accessToken = req.user.accessToken;
+      authManager.refreshToken = req.user.refreshToken || null;
+      log.debug('Updated auth manager with user OAuth token');
+    } else if (req.session && req.session.oauthToken && authManager.getMethod() === 'oauth') {
+      authManager.accessToken = req.session.oauthToken;
+      authManager.refreshToken = req.session.refreshToken || null;
+      log.debug('Updated auth manager with session OAuth token');
+    }
+    
+    // Create a new client instance - ClientClass should be the constructor (like OnshapeClient)
+    // The correct way to instantiate a class is with 'new', not calling a static method
+    const client = new ClientClass({ authManager });
+    
+    log.debug('Client created successfully');
+    return client;
+  } catch (error) {
+    log.error(`Error creating client from request: ${error.message}`);
+    return null;
   }
-  
-  // Set authentication credentials based on request
-  if (req.user && req.user.accessToken) {
-    // Use OAuth token from req.user
-    authManager.accessToken = req.user.accessToken;
-    authManager.refreshToken = req.user.refreshToken || null;
-    authManager.setMethod('oauth');
-    log.debug('Using OAuth token from req.user');
-  } else if (req.session && req.session.oauthToken) {
-    // Use token from session
-    authManager.accessToken = req.session.oauthToken;
-    authManager.refreshToken = req.session.refreshToken || null;
-    authManager.setMethod('oauth');
-    log.debug('Using OAuth token from session');
-  } else if (process.env.ONSHAPE_ACCESS_KEY && process.env.ONSHAPE_SECRET_KEY) {
-    // Only fall back to API key if we have valid credentials and no OAuth tokens
-    authManager.accessKey = process.env.ONSHAPE_ACCESS_KEY;
-    authManager.secretKey = process.env.ONSHAPE_SECRET_KEY;
-    authManager.setMethod('apikey');
-    log.debug('Using API key authentication as fallback');
-  } else {
-    // Log warning if no valid authentication method is available
-    log.warn('No valid authentication credentials available');
-  }
-  
-  // Create client with the configured auth manager
-  return onshapeClient.createClient({
-    authManager: authManager,
-    unitSystem: config.auth.unitSystem || "inch",
-    baseUrl: config.onshape.baseUrl
-  });
 }
 
 module.exports = {

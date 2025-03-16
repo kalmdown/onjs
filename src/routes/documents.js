@@ -33,35 +33,33 @@ router.get('/', isAuthenticated, async (req, res, next) => {
       return res.status(500).json({ error: 'Failed to create Onshape client' });
     }
     
-    // Refresh token if needed (only applies to OAuth)
-    try {
-      await client.refreshTokenIfNeeded();
-    } catch (refreshError) {
-      log.warn(`Token refresh failed: ${refreshError.message}`);
-      // Continue anyway - might be using API key auth
-    }
+    // Get documents with pagination
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
     
-    // Get documents
     try {
+      // Get documents
       log.info('Making API call to Onshape to fetch documents');
-      const documents = await client.documents.getDocuments();
-      log.info(`Successfully fetched ${documents.items?.length || 0} documents`);
+      const documents = await client.documents.getDocuments({ 
+        limit, 
+        offset,
+        sortColumn: req.query.sortColumn || 'modifiedAt',
+        sortOrder: req.query.sortOrder || 'desc'
+      });
       
-      res.json(documents);
-    } catch (apiError) {
-      log.error(`Onshape API error: ${apiError.message}`, apiError);
-      
-      if (apiError.response?.status === 401) {
-        return res.status(401).json({ 
-          error: 'Authentication failed with Onshape API',
-          details: apiError.message
-        });
+      // Defensive check for documents response
+      if (!documents) {
+        log.warn('No documents returned from API');
+        return res.json([]);
       }
       
-      return res.status(apiError.response?.status || 500).json({
-        error: 'Error fetching documents from Onshape API',
-        details: apiError.message
-      });
+      log.info(`Successfully fetched ${Array.isArray(documents) ? documents.length : '?'} documents`);
+      
+      // Return the documents - handle both array and object formats
+      return res.json(documents);
+    } catch (error) {
+      log.error(`Onshape API error: ${error.message}`, error);
+      return res.status(500).json({ error: error.message });
     }
   } catch (error) {
     log.error(`Unexpected error in document route handler: ${error.message}`, error);

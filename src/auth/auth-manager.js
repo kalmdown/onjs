@@ -329,6 +329,66 @@ _initMethod() {
       throw new AuthenticationError('Failed to exchange authorization code for token');
     }
   }
+
+  /**
+   * Build authentication headers for API key authentication
+   * @param {string} method - HTTP method (GET, POST, etc.)
+   * @param {string} path - API path with leading slash
+   * @param {Object} queryParams - Query parameters
+   * @param {string} bodyString - Request body as string
+   * @returns {Object} Authentication headers
+   */
+  buildApiKeyHeaders(method, path, queryParams = {}, bodyString = '') {
+    const crypto = require('crypto');
+    
+    // Check for required credentials
+    if (!this.accessKey || !this.secretKey) {
+      throw new Error('API key authentication requires accessKey and secretKey');
+    }
+    
+    // Prepare the date header (in HTTP format)
+    const now = new Date();
+    const dateString = now.toUTCString();
+    
+    // Build the query string
+    const queryString = Object.keys(queryParams).length > 0
+      ? '?' + new URLSearchParams(queryParams).toString()
+      : '';
+    
+    // Compute the content string for signing
+    const contentString = bodyString || '';
+    
+    // String to sign: METHOD\nDATE\nPATH+QUERY\nCONTENT_STRING\nCONTENT_TYPE
+    const stringToSign = [
+      method.toUpperCase(),
+      dateString,
+      path + queryString,
+      contentString,
+      contentString ? 'application/json' : ''
+    ].join('\n');
+    
+    this.logger.debug('API key signature data', {
+      method: method.toUpperCase(),
+      path: path + queryString,
+      dateString,
+      contentStringLength: contentString ? contentString.length : 0
+    });
+    
+    // Create HMAC signature
+    const hmac = crypto.createHmac('sha256', this.secretKey);
+    hmac.update(stringToSign);
+    const signature = Buffer.from(hmac.digest()).toString('base64');
+    
+    // Authorization format: On {accessKey}:HmacSHA256:{signature}
+    const authorization = `On ${this.accessKey}:HmacSHA256:${signature}`;
+    
+    // Return headers
+    return {
+      'Date': dateString,
+      'Authorization': authorization,
+      'Content-Type': contentString ? 'application/json' : undefined
+    };
+  }
 }
 
 module.exports = AuthManager;
