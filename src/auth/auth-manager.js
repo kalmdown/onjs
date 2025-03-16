@@ -42,34 +42,36 @@ class AuthManager {
  * Initialize authentication method based on available credentials
  * @private
  */
-_initMethod() {
-  // First try API key auth if explicitly requested
-  if (process.env.ONSHAPE_AUTH_METHOD === 'apikey' && this.accessKey && this.secretKey) {
-    this.setMethod('apikey');
-    this.logger.info('Initialized with API key authentication');
+  _initMethod() {
+    // First try API key auth if explicitly requested
+    if (process.env.ONSHAPE_AUTH_METHOD &&
+        (process.env.ONSHAPE_AUTH_METHOD.toLowerCase() === 'apikey' || 
+         process.env.ONSHAPE_AUTH_METHOD.toLowerCase() === 'api_key') && 
+        this.accessKey && this.secretKey) {
+      this.setMethod('apikey');
+      this.logger.info('Initialized with API key authentication (explicit setting)');
+    }
+    // Then try OAuth if tokens are available
+    else if (this.accessToken) {
+      this.setMethod('oauth');
+      this.logger.info('Initialized with OAuth authentication (token provided)');
+    }
+    // Then check if OAuth credentials are available (even without tokens)
+    else if (this.clientId && this.clientSecret) {
+      this.setMethod('oauth');
+      this.logger.info('Initialized with OAuth authentication (credentials provided)');
+    }
+    // Otherwise, check for API key credentials as fallback
+    else if (this.accessKey && this.secretKey) {
+      this.setMethod('apikey');
+      this.logger.info('Initialized with API key authentication (fallback)');
+    }
+    // Finally, if no valid auth method is available, log a warning
+    else {
+      this.logger.warn('No valid authentication credentials available');
+      this.logger.warn('Set ONSHAPE_CLIENT_ID and ONSHAPE_CLIENT_SECRET or ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY');
+    }
   }
-  // Then try OAuth if tokens are available
-  else if (this.accessToken) {
-    this.setMethod('oauth');
-    this.logger.info('Initialized with OAuth authentication (token provided)');
-  }
-  // Then check if OAuth credentials are available (even without tokens)
-  else if (this.clientId && this.clientSecret) {
-    this.setMethod('oauth');
-    this.logger.info('Initialized with OAuth authentication (credentials provided)');
-  }
-  // Otherwise, check for API key credentials as fallback
-  else if (this.accessKey && this.secretKey) {
-    this.setMethod('apikey');
-    this.logger.info('Initialized with API key authentication (fallback)');
-  }
-  // Finally, if no valid auth method is available, log a warning
-  else {
-    this.logger.warn('No valid authentication credentials available');
-    this.logger.warn('Set ONSHAPE_CLIENT_ID and ONSHAPE_CLIENT_SECRET or ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY');
-  }
-}
-  
   /**
    * Get the current authentication method
    * @returns {string|null} - The current method ('apikey', 'oauth') or null if not set
