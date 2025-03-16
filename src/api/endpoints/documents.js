@@ -18,38 +18,80 @@ class DocumentsApi {
   }
   
   /**
-   * Get all documents
-   * @param {Object} [options] - Query options
-   * @param {number} [options.limit=20] - Maximum results to return
-   * @param {number} [options.offset=0] - Result offset for pagination
-   * @param {string} [options.filter] - Filter criteria
-   * @param {string} [options.sortColumn] - Column to sort by
-   * @param {string} [options.sortOrder] - Sort order (asc, desc)
-   * @returns {Promise<Array<Document>>} List of documents
+   * Get documents with optional filters
+   * @param {Object} [options] - Options for filtering documents
+   * @param {number} [options.limit=20] - Maximum number of documents to return
+   * @param {number} [options.offset=0] - Offset for pagination
+   * @param {string} [options.sortColumn='modifiedAt'] - Column to sort by
+   * @param {string} [options.sortOrder='desc'] - Sort order, either 'asc' or 'desc'
+   * @returns {Promise<Array>} Array of document objects
    */
   async getDocuments(options = {}) {
+    const queryParams = {
+      limit: options.limit || 20,
+      offset: options.offset || 0
+    };
+    
+    if (options.sortColumn) {
+      queryParams.sortColumn = options.sortColumn;
+    }
+    
+    if (options.sortOrder) {
+      queryParams.sortOrder = options.sortOrder;
+    }
+    
     try {
-      const queryParams = {
-        limit: options.limit || 20,
-        offset: options.offset || 0
-      };
+      // Make the API call to get documents
+      const response = await this.client.get('/documents', queryParams);
       
-      // Add optional filters
-      if (options.filter) queryParams.filter = options.filter;
-      if (options.sortColumn) queryParams.sortColumn = options.sortColumn;
-      if (options.sortOrder) queryParams.sortOrder = options.sortOrder;
+      this.logger.debug(`Retrieved ${response.totalCount || 0} documents`);
       
-      const response = await this.api.get('/documents', queryParams);
-      
-      // Handle different response formats (items array or direct array)
-      const documents = response.items || response;
-      
-      this.logger.debug(`Retrieved ${documents.length} documents`);
-      
-      // Convert to Document models
-      return documents.map(doc => new Document(doc, this.client));
+      // Handle different response formats
+      // Onshape API returns documents in an 'items' array property
+      if (response && response.items && Array.isArray(response.items)) {
+        // Standard format with items array
+        return response.items.map(doc => ({
+          id: doc.id,
+          name: doc.name,
+          owner: doc.owner?.name || 'Unknown',
+          createdAt: doc.createdAt,
+          modifiedAt: doc.modifiedAt,
+          thumbnail: doc.thumbnail,
+          public: !!doc.public,
+          documentType: doc.documentType || 0,
+          defaultWorkspace: doc.defaultWorkspace?.id,
+          permission: doc.permission,
+          description: doc.description || ''
+        }));
+      } else if (Array.isArray(response)) {
+        // Direct array format
+        return response.map(doc => ({
+          id: doc.id,
+          name: doc.name,
+          owner: doc.owner?.name || 'Unknown',
+          createdAt: doc.createdAt,
+          modifiedAt: doc.modifiedAt,
+          thumbnail: doc.thumbnail,
+          public: !!doc.public,
+          documentType: doc.documentType || 0,
+          defaultWorkspace: doc.defaultWorkspace?.id,
+          permission: doc.permission,
+          description: doc.description || ''
+        }));
+      } else {
+        // Unexpected format, return the raw response to prevent errors
+        this.logger.warn('Unexpected document response format', {
+          hasItems: !!response.items,
+          isArray: Array.isArray(response),
+          responseType: typeof response,
+          keys: response ? Object.keys(response) : []
+        });
+        
+        // Return empty array as fallback
+        return [];
+      }
     } catch (error) {
-      this.logger.error('Failed to get documents:', error.message);
+      this.logger.error(`Failed to get documents: ${error.message}`);
       throw error;
     }
   }

@@ -184,96 +184,11 @@ router.get("/status", (req, res) => {
 });
 
 /**
- * Get current authentication method
- */
-router.get('/api/auth/method', (req, res) => {
-  const authManager = req.app.get('authManager');
-  
-  // Log that this endpoint was accessed
-  const log = req.app.get('logger').scope('AuthRoutes');
-  log.debug('Authentication method requested by client');
-  
-  res.json({
-    method: authManager.getMethod(),
-    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
-  });
-});
-
-/**
- * @route GET /api/auth/test
- * @description Test the authentication with a simple API call
- * @access Private
- */
-router.get('/api/auth/test', isAuthenticated, async (req, res) => {
-  try {
-    // Get auth manager
-    const authManager = req.app.get('authManager');
-    if (!authManager) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Auth manager not found in app context' 
-      });
-    }
-    
-    // Get auth method and create client
-    const authMethod = authManager.getMethod();
-    log.info(`Testing authentication with method: ${authMethod}`);
-    
-    // Create client using authMiddleware helper
-    const client = createClientFromRequest(req, OnshapeClient);
-    if (!client) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to create Onshape client' 
-      });
-    }
-    
-    // Test auth by making a simple API call
-    log.info('Making test API call to Onshape');
-    
-    try {
-      // Try a simple API call to test authentication
-      const result = await client.api.get('/users/sessioninfo');
-      
-      // Log success and return detailed response
-      log.info('Authentication test successful');
-      return res.json({
-        success: true,
-        method: authMethod,
-        message: 'Authentication test successful',
-        response: result
-      });
-    } catch (apiError) {
-      log.error(`API call failed: ${apiError.message}`, apiError);
-      
-      // Return detailed error information
-      return res.status(apiError.response?.status || 500).json({
-        success: false,
-        error: 'Test API call failed',
-        details: {
-          message: apiError.message,
-          statusCode: apiError.response?.status,
-          statusText: apiError.response?.statusText,
-          data: apiError.response?.data
-        }
-      });
-    }
-  } catch (error) {
-    log.error('Error during authentication test:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Authentication test failed',
-      details: error.message 
-    });
-  }
-});
-
-/**
  * @route GET /oauth/test
  * @description Test the authentication with a simple API call
  * @access Private
  */
-router.get('/test', isAuthenticated, async (req, res) => {
+router.get('/test', isAuthenticated, async (req, res, next) => {
   try {
     // Get auth manager
     const authManager = req.app.get('authManager');
@@ -300,33 +215,17 @@ router.get('/test', isAuthenticated, async (req, res) => {
     // Test auth by making a simple API call
     log.info('Making test API call to Onshape');
     
-    try {
-      // Try a simple API call to test authentication
-      const result = await client.api.get('/users/sessioninfo');
-      
-      // Log success and return detailed response
-      log.info('Authentication test successful');
-      return res.json({
-        success: true,
-        method: authMethod,
-        message: 'Authentication test successful',
-        response: result
-      });
-    } catch (apiError) {
-      log.error(`API call failed: ${apiError.message}`, apiError);
-      
-      // Return detailed error information
-      return res.status(apiError.response?.status || 500).json({
-        success: false,
-        error: 'Test API call failed',
-        details: {
-          message: apiError.message,
-          statusCode: apiError.response?.status,
-          statusText: apiError.response?.statusText,
-          data: apiError.response?.data
-        }
-      });
-    }
+    // Try a simple API call to test authentication
+    const result = await client.api.get('/users/sessioninfo');
+    
+    // Log success and return detailed response
+    log.info('Authentication test successful');
+    return res.json({
+      success: true,
+      method: authMethod,
+      message: 'Authentication test successful',
+      response: result
+    });
   } catch (error) {
     log.error('Error during authentication test:', error);
     res.status(500).json({ 

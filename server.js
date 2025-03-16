@@ -100,90 +100,19 @@ app.use(passport.session());
 // Configure OAuth
 configureOAuth(authManager);
 
-// Mount routes
+// Mount routes - Update this section
 app.use('/oauth', authRoutes);
+app.use('/api/auth', require('./src/routes/apiAuthRoutes'));
 app.use('/api/documents', documentRoutes);
 app.use('/api/elements', elementRoutes);
 app.use('/api/features', featureRoutes);
 app.use('/api/examples', exampleRoutes);
 
-// Basic routes
-app.get('/api/auth/status', (req, res) => {
-  // Get the auth manager
-  const authManager = req.app.get('authManager');
-  const authMethod = authManager.getMethod();
-  
-  // For API key auth, check if we have the keys
-  const apiKeyAuthenticated = 
-    authMethod === 'apikey' && 
-    Boolean(authManager?.accessKey) && 
-    Boolean(authManager?.secretKey);
-    
-  // Consider authenticated if either using OAuth with valid token
-  // or using API key with valid credentials
-  const isAuthenticated = 
-    (req.isAuthenticated && req.isAuthenticated()) || 
-    (req.session && !!req.session.oauthToken) ||
-    (authMethod === 'apikey' && apiKeyAuthenticated);
-  
-  res.json({ 
-    authenticated: Boolean(isAuthenticated),
-    method: authMethod || 'none'
-  });
-});
-
-// In server.js, after mounting your auth routes
-app.get('/api/auth/method', (req, res) => {
-  const authManager = req.app.get('authManager');
-  res.json({
-    method: authManager.getMethod(),
-    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
-  });
-});
-
-// Add this with the other API routes (after the /api/auth/method endpoint)
-
-// Debug endpoint to verify token state across different sources
-app.get('/api/auth/token-debug', (req, res) => {
-  // Check session
-  const sessionToken = req.session?.oauthToken;
-  // Check passport user
-  const passportToken = req.user?.accessToken;
-  // Check auth manager
-  const authManager = req.app.get('authManager');
-  const managerToken = authManager?.accessToken;
-  const authMethod = authManager?.getMethod();
-  
-  // For API key auth, we're authenticated if the manager has an API key
-  const apiKeyAuthenticated = 
-    authMethod === 'apikey' && 
-    Boolean(authManager?.accessKey) && 
-    Boolean(authManager?.secretKey);
-  
-  // Consider authenticated if either:
-  // 1. Using OAuth and have a valid token
-  // 2. Using API key and have valid API key credentials
-  const isAuthenticated = 
-    (req.isAuthenticated && req.isAuthenticated()) || 
-    (authMethod === 'apikey' && apiKeyAuthenticated);
-  
-  res.json({
-    authenticated: Boolean(isAuthenticated),
-    authMethod: authMethod || 'none',
-    hasSessionToken: !!sessionToken,
-    sessionTokenLength: sessionToken ? sessionToken.length : 0,
-    hasPassportToken: !!passportToken,
-    passportTokenLength: passportToken ? passportToken.length : 0,
-    hasManagerToken: !!managerToken,
-    managerTokenLength: managerToken ? managerToken.length : 0,
-    // API key specific info (only showing presence, not the actual keys)
-    hasApiKey: authMethod === 'apikey' && !!authManager?.accessKey,
-    apiKeyAuthenticated: Boolean(apiKeyAuthenticated),
-    // Only show token fragments for security
-    tokenFirstChars: managerToken ? managerToken.substring(0, 5) + '...' : null,
-    tokenLastChars: managerToken ? '...' + managerToken.substring(managerToken.length - 5) : null,
-  });
-});
+// Remove these duplicate route definitions:
+// app.get('/api/auth/status', (req, res) => { /* ... */ });
+// app.get('/api/auth/method', (req, res) => { /* ... */ });
+// app.get('/api/auth/token-debug', (req, res) => { /* ... */ });
+// app.get('/api/auth/test', async (req, res) => { /* ... */ });
 
 // Endpoint to receive client-side logs
 app.post('/api/logs', (req, res) => {
@@ -231,72 +160,6 @@ app.use((req, res, next) => {
     log.debug(`Auth credentials: OAuth=${!!config.onshape.clientId}, APIKey=${!!process.env.ONSHAPE_ACCESS_KEY}`);
   }
   next();
-});
-
-// Add this diagnostic route after your other API routes
-// Test route to verify API key authentication
-app.get('/api/auth/test', async (req, res) => {
-  const log = logger.scope('AuthTest');
-  
-  try {
-    // Get auth manager
-    const authManager = req.app.get('authManager');
-    if (!authManager) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Auth manager not found in app context' 
-      });
-    }
-    
-    // Get auth method and client
-    const authMethod = authManager.getMethod();
-    log.info(`Testing authentication with method: ${authMethod}`);
-    
-    // Create client using authMiddleware helper
-    const { createClientFromRequest } = require('./src/middleware/authMiddleware');
-    const { OnshapeClient } = require('./src/api/client');
-    
-    const client = createClientFromRequest(req, OnshapeClient);
-    if (!client) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to create Onshape client' 
-      });
-    }
-    
-    // Test auth by making a simple API call
-    log.info('Making test API call to Onshape');
-    const result = await client.api.get('/users/sessioninfo');
-    
-    // If we get here, the authentication worked
-    log.info('Authentication test successful');
-    
-    return res.json({
-      success: true,
-      method: authMethod,
-      response: result
-    });
-  } catch (error) {
-    // Log detailed error information
-    log.error(`Authentication test failed: ${error.message}`);
-    
-    // Get as much error information as possible
-    const errorDetails = {
-      message: error.message,
-      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-      response: error.response ? {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data
-      } : undefined
-    };
-    
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      details: errorDetails
-    });
-  }
 });
 
 // Add a request and response logger middleware before your existing error handlers
