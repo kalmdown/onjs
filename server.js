@@ -233,6 +233,114 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add this diagnostic route after your other API routes
+// Test route to verify API key authentication
+app.get('/api/auth/test', async (req, res) => {
+  const log = logger.scope('AuthTest');
+  
+  try {
+    // Get auth manager
+    const authManager = req.app.get('authManager');
+    if (!authManager) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Auth manager not found in app context' 
+      });
+    }
+    
+    // Get auth method and client
+    const authMethod = authManager.getMethod();
+    log.info(`Testing authentication with method: ${authMethod}`);
+    
+    // Create client using authMiddleware helper
+    const { createClientFromRequest } = require('./src/middleware/authMiddleware');
+    const { OnshapeClient } = require('./src/api/client');
+    
+    const client = createClientFromRequest(req, OnshapeClient);
+    if (!client) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to create Onshape client' 
+      });
+    }
+    
+    // Test auth by making a simple API call
+    log.info('Making test API call to Onshape');
+    const result = await client.api.get('/users/sessioninfo');
+    
+    // If we get here, the authentication worked
+    log.info('Authentication test successful');
+    
+    return res.json({
+      success: true,
+      method: authMethod,
+      response: result
+    });
+  } catch (error) {
+    // Log detailed error information
+    log.error(`Authentication test failed: ${error.message}`);
+    
+    // Get as much error information as possible
+    const errorDetails = {
+      message: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      response: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      } : undefined
+    };
+    
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      details: errorDetails
+    });
+  }
+});
+
+// Add a request and response logger middleware before your existing error handlers
+// This will help identify what's happening with API requests
+app.use((req, res, next) => {
+  // Only log API requests
+  if (req.path.startsWith('/api/')) {
+    const authManager = req.app.get('authManager');
+    const authMethod = authManager ? authManager.getMethod() : 'none';
+    const requestId = crypto.randomBytes(4).toString('hex');
+    
+    // Log the request
+    logger.debug(`[${requestId}] ${req.method} ${req.path}`, {
+      query: Object.keys(req.query).length > 0 ? req.query : undefined,
+      authMethod,
+      contentType: req.get('Content-Type'),
+      userAgent: req.get('User-Agent')
+    });
+    
+    // Track response time
+    const startTime = Date.now();
+    
+    // Capture and log the response
+    const originalEnd = res.end;
+    res.end = function(chunk, encoding) {
+      // Calculate response time
+      const responseTime = Date.now() - startTime;
+      
+      // Log based on status code
+      const logMethod = res.statusCode >= 400 ? 'error' : 'debug';
+      logger[logMethod](`[${requestId}] ${res.statusCode} ${req.method} ${req.path} (${responseTime}ms)`, {
+        statusCode: res.statusCode,
+        responseTime,
+        authMethod
+      });
+      
+      // Call the original end method
+      return originalEnd.apply(this, arguments);
+    };
+  }
+  
+  next();
+});
+
 // Error handling middleware
 app.use(errorMiddleware);
 
