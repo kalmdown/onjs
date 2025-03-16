@@ -41,6 +41,22 @@ const authManager = new AuthManager({
   redirectUri: config.onshape.callbackUrl
 });
 
+log.info('Auth manager initialized with:', {
+  method: authManager.getMethod(),
+  hasOAuthCredentials: !!(config.onshape.clientId && config.onshape.clientSecret),
+  hasApiKeys: !!(authManager.accessKey && authManager.secretKey),
+  callbackUrl: config.onshape.callbackUrl
+});
+
+// Test auth config loading
+log.info('OAuth configuration loaded from env:', {
+  clientId: config.onshape.clientId ? 'Set (masked)' : 'Not set',
+  clientSecret: config.onshape.clientSecret ? 'Set (masked)' : 'Not set',
+  callbackUrl: config.onshape.callbackUrl,
+  authUrl: config.onshape.authorizationURL,
+  tokenUrl: config.onshape.tokenURL
+});
+
 // Configure fallback authentication if needed
 if (!authManager.getMethod()) {
   // Use API key as fallback if available
@@ -58,21 +74,22 @@ const app = express();
 // Store authManager in app context for middleware access
 app.set('authManager', authManager);
 
-// Basic request logger
+// Basic request logger with origin information for CORS debugging
 app.use((req, res, next) => {
-  log.debug(`${req.method} ${req.url}`);
+  log.debug(`${req.method} ${req.url} - Origin: ${req.headers.origin || 'unknown'}`);
   next();
 });
 
 // Configure middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+// In server.js, update session configuration
 app.use(session({
-  ...config.session,
+  secret: config.session.secret || 'onshape-app-secret-key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
@@ -92,9 +109,26 @@ app.use('/api/examples', exampleRoutes);
 
 // Basic routes
 app.get('/api/auth/status', (req, res) => {
+  // Get the auth manager
+  const authManager = req.app.get('authManager');
+  const authMethod = authManager.getMethod();
+  
+  // For API key auth, check if we have the keys
+  const apiKeyAuthenticated = 
+    authMethod === 'apikey' && 
+    Boolean(authManager?.accessKey) && 
+    Boolean(authManager?.secretKey);
+    
+  // Consider authenticated if either using OAuth with valid token
+  // or using API key with valid credentials
+  const isAuthenticated = 
+    (req.isAuthenticated && req.isAuthenticated()) || 
+    (req.session && !!req.session.oauthToken) ||
+    (authMethod === 'apikey' && apiKeyAuthenticated);
+  
   res.json({ 
-    authenticated: req.isAuthenticated() || (req.session && !!req.session.oauthToken),
-    method: authManager.getMethod() || 'none'
+    authenticated: Boolean(isAuthenticated),
+    method: authMethod || 'none'
   });
 });
 
@@ -104,6 +138,50 @@ app.get('/api/auth/method', (req, res) => {
   res.json({
     method: authManager.getMethod(),
     isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
+  });
+});
+
+// Add this with the other API routes (after the /api/auth/method endpoint)
+
+// Debug endpoint to verify token state across different sources
+app.get('/api/auth/token-debug', (req, res) => {
+  // Check session
+  const sessionToken = req.session?.oauthToken;
+  // Check passport user
+  const passportToken = req.user?.accessToken;
+  // Check auth manager
+  const authManager = req.app.get('authManager');
+  const managerToken = authManager?.accessToken;
+  const authMethod = authManager?.getMethod();
+  
+  // For API key auth, we're authenticated if the manager has an API key
+  const apiKeyAuthenticated = 
+    authMethod === 'apikey' && 
+    Boolean(authManager?.accessKey) && 
+    Boolean(authManager?.secretKey);
+  
+  // Consider authenticated if either:
+  // 1. Using OAuth and have a valid token
+  // 2. Using API key and have valid API key credentials
+  const isAuthenticated = 
+    (req.isAuthenticated && req.isAuthenticated()) || 
+    (authMethod === 'apikey' && apiKeyAuthenticated);
+  
+  res.json({
+    authenticated: Boolean(isAuthenticated),
+    authMethod: authMethod || 'none',
+    hasSessionToken: !!sessionToken,
+    sessionTokenLength: sessionToken ? sessionToken.length : 0,
+    hasPassportToken: !!passportToken,
+    passportTokenLength: passportToken ? passportToken.length : 0,
+    hasManagerToken: !!managerToken,
+    managerTokenLength: managerToken ? managerToken.length : 0,
+    // API key specific info (only showing presence, not the actual keys)
+    hasApiKey: authMethod === 'apikey' && !!authManager?.accessKey,
+    apiKeyAuthenticated: Boolean(apiKeyAuthenticated),
+    // Only show token fragments for security
+    tokenFirstChars: managerToken ? managerToken.substring(0, 5) + '...' : null,
+    tokenLastChars: managerToken ? '...' + managerToken.substring(managerToken.length - 5) : null,
   });
 });
 

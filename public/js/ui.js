@@ -1,17 +1,18 @@
-import { fetchDocuments, getDocumentById } from './api.js';
+import { fetchDocuments, getDocumentById, getNetworkLogs } from './api.js';
 import { logInfo, logError } from './utils/logging.js';
 import { runExample1 } from './examples/cylinder.js';
 import { runExample2 } from './examples/lamp.js';
 import { runExample3 } from './examples/cup.js';
 import { convertSvg } from './svg-converter.js';
-import { authenticate, getToken } from './clientAuth.js';
-import { exportApiCalls } from './api.js'; // Import the exportApiCalls function
+import { authenticate, getToken, debugAuthState } from './clientAuth.js';
+import { exportApiCalls } from './api.js';
 import partStudioSelector from './partStudioSelector.js';
 import planeSelector from './planeSelector.js';
 
 // Application state
 let selectedDocument = null;
 let currentSvg = null;
+let debugPanelActive = false;
 
 // DOM elements
 let btnAuthenticate, authStatus, svgFile, svgPreview, 
@@ -32,7 +33,10 @@ export function setupUI() {
   btnExample3 = document.getElementById('btnExample3');
   btnConvertSvg = document.getElementById('btnConvertSvg');
   logOutput = document.getElementById('logOutput');
-  btnExportApiCalls = document.getElementById('btnExportApiCalls'); // Initialize btnExportApiCalls
+  btnExportApiCalls = document.getElementById('btnExportApiCalls');
+  
+  // Add debug button
+  addDebugButton();
 }
 
 export function registerEventHandlers() {
@@ -45,10 +49,154 @@ export function registerEventHandlers() {
   btnExample3.addEventListener('click', runExample3);
   btnConvertSvg.addEventListener('click', convertSvg);
   svgFile.addEventListener('change', onSvgFileChange);
-  btnExportApiCalls.addEventListener('click', exportApiCalls); // Add event listener for btnExportApiCalls
+  btnExportApiCalls.addEventListener('click', exportApiCalls);
   
   // Register studio and plane change handlers
   partStudioSelector.onSelect(onPartStudioSelect);
+}
+
+/**
+ * Add debug button to the UI
+ */
+function addDebugButton() {
+  const authContainer = document.querySelector('.auth-container');
+  if (authContainer) {
+    const debugBtn = document.createElement('button');
+    debugBtn.id = 'btnDebug';
+    debugBtn.className = 'btn btn-outline-secondary ms-2';
+    debugBtn.textContent = 'Debug';
+    debugBtn.addEventListener('click', toggleDebugPanel);
+    authContainer.appendChild(debugBtn);
+  } else {
+    // Fallback to adding after the authenticate button
+    const authBtn = document.getElementById('btnAuthenticate');
+    if (authBtn && authBtn.parentNode) {
+      const debugBtn = document.createElement('button');
+      debugBtn.id = 'btnDebug';
+      debugBtn.className = 'btn btn-outline-secondary ms-2';
+      debugBtn.textContent = 'Debug';
+      debugBtn.addEventListener('click', toggleDebugPanel);
+      authBtn.parentNode.appendChild(debugBtn);
+    }
+  }
+}
+
+/**
+ * Toggle the debug panel visibility
+ */
+function toggleDebugPanel() {
+  const existingPanel = document.getElementById('debug-panel');
+  
+  if (existingPanel) {
+    existingPanel.remove();
+    debugPanelActive = false;
+    return;
+  }
+  
+  debugPanelActive = true;
+  showDebugPanel();
+}
+
+/**
+ * Show the debug panel with authentication and network information
+ */
+function showDebugPanel() {
+  // Run auth debug function
+  debugAuthState();
+  
+  // Create debug panel
+  const debugPanel = document.createElement('div');
+  debugPanel.id = 'debug-panel';
+  debugPanel.className = 'card mt-4 debug-panel';
+  debugPanel.innerHTML = `
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Debug Information</h5>
+      <div>
+        <button id="refreshDebug" class="btn btn-sm btn-primary me-2">Refresh</button>
+        <button id="closeDebug" class="btn btn-sm btn-light">Close</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <h6>Authentication</h6>
+      <pre id="authDebug" class="bg-light p-2 small">Loading authentication data...</pre>
+      
+      <h6 class="mt-3">Network Activity</h6>
+      <pre id="networkDebug" class="bg-light p-2 small">Loading network data...</pre>
+      
+      <h6 class="mt-3">Server Authentication Status</h6>
+      <pre id="serverAuthDebug" class="bg-light p-2 small">Fetching server authentication data...</pre>
+    </div>
+  `;
+  
+  // Add to page (find main container or fallback to body)
+  const container = document.querySelector('.container') || document.body;
+  container.appendChild(debugPanel);
+  
+  // Event listeners
+  document.getElementById('refreshDebug').addEventListener('click', updateDebugInfo);
+  document.getElementById('closeDebug').addEventListener('click', () => {
+    debugPanel.remove();
+    debugPanelActive = false;
+  });
+  
+  // Update info
+  updateDebugInfo();
+  
+  // Fetch server auth info
+  fetch('/api/auth/token-debug')
+    .then(res => res.json())
+    .then(data => {
+      const serverAuthDebug = document.getElementById('serverAuthDebug');
+      if (serverAuthDebug) {
+        serverAuthDebug.textContent = JSON.stringify(data, null, 2);
+      }
+    })
+    .catch(err => {
+      console.error('Error fetching auth debug:', err);
+      const serverAuthDebug = document.getElementById('serverAuthDebug');
+      if (serverAuthDebug) {
+        serverAuthDebug.textContent = `Error fetching server auth data: ${err.message}`;
+      }
+    });
+}
+
+/**
+ * Update debug information in the panel
+ */
+function updateDebugInfo() {
+  // Client auth state
+  const authDebug = document.getElementById('authDebug');
+  if (authDebug) {
+    const token = getToken();
+    authDebug.textContent = JSON.stringify({
+      isAuthenticated: !!token,
+      hasAuthToken: !!token,
+      tokenLength: token ? token.length : 0,
+      hasLocalStorageToken: !!localStorage.getItem('authToken'),
+      hasLocalStorageRefreshToken: !!localStorage.getItem('refreshToken')
+    }, null, 2);
+  }
+  
+  // Network logs
+  const networkDebug = document.getElementById('networkDebug');
+  if (networkDebug) {
+    const networkLogs = getNetworkLogs();
+    networkDebug.textContent = JSON.stringify({
+      lastRequest: networkLogs.lastRequest ? {
+        url: networkLogs.lastRequest.url,
+        method: networkLogs.lastRequest.method,
+        hasAuthHeader: networkLogs.lastRequest.headers?.Authorization ? true : false,
+        timestamp: networkLogs.lastRequest.timestamp
+      } : null,
+      lastResponse: networkLogs.lastResponse ? {
+        status: networkLogs.lastResponse.status,
+        statusText: networkLogs.lastResponse.statusText,
+        duration: networkLogs.lastResponse.duration ? `${networkLogs.lastResponse.duration.toFixed(2)}ms` : null,
+        timestamp: networkLogs.lastResponse.timestamp
+      } : null,
+      recentRequests: networkLogs.summary || []
+    }, null, 2);
+  }
 }
 
 /**

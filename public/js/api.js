@@ -1,92 +1,218 @@
 // public/js/api.js
 
-// Import the function that returns the token, not the token itself
-import { getToken } from './clientAuth.js';
+// Import the functions that return auth information
+import { getToken, getAuthMethod } from './clientAuth.js';
 import { logError, logSuccess, logInfo, logDebug } from './utils/logging.js';
 
 // State
 let documents = [];
 let apiCalls = []; // Array to store API calls
+let lastRequest = null;
+let lastResponse = null;
+let requestLog = [];
 
 /**
  * Make an API call to the backend server
  */
 export async function apiCall(endpoint, method = 'GET', body = null) {
   try {
+    const startTime = performance.now();
+    
     // Build the options for the fetch request
     const options = { 
       method, 
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      // Include credentials to ensure cookies are sent with the request
+      // This is important for API key auth which relies on session
+      credentials: 'same-origin'
     };
     
-    // Add auth token if available - call the function to get the token
+    // Get the current auth method and token
+    const authMethod = getAuthMethod();
     const token = getToken();
+    
+    // Add auth header only for OAuth authentication
     if (token) {
       options.headers['Authorization'] = `Bearer ${token}`;
+      logDebug(`Adding OAuth token to request headers`);
+    } else if (authMethod === 'apikey') {
+      // For API key auth, we don't need to add a token
+      // The server will use the API key from the AuthManager
+      logDebug('Using API key authentication for this request');
+      
+      // Add a custom header to help with debugging
+      options.headers['X-Auth-Method'] = 'apikey';
+    } else {
+      logDebug('No authentication available for this request');
     }
     
     // Add body data for POST/PUT requests
     if (body && (method === 'POST' || method === 'PUT')) {
       options.body = JSON.stringify(body);
-      logInfo(`Making ${method} request to /api/${endpoint} with payload: ${JSON.stringify(body)}`);
+      logInfo(`Making ${method} request to /api/${endpoint} with payload`);
     } else {
       logInfo(`Making ${method} request to /api/${endpoint}`);
     }
     
-    // Store the API call
-    apiCalls.push({
+    // Store API call details for debug and export
+    const apiCallDetails = {
+      url: `/api/${endpoint}`,
+      method,
+      headers: {...options.headers},
+      body,
+      timestamp: new Date().toISOString()
+    };
+    
+    apiCalls.push(apiCallDetails);
+    lastRequest = apiCallDetails;
+    
+    // Log the full request details
+    logDebug('API Request details:', {
       url: `/api/${endpoint}`,
       method: method,
       headers: options.headers,
-      body: body
+      authMethod,
+      hasToken: !!token
     });
-
+    
     // Make the request
     const response = await fetch(`/api/${endpoint}`, options);
     
-    // Handle non-success responses
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-        console.error('API error details:', errorData);
-      } catch (jsonError) {
-        errorData = { error: `API error: ${response.status} - Failed to parse JSON response` };
+    // Record response time
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    
+    // Process and log response
+    try {
+      // Try to parse as JSON first
+      const responseData = await response.json();
+      
+      // Store response details
+      lastResponse = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries([...response.headers.entries()]),
+        data: responseData,
+        timestamp: new Date().toISOString(),
+        duration
+      };
+      
+      // Add to request log (keep last 10)
+      requestLog.unshift({request: lastRequest, response: lastResponse});
+      if (requestLog.length > 10) requestLog.pop();
+      
+      // Log response summary
+      logDebug(`API Response (${response.status}, ${duration.toFixed(0)}ms): `, 
+               response.ok ? 'Success' : 'Error');
+      
+      // Handle non-success responses
+      if (!response.ok) {
+        if (response.status === 401) {
+          logError('Authentication error: ' + (responseData.error || 'Unauthorized'));
+          
+          // Different handling based on auth method
+          if (authMethod === 'apikey') {
+            logError('API key authentication failed. Check server API key configuration.');
+          } else {
+            logError('OAuth token invalid or expired. Redirecting to login...');
+            
+            // For serious auth issues with OAuth, redirect to login
+            if (authMethod === 'oauth') {
+              setTimeout(() => {
+                window.location.href = '/oauth/login';
+              }, 1000);
+            }
+          }
+        }
+        
+        throw new Error(responseData.error || `API error: ${response.status}`);
       }
       
-      // Check for authentication errors
-      if (response.status === 401) {
-        // Redirect to login for authentication errors
-        logError('Authentication required. Redirecting to login...');
-        setTimeout(() => {
-          window.location.href = '/oauth/login';
-        }, 1000);
-      }
+      return responseData;
+    } catch (parseError) {
+      // If JSON parsing fails, handle text response
+      const textResponse = await response.text().catch(() => 'No response body');
       
-      throw new Error(errorData.error || `API error: ${response.status}`);
+      // Store response details
+      lastResponse = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries([...response.headers.entries()]),
+        data: { text: textResponse },
+        timestamp: new Date().toISOString(),
+        duration,
+        parseError: parseError.message
+      };
+      
+      // Add to request log
+      requestLog.unshift({request: lastRequest, response: lastResponse});
+      if (requestLog.length > 10) requestLog.pop();
+      
+      // Log error
+      logError(`API Response parsing error: ${parseError.message}`);
+      
+      // For successful responses with parsing errors, return the text
+      if (response.ok) {
+        return { text: textResponse, parseError: true };
+      } else {
+        throw new Error(`API error: ${response.status} - ${textResponse}`);
+      }
+    }
+  } catch (error) {
+    logError(`API call failed: ${error.message}`);
+    
+    // Add error to response log
+    const errorResponse = {
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+    
+    if (lastRequest) {
+      requestLog.unshift({
+        request: lastRequest, 
+        response: errorResponse
+      });
+      if (requestLog.length > 10) requestLog.pop();
     }
     
-    return await response.json();
-  } catch (error) {
-    console.error('Full API call error:', error);
-    logError(`API call failed: ${error.message}`);
+    // Rethrow the error for the caller to handle
     throw error;
   }
 }
 
 /**
  * Fetch documents from Onshape
+ * @param {boolean} [showLoadingIndicator=true] Whether to show loading indicator in the UI
+ * @returns {Promise<Array>} Array of documents
  */
-export async function fetchDocuments() {
-  const token = getToken();
-  if (!token) {
-    logError('Not authenticated');
+export async function fetchDocuments(showLoadingIndicator = true) {
+  // Check for authentication using the proper method instead of just token
+  const authMethod = getAuthMethod();
+  const isAuth = authMethod === 'apikey' || !!getToken();
+  
+  if (!isAuth) {
+    logError('Not authenticated. Please authenticate to view documents.');
     return [];
   }
   
-  logInfo('Fetching documents...');
+  // Update UI to show loading state if requested
+  if (showLoadingIndicator) {
+    const documentSelect = document.getElementById('documentSelect');
+    if (documentSelect) {
+      documentSelect.innerHTML = '<option value="">Loading documents...</option>';
+      documentSelect.disabled = true;
+    }
+    
+    const btnRefreshDocuments = document.getElementById('btnRefreshDocuments');
+    if (btnRefreshDocuments) {
+      btnRefreshDocuments.disabled = true;
+      btnRefreshDocuments.textContent = 'Loading...';
+    }
+  }
+  
+  logInfo(`Fetching documents using ${authMethod} authentication...`);
   
   try {
     // Call the real Onshape API through your server
@@ -103,12 +229,41 @@ export async function fetchDocuments() {
         option.textContent = doc.name;
         documentSelect.appendChild(option);
       });
+      documentSelect.disabled = false;
+    }
+    
+    // Update refresh button state
+    const btnRefreshDocuments = document.getElementById('btnRefreshDocuments');
+    if (btnRefreshDocuments) {
+      btnRefreshDocuments.disabled = false;
+      btnRefreshDocuments.textContent = 'Refresh';
     }
     
     logSuccess(`Found ${documents.length} documents`);
+    
+    // Update document info in UI
+    const docCountElement = document.getElementById('documentCount');
+    if (docCountElement) {
+      docCountElement.textContent = documents.length;
+    }
+    
     return documents;
   } catch (error) {
     logError(`Error fetching documents: ${error.message}`);
+    
+    // Reset UI in case of error
+    const documentSelect = document.getElementById('documentSelect');
+    if (documentSelect) {
+      documentSelect.innerHTML = '<option value="">Failed to load documents</option>';
+      documentSelect.disabled = false;
+    }
+    
+    const btnRefreshDocuments = document.getElementById('btnRefreshDocuments');
+    if (btnRefreshDocuments) {
+      btnRefreshDocuments.disabled = false;
+      btnRefreshDocuments.textContent = 'Retry';
+    }
+    
     return [];
   }
 }
@@ -245,3 +400,48 @@ export function exportApiCalls() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Get the network logs for debugging
+ * @returns {Object} Debug information about API requests and responses
+ */
+export function getNetworkLogs() {
+  return {
+    lastRequest,
+    lastResponse,
+    requestLog,
+    summary: requestLog.map(item => ({
+      url: item.request?.url,
+      method: item.request?.method,
+      status: item.response?.status,
+      duration: item.response?.duration?.toFixed(2) + 'ms',
+      timestamp: item.request?.timestamp
+    }))
+  };
+}
+
+/**
+ * Initialize API module - adds auto-fetch of documents when authenticated
+ */
+export function initApi() {
+  // Listen for authentication state changes
+  document.addEventListener('DOMContentLoaded', () => {
+    // Wait a short time to ensure authentication check has completed
+    setTimeout(() => {
+      const authMethod = getAuthMethod();
+      const isAuth = authMethod === 'apikey' || !!getToken();
+      
+      if (isAuth) {
+        logInfo(`Detected ${authMethod} authentication, auto-fetching documents`);
+        fetchDocuments();
+      } else {
+        logInfo('Not authenticated, skipping auto document fetch');
+      }
+    }, 500);
+  });
+  
+  return { ready: true };
+}
+
+// Initialize the API module
+const apiModule = initApi();
