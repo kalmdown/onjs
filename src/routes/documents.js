@@ -15,8 +15,10 @@ const log = logger.scope('DocumentRoutes');
  */
 router.get('/', isAuthenticated, async (req, res, next) => {
   try {
-    log.info('Fetching documents for authenticated user');
-    
+    log.info('Documents route: Authentication check passed');
+    log.info(`User session: ${req.session ? 'Present' : 'None'}`);
+    log.info(`Auth method: ${req.app.get('authManager')?.getMethod()}`);
+
     // Log authentication method
     const authManager = req.app.get('authManager');
     if (authManager) {

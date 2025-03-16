@@ -140,49 +140,44 @@ _initMethod() {
       };
     } 
     else if (authMethod === 'apikey') {
+      // Validate API key credentials are present
       if (!this.accessKey || !this.secretKey) {
         throw new AuthenticationError('API key authentication requires accessKey and secretKey');
       }
       
-      // Generate API key authentication headers
-      // Make sure path doesn't have the base URL in it
-      const cleanPath = path.startsWith('http') ? new URL(path).pathname : path;
-      
-      // Convert query params object to string
-      let queryString = '';
-      if (queryParams && Object.keys(queryParams).length > 0) {
-        const searchParams = new URLSearchParams();
-        Object.entries(queryParams).forEach(([key, value]) => {
-          searchParams.append(key, value);
-        });
-        queryString = searchParams.toString();
+      // Validate API key format - should be a non-empty string
+      if (typeof this.accessKey !== 'string' || typeof this.secretKey !== 'string') {
+        throw new AuthenticationError('API key and secret must be strings');
       }
       
-      const date = new Date().toUTCString();
-      const contentType = bodyString ? 'application/json' : '';
+      // Additional format validation - Onshape API keys are typically longer than 20 chars
+      if (this.accessKey.length < 20 || this.secretKey.length < 20) {
+        this.logger.warn('API key or secret appears to be too short', {
+          accessKeyLength: this.accessKey.length,
+          secretKeyLength: this.secretKey.length
+        });
+      }
       
-      // Build the string to sign
-      const stringToSign = [
-        method.toUpperCase(),
-        date,
-        contentType,
-        queryString,
-        cleanPath,
-        bodyString || ''
-      ].join('\n');
+      // Log API key info for debugging (hide sensitive parts)
+      this.logger.debug('Using API key authentication', {
+        accessKeyLength: this.accessKey.length,
+        secretKeyLength: this.secretKey.length,
+        accessKeyStart: this.accessKey.substring(0, 4) + '...',
+        accessKeyEnd: '...' + this.accessKey.substring(this.accessKey.length - 4)
+      });
       
-      // Generate HMAC signature
-      const hmac = crypto.createHmac('sha256', this.secretKey);
-      hmac.update(stringToSign);
-      const signature = hmac.digest('base64');
+      // Generate the authorization headers using API key
+      const authHeaders = this.buildApiKeyHeaders(method, path, queryParams, bodyString);
       
-      this.logger.debug('Generated API key signature for request');
+      // Log header info for debugging
+      this.logger.debug('Generated API key auth headers', {
+        hasDateHeader: !!authHeaders['Date'],
+        hasContentTypeHeader: !!authHeaders['Content-Type'],
+        hasAuthorizationHeader: !!authHeaders['Authorization'],
+        authHeaderLength: authHeaders['Authorization'] ? authHeaders['Authorization'].length : 0
+      });
       
-      return {
-        'Date': date,
-        'Content-Type': contentType || undefined,
-        'Authorization': `On ${this.accessKey}:HmacSHA256:${signature}`
-      };
+      return authHeaders;
     } 
     else {
       throw new AuthenticationError(`Unknown auth method: ${authMethod}`);

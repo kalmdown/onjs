@@ -69,10 +69,9 @@ class RestClient {
       // Debugging info
       if (this.debug) {
         this.logger.debug(`${method} ${cleanPath}`, {
-          hasBody: !!bodyString,
+          queryParamCount: Object.keys(queryParams).length,
           bodySize: bodyString ? bodyString.length : 0,
-          queryParams: Object.keys(queryParams),
-          headers: this._sanitizeHeadersForLogging(headers)
+          authMethod: this.authManager.getMethod()
         });
       } else {
         this.logger.debug(`${method} ${cleanPath}`);
@@ -120,24 +119,86 @@ class RestClient {
         }
       }
 
-      // Log error details
-      const errorData = error.response?.data;
-      const statusCode = error.response?.status;
-      
-      if (statusCode) {
-        this.logger.error(`API Error ${statusCode}: ${error.message}`);
+      // Enhanced API key authentication error handling
+      if (error.response?.status === 401 && this.authManager.getMethod() === 'apikey') {
+        // Check for common API key issues
+        this.logger.error('API Key authentication failed', {
+          statusCode: error.response.status,
+          statusText: error.response.statusText,
+          method,
+          path: cleanPath,
+          responseData: error.response.data
+        });
         
-        if (errorData && this.debug) {
-          this.logger.debug('Error response data:', errorData);
+        // Check API key format and presence
+        const accessKey = this.authManager.accessKey;
+        if (!accessKey) {
+          this.logger.error('API Key is missing');
+        } else if (accessKey.length < 24) {
+          this.logger.error('API Key appears to be too short', { length: accessKey.length });
+        } else if (accessKey.indexOf(' ') >= 0 || accessKey.indexOf('\n') >= 0) {
+          this.logger.error('API Key contains invalid whitespace characters');
         }
+        
+        // Log any specific error message from Onshape
+        if (error.response.data && error.response.data.message) {
+          this.logger.error(`Onshape API error: ${error.response.data.message}`);
+        }
+      }
+
+      // Enhanced error logging based on error type
+      if (error.response) {
+        // The server responded with a status code outside of 2xx range
+        this.logger.error(`API Response Error: ${error.response.status} for ${method} ${cleanPath}`, {
+          statusCode: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          method,
+          path: cleanPath,
+          authMethod: this.authManager.getMethod()
+        });
+
+        // Log specific error responses for known error types
+        if (error.response.status === 403) {
+          this.logger.warn(`Permission denied: Check that your API key or OAuth token has the required permissions for ${method} ${cleanPath}`);
+        } else if (error.response.status === 404) {
+          this.logger.warn(`Resource not found: ${cleanPath}`);
+        } else if (error.response.status === 429) {
+          this.logger.warn(`Rate limit exceeded for ${method} ${cleanPath}. Consider implementing retry logic.`);
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        this.logger.error(`API Request Error: No response received for ${method} ${cleanPath}`, {
+          method,
+          path: cleanPath,
+          requestSize: bodyString?.length || 0,
+          authMethod: this.authManager.getMethod()
+        });
       } else {
-        this.logger.error(`API Request Error: ${error.message}`);
+        // Something happened in setting up the request
+        this.logger.error(`API Error during request setup: ${error.message}`, {
+          method,
+          path: cleanPath,
+          authMethod: this.authManager.getMethod()
+        });
+      }
+
+      // Add request details to help with debugging
+      if (this.debug && bodyString) {
+        this.logger.debug(`Failed request body (truncated): ${bodyString.substring(0, 200)}${bodyString.length > 200 ? '...' : ''}`);
       }
 
       // Throw enhanced error
+      this.logger.error(`API request failed for ${method} ${path}`, {
+        statusCode: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        authMethod: this.authManager.getMethod()
+      });
+      
       throw new ApiError(
         error.message || 'API request failed',
-        statusCode || 500,
+        error.response?.status || 500,
         error
       );
     }

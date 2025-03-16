@@ -88,9 +88,32 @@ function isAuthenticated(req, res, next) {
     return res.status(500).json({ error: 'Authentication configuration error' });
   }
   
-  // Check auth method and credentials
+  // Enhanced debugging - log detailed auth state
   const authMethod = authManager.getMethod();
-  log.debug(`Current auth method: ${authMethod || 'none'}`);
+  log.debug(`Auth check: method=${authMethod}, path=${req.path}, session=${!!req.session}, user=${!!req.user}`);
+  
+  // Log API key details when using API key authentication
+  if (authMethod === 'apikey') {
+    log.debug('API Key auth details:', {
+      hasAccessKey: !!authManager.accessKey,
+      hasSecretKey: !!authManager.secretKey,
+      accessKeyLength: authManager.accessKey ? authManager.accessKey.length : 0,
+      envAccessKey: !!process.env.ONSHAPE_ACCESS_KEY,
+      envSecretKey: !!process.env.ONSHAPE_SECRET_KEY,
+      keysMatch: authManager.accessKey === process.env.ONSHAPE_ACCESS_KEY
+    });
+  }
+  
+  // Log OAuth token details when using OAuth authentication
+  if (authMethod === 'oauth' || (!authMethod && (req.user?.accessToken || req.session?.oauthToken))) {
+    log.debug('OAuth details:', {
+      hasUserToken: !!req.user?.accessToken,
+      userTokenLength: req.user?.accessToken ? req.user.accessToken.length : 0,
+      hasSessionToken: !!req.session?.oauthToken,
+      sessionTokenLength: req.session?.oauthToken ? req.session.oauthToken.length : 0,
+      hasRefreshToken: !!(req.user?.refreshToken || req.session?.refreshToken)
+    });
+  }
   
   // Handle different authentication scenarios
   if (authMethod === 'oauth') {
@@ -124,6 +147,17 @@ function isAuthenticated(req, res, next) {
     }
     return next();
   }
+  
+  // If we reach here, authentication failed - log additional details
+  log.warn(`Authentication failed for ${req.path}. Auth method: ${authMethod}`, {
+    isXHR: !!req.xhr,
+    isAPIRequest: req.path.startsWith('/api/'),
+    hasSession: !!req.session,
+    authAvailable: {
+      oauth: !!config.onshape.clientId,
+      apikey: !!(process.env.ONSHAPE_ACCESS_KEY && process.env.ONSHAPE_SECRET_KEY)
+    }
+  });
   
   // If we reach here, redirect to OAuth login for web requests
   // or return 401 for API requests
