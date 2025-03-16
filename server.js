@@ -13,6 +13,14 @@ const authMiddleware = require('./src/middleware/authMiddleware');
 const logger = require('./src/utils/logger');
 const { configureOAuth } = require('./src/middleware/authMiddleware');
 const errorMiddleware = require('./src/middleware/error');
+const validateEnvironment = require('./src/utils/validate-envs');
+const log = require('./src/utils/logger').scope('Server');
+
+// Run environment validation before initializing the app
+const envValidation = validateEnvironment();
+if (!envValidation.isValid) {
+  log.warn('Application started with missing environment variables');
+}
 
 // Import route modules
 const authRoutes = require('./src/routes/authRoutes');
@@ -27,9 +35,6 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   logger.logLevel = 'debug';
 }
-
-// Create a global logger instance
-const log = logger.scope('Server');
 
 // Create and configure the AuthManager
 const authManager = new AuthManager({
@@ -73,6 +78,21 @@ const app = express();
 
 // Store authManager in app context for middleware access
 app.set('authManager', authManager);
+
+// Initialize the AuthManager with preferred method if available
+if (app && envValidation.preferredMethod) {
+  const authManager = app.get('authManager');
+  if (authManager) {
+    log.info(`Setting preferred authentication method from environment: ${envValidation.preferredMethod}`);
+    authManager.setMethod(envValidation.preferredMethod);
+    
+    // If API key format has issues but we're still using it, add a warning
+    if (envValidation.preferredMethod === 'apikey' && !envValidation.validation.apiKeyFormat) {
+      log.warn('Using API key authentication but the key format has potential issues');
+      log.warn('Check for whitespace or incorrect formatting in your API key variables');
+    }
+  }
+}
 
 // Basic request logger with origin information for CORS debugging
 app.use((req, res, next) => {
@@ -142,6 +162,73 @@ app.post('/api/logs', (req, res) => {
 app.post('/api/webhooks', (req, res) => {
   log.info('Webhook received:', req.body);
   res.status(200).end();
+});
+
+// Add this debug endpoint after your other API routes
+// before the catch-all handler for SPA support
+
+// Authentication debug endpoint to help diagnose auth issues
+app.get('/api/debug/auth', (req, res) => {
+  const authManager = req.app.get('authManager');
+  const log = logger.scope('AuthDebug');
+  
+  log.info('Auth debug endpoint accessed');
+  
+  // Get auth status by checking multiple sources
+  const isAuthenticated = req.isAuthenticated && req.isAuthenticated() || 
+                         !!(authManager && authManager.getMethod());
+  
+  // Gather detailed auth information without exposing secrets
+  const authDebugInfo = {
+    isAuthenticated,
+    authManager: authManager ? {
+      method: authManager.getMethod(),
+      hasOAuthCredentials: !!(authManager.clientId && authManager.clientSecret),
+      hasApiKeys: !!(authManager.accessKey && authManager.secretKey),
+      hasAccessToken: !!authManager.accessToken,
+      accessKeyLength: authManager.accessKey ? authManager.accessKey.length : 0,
+      secretKeyLength: authManager.secretKey ? authManager.secretKey.length : 0,
+      accessTokenLength: authManager.accessToken ? authManager.accessToken.length : 0,
+      accessKeyMasked: authManager.accessKey ? 
+        `${authManager.accessKey.substring(0, 4)}...${authManager.accessKey.substring(authManager.accessKey.length - 4)}` : null,
+      clientIdMasked: authManager.clientId ? 
+        `${authManager.clientId.substring(0, 4)}...` : null
+    } : null,
+    session: req.session ? {
+      hasOAuthToken: !!req.session.oauthToken,
+      hasRefreshToken: !!req.session.refreshToken,
+      oauthTokenLength: req.session.oauthToken ? req.session.oauthToken.length : 0,
+      tokenExpiry: req.session.tokenExpiry || null
+    } : null,
+    user: req.user ? {
+      hasAccessToken: !!req.user.accessToken,
+      accessTokenLength: req.user.accessToken ? req.user.accessToken.length : 0,
+      hasRefreshToken: !!req.user.refreshToken
+    } : null,
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      oauthConfigured: !!(process.env.OAUTH_CLIENT_ID && process.env.OAUTH_CLIENT_SECRET),
+      apiKeyConfigured: !!(process.env.ONSHAPE_ACCESS_KEY && process.env.ONSHAPE_SECRET_KEY),
+      preferredAuthMethod: process.env.ONSHAPE_AUTH_METHOD || 'oauth',
+      baseUrl: config.onshape.baseUrl
+    },
+    request: {
+      path: req.path,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      hasAuthHeader: !!req.get('Authorization'),
+      cookies: Object.keys(req.cookies || {})
+    }
+  };
+  
+  // Log auth details for server-side debugging
+  log.debug('Auth debug information', {
+    method: authDebugInfo.authManager?.method,
+    isAuthenticated: authDebugInfo.isAuthenticated
+  });
+  
+  // Return detailed info to client
+  return res.json(authDebugInfo);
 });
 
 // Serve index.html for all other routes (SPA support)
