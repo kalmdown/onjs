@@ -99,21 +99,68 @@ function getAuthToken() {
  * This redirects to the Onshape OAuth page
  */
 function authenticate() {
-  console.log("Authenticate function called!");
+  console.log("%c[AUTH] User clicked Authenticate button", "color: #FF8C00; font-weight: bold;");
   
-  // Display a logging message in the UI
+  // Display a logging message in the UI with orange color
   const logOutput = document.getElementById('logOutput');
   if (logOutput) {
     const entry = document.createElement('div');
-    entry.className = 'log-info';
+    entry.className = 'log-auth';  // Use auth-specific class for orange color
     const timestamp = new Date().toLocaleTimeString();
-    entry.textContent = `[${timestamp}] Redirecting to Onshape for authentication...`;
+    entry.textContent = `[${timestamp}] Checking server authentication method...`;
     logOutput.appendChild(entry);
     logOutput.scrollTop = logOutput.scrollHeight;
   }
   
-  // Use window.location.href for more reliable redirect without a delay
-  window.location.href = '/oauth/login';
+  // First check what authentication method the server is using
+  fetch('/api/auth/method')
+    .then(response => response.json())
+    .then(data => {
+      if (data.method === 'oauth') {
+        // Display a logging message in the UI with orange color
+        if (logOutput) {
+          const entry = document.createElement('div');
+          entry.className = 'log-auth';  
+          const timestamp = new Date().toLocaleTimeString();
+          entry.textContent = `[${timestamp}] Redirecting to Onshape for authentication...`;
+          logOutput.appendChild(entry);
+          logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        // Use OAuth flow
+        window.location.href = '/oauth/login';
+      } else if (data.method === 'apikey') {
+        // Display that we're using API key auth
+        if (logOutput) {
+          const entry = document.createElement('div');
+          entry.className = 'log-auth';
+          const timestamp = new Date().toLocaleTimeString();
+          entry.textContent = `[${timestamp}] Using API key authentication (already configured)`;
+          logOutput.appendChild(entry);
+          logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        // Refresh the page or indicate successful auth
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        // Unknown auth method
+        if (logOutput) {
+          const entry = document.createElement('div');
+          entry.className = 'log-error';
+          const timestamp = new Date().toLocaleTimeString();
+          entry.textContent = `[${timestamp}] Unknown authentication method: ${data.method}`;
+          logOutput.appendChild(entry);
+          logOutput.scrollTop = logOutput.scrollHeight;
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error checking auth method:', error);
+      // Fall back to OAuth attempt
+      window.location.href = '/oauth/login';
+    });
 }
 
 /**

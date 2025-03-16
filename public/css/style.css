@@ -92,3 +92,11 @@
 .log-error {
   color: #dc3545;
 }
+.log-auth {
+  color: #FF8C00; /* Orange color */
+  padding: 2px 5px;
+  margin: 2px 0;
+  font-family: monospace;
+  border-left: 3px solid #FF8C00;
+  background-color: rgba(255, 140, 0, 0.1);
+}
