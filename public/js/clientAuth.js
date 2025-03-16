@@ -7,7 +7,7 @@ let _authMethod = 'none'; // Add this line near the other state variables
 
 /**
  * Initialize authentication
- * @returns {boolean} Whether authentication was successful
+ * @returns {Promise<boolean>} Promise resolving to whether authentication was successful
  */
 function init() {
   console.log("Initializing auth module");
@@ -25,7 +25,7 @@ function init() {
   if (error) {
     console.error("Authentication error:", error);
     handleAuthError(error);
-    return false;
+    return Promise.resolve(false);
   }
   
   // Check for API key auth success response from redirect
@@ -36,7 +36,7 @@ function init() {
     
     // Update UI to show API key auth state
     updateAuthUI(true, 'apikey');
-    return true;
+    return Promise.resolve(true);
   }
   
   // Check for tokens in URL
@@ -62,7 +62,7 @@ function init() {
     
     // Update UI
     updateAuthUI(true, 'oauth');
-    return true;
+    return Promise.resolve(true);
   } else {
     // Check for stored token in localStorage
     const storedToken = localStorage.getItem('authToken');
@@ -77,13 +77,13 @@ function init() {
       
       // Update UI
       updateAuthUI(true, 'oauth');
-      return true;
+      return Promise.resolve(true);
     }
   }
   
   // If we reach here, check the server's auth method
   // This allows us to handle API key authentication scenarios
-  checkServerAuthMethod()
+  return checkServerAuthMethod()
     .then(method => {
       if (method === 'apikey') {
         console.log("Server is using API key authentication");
@@ -115,6 +115,45 @@ function checkServerAuthMethod() {
     .then(data => {
       console.log("Server auth method:", data.method);
       return data.method;
+    });
+}
+
+/**
+ * Check the server's authentication status in detail
+ * @returns {Promise<Object>} Promise resolving to detailed auth status
+ */
+function checkAuthStatus() {
+  return fetch('/api/debug/auth')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Update client state based on server response
+      if (data.authManager && data.authManager.method) {
+        _authMethod = data.authManager.method;
+        
+        // If server is using API key auth and we're not authenticated yet, update state
+        if (_authMethod === 'apikey' && !_isAuthenticated) {
+          _isAuthenticated = true;
+          updateAuthUI(true, 'apikey');
+        }
+      }
+      
+      return data;
+    })
+    .catch(error => {
+      console.error("Error checking auth status:", error);
+      return {
+        error: error.message,
+        isAuthenticated: _isAuthenticated,
+        clientState: {
+          authMethod: _authMethod,
+          hasToken: !!_authToken
+        }
+      };
     });
 }
 
@@ -183,7 +222,12 @@ function authenticate() {
   
   // First check what authentication method the server is using
   fetch('/api/auth/method')
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then(data => {
       if (data.method === 'oauth') {
         // Display a logging message in the UI with orange color
@@ -209,10 +253,51 @@ function authenticate() {
           logOutput.scrollTop = logOutput.scrollHeight;
         }
         
-        // Refresh the page or indicate successful auth
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // Check API key validity with a test endpoint
+        fetch('/api/auth/test')
+          .then(response => response.json())
+          .then(testData => {
+            if (testData.success) {
+              if (logOutput) {
+                const entry = document.createElement('div');
+                entry.className = 'log-success';
+                const timestamp = new Date().toLocaleTimeString();
+                entry.textContent = `[${timestamp}] API key authentication verified successfully`;
+                logOutput.appendChild(entry);
+                logOutput.scrollTop = logOutput.scrollHeight;
+              }
+              
+              // Update UI state and reload after delay
+              _isAuthenticated = true;
+              _authMethod = 'apikey';
+              updateAuthUI(true, 'apikey');
+              
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              // API key test failed
+              if (logOutput) {
+                const entry = document.createElement('div');
+                entry.className = 'log-error';
+                const timestamp = new Date().toLocaleTimeString();
+                entry.textContent = `[${timestamp}] API key validation failed: ${testData.error || 'Unknown error'}`;
+                logOutput.appendChild(entry);
+                logOutput.scrollTop = logOutput.scrollHeight;
+              }
+            }
+          })
+          .catch(error => {
+            console.error('API key test failed:', error);
+            if (logOutput) {
+              const entry = document.createElement('div');
+              entry.className = 'log-error';
+              const timestamp = new Date().toLocaleTimeString();
+              entry.textContent = `[${timestamp}] API key test error: ${error.message}`;
+              logOutput.appendChild(entry);
+              logOutput.scrollTop = logOutput.scrollHeight;
+            }
+          });
       } else {
         // Unknown auth method
         if (logOutput) {
@@ -227,6 +312,15 @@ function authenticate() {
     })
     .catch(error => {
       console.error('Error checking auth method:', error);
+      if (logOutput) {
+        const entry = document.createElement('div');
+        entry.className = 'log-error';
+        const timestamp = new Date().toLocaleTimeString();
+        entry.textContent = `[${timestamp}] Auth check failed: ${error.message}. Falling back to OAuth...`;
+        logOutput.appendChild(entry);
+        logOutput.scrollTop = logOutput.scrollHeight;
+      }
+      
       // Fall back to OAuth attempt
       window.location.href = '/oauth/login';
     });
@@ -348,82 +442,69 @@ function debugAuthState() {
     const entry = document.createElement('div');
     entry.className = 'log-debug';
     const timestamp = new Date().toLocaleTimeString();
-    entry.textContent = `[${timestamp}] Debugging auth state - Token ${_authToken ? 'present' : 'missing'}`;
+    entry.textContent = `[${timestamp}] Debugging auth state - Method: ${_authMethod}`;
     logOutput.appendChild(entry);
     logOutput.scrollTop = logOutput.scrollHeight;
   }
   
-  // First check token state from server
-  fetch('/api/auth/token-debug')
-    .then(response => {
-      console.log("%c[AUTH DEBUG] Server token state response status:", "color: #9c27b0", response.status);
-      return response.json();
-    })
+  // Use the comprehensive debug endpoint
+  checkAuthStatus()
     .then(data => {
-      console.log("%c[AUTH DEBUG] Server token state:", "color: #9c27b0", data);
-      
-      // Log any token discrepancies
-      if (_authToken && !data.hasManagerToken) {
-        console.warn("%c[AUTH DEBUG] Warning: Client has token but server auth manager doesn't", "color: #ff9800; font-weight: bold");
-      }
-      
-      if (data.hasManagerToken && !_authToken) {
-        console.warn("%c[AUTH DEBUG] Warning: Server has token but client doesn't", "color: #ff9800; font-weight: bold");
-      }
+      console.log("%c[AUTH DEBUG] Server auth state:", "color: #9c27b0", data);
       
       // Add to UI log if available
       if (logOutput) {
         const entry = document.createElement('div');
         entry.className = 'log-debug';
         const timestamp = new Date().toLocaleTimeString();
-        entry.textContent = `[${timestamp}] Server auth: ${data.authMethod} (${data.authenticated ? 'Authenticated' : 'Not authenticated'})`;
+        
+        if (data.authManager) {
+          entry.textContent = `[${timestamp}] Server auth: ${data.authManager.method} (${data.isAuthenticated ? 'Authenticated' : 'Not authenticated'})`;
+        } else if (data.error) {
+          entry.textContent = `[${timestamp}] Auth debug error: ${data.error}`;
+          entry.className = 'log-error';
+        }
+        
         logOutput.appendChild(entry);
         logOutput.scrollTop = logOutput.scrollHeight;
       }
-    })
-    .catch(error => {
-      console.error("%c[AUTH DEBUG] Error checking server token state:", "color: #f44336", error);
-    });
-  
-  // Then check token validity by making a test API call
-  if (_authToken) {
-    console.log("%c[AUTH DEBUG] Testing auth token with API call...", "color: #9c27b0");
-    fetch('/api/auth/status', {
-      headers: {
-        'Authorization': `Bearer ${_authToken}`
-      }
-    })
-    .then(response => {
-      console.log("%c[AUTH DEBUG] Auth test response status:", "color: #9c27b0", response.status);
-      return response.json();
-    })
-    .then(data => {
-      console.log("%c[AUTH DEBUG] Auth test response data:", "color: #9c27b0", data);
       
-      // Add to UI log if available
-      if (logOutput) {
-        const entry = document.createElement('div');
-        entry.className = data.authenticated ? 'log-success' : 'log-warning';
-        const timestamp = new Date().toLocaleTimeString();
-        entry.textContent = `[${timestamp}] Auth test: ${data.authenticated ? 'Token valid' : 'Token invalid'}`;
-        logOutput.appendChild(entry);
-        logOutput.scrollTop = logOutput.scrollHeight;
-      }
-    })
-    .catch(error => {
-      console.error("%c[AUTH DEBUG] Auth test failed:", "color: #f44336", error);
-      
-      // Add to UI log if available
-      if (logOutput) {
-        const entry = document.createElement('div');
-        entry.className = 'log-error';
-        const timestamp = new Date().toLocaleTimeString();
-        entry.textContent = `[${timestamp}] Auth test failed: ${error.message}`;
-        logOutput.appendChild(entry);
-        logOutput.scrollTop = logOutput.scrollHeight;
-      }
+      // Test authentication with a simple API call
+      return fetch('/api/auth/test')
+        .then(response => {
+          console.log("%c[AUTH DEBUG] Auth test response status:", "color: #9c27b0", response.status);
+          if (!response.ok) {
+            throw new Error(`Test endpoint returned ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(testData => {
+          console.log("%c[AUTH DEBUG] Auth test result:", "color: #9c27b0", testData);
+          
+          // Add to UI log if available
+          if (logOutput) {
+            const entry = document.createElement('div');
+            entry.className = testData.success ? 'log-success' : 'log-warning';
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] Auth test: ${testData.success ? 'Success' : 'Failed'} (${testData.method || 'unknown'})`;
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+          }
+        })
+        .catch(error => {
+          console.error("%c[AUTH DEBUG] Auth test failed:", "color: #f44336", error);
+          
+          // Add to UI log if available
+          if (logOutput) {
+            const entry = document.createElement('div');
+            entry.className = 'log-error';
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] Auth test failed: ${error.message}`;
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+          }
+        });
     });
-  }
 }
 
 // Modify the existing DOMContentLoaded listener
@@ -467,5 +548,6 @@ export {
   getAuthMethod,
   authenticate,
   logout,
-  debugAuthState
+  debugAuthState,
+  checkAuthStatus
 };

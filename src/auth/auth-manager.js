@@ -42,42 +42,77 @@ class AuthManager {
  * Initialize authentication method based on available credentials
  * @private
  */
-// In auth-manager.js, improve the _initMethod function
-
 _initMethod() {
-  // Check environment variable first
-  const preferredMethod = process.env.ONSHAPE_AUTH_METHOD?.toLowerCase();
-  
-  // If API key is explicitly requested and credentials exist
-  if ((preferredMethod === 'apikey' || preferredMethod === 'api_key') && 
-      this.accessKey && this.secretKey) {
-    this.setMethod('apikey');
-    this.logger.info('Using API key authentication (explicit setting)');
-    return;
+  try {
+    // Check environment variable first
+    const preferredMethod = process.env.ONSHAPE_AUTH_METHOD?.toLowerCase();
+    
+    // Log available auth options for debugging
+    this.logger.debug('Auth initialization', {
+      preferredMethod: preferredMethod || 'not set',
+      hasAccessKey: !!this.accessKey,
+      hasSecretKey: !!this.secretKey,
+      accessKeyLength: this.accessKey ? this.accessKey.length : 0,
+      hasOAuthToken: !!this.accessToken,
+      hasClientId: !!this.clientId,
+      hasClientSecret: !!this.clientSecret
+    });
+
+    // Validate API key format if present
+    if (this.accessKey && this.secretKey) {
+      if (typeof this.accessKey !== 'string' || typeof this.secretKey !== 'string') {
+        this.logger.warn('API key credentials are not strings');
+      } else if (this.accessKey.length < 20 || this.secretKey.length < 20) {
+        this.logger.warn('API key credentials appear to be too short', {
+          accessKeyLength: this.accessKey.length,
+          secretKeyLength: this.secretKey.length
+        });
+      }
+      
+      // Check for common issues like whitespace
+      if (this.accessKey.trim() !== this.accessKey || this.secretKey.trim() !== this.secretKey) {
+        this.logger.warn('API key credentials contain leading/trailing whitespace');
+        // Auto-fix whitespace issues
+        this.accessKey = this.accessKey.trim();
+        this.secretKey = this.secretKey.trim();
+      }
+    }
+    
+    // If API key is explicitly requested and credentials exist
+    if ((preferredMethod === 'apikey' || preferredMethod === 'api_key') && 
+        this.accessKey && this.secretKey) {
+      this.setMethod('apikey');
+      this.logger.info('Using API key authentication (explicit setting)');
+      return;
+    }
+    
+    // If OAuth tokens are already available, use OAuth
+    if (this.accessToken) {
+      this.setMethod('oauth');
+      this.logger.info('Using OAuth authentication (token provided)');
+      return;
+    }
+    
+    // If OAuth credentials are available, prefer OAuth
+    if (this.clientId && this.clientSecret) {
+      this.setMethod('oauth');
+      this.logger.info('Using OAuth authentication (credentials available)');
+      return;
+    }
+    
+    // Fallback to API key if available
+    if (this.accessKey && this.secretKey) {
+      this.setMethod('apikey');
+      this.logger.info('Using API key authentication (fallback)');
+      return;
+    }
+    
+    this.logger.warn('No valid authentication credentials available');
+  } catch (error) {
+    this.logger.error(`Error initializing auth method: ${error.message}`);
+    // Don't throw - allow the application to continue without auth
+    // The auth checks in individual requests will handle auth requirements
   }
-  
-  // If OAuth tokens are already available, use OAuth
-  if (this.accessToken) {
-    this.setMethod('oauth');
-    this.logger.info('Using OAuth authentication (token provided)');
-    return;
-  }
-  
-  // If OAuth credentials are available, prefer OAuth
-  if (this.clientId && this.clientSecret) {
-    this.setMethod('oauth');
-    this.logger.info('Using OAuth authentication (credentials available)');
-    return;
-  }
-  
-  // Fallback to API key if available
-  if (this.accessKey && this.secretKey) {
-    this.setMethod('apikey');
-    this.logger.info('Using API key authentication (fallback)');
-    return;
-  }
-  
-  this.logger.warn('No valid authentication credentials available');
 }
 
   /**

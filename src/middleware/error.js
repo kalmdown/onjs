@@ -1,4 +1,3 @@
-// src\middleware\error.js
 // src/middleware/error.js
 const logger = require('../utils/logger');
 const { OnshapeError, AuthenticationError } = require('../utils/errors');
@@ -21,7 +20,8 @@ function errorMiddleware(err, req, res, next) {
     message,
     status: statusCode,
     type: errorType,
-    path: req.path
+    path: req.path,
+    method: req.method
   };
   
   // Add more details for debugging in development mode
@@ -32,7 +32,8 @@ function errorMiddleware(err, req, res, next) {
     if (err.originalError) {
       errorDetails.originalError = {
         message: err.originalError.message,
-        name: err.originalError.name
+        name: err.originalError.name,
+        stack: err.originalError.stack
       };
     }
     
@@ -40,11 +41,35 @@ function errorMiddleware(err, req, res, next) {
     if (err.response?.data) {
       errorDetails.responseData = err.response.data;
     }
+    
+    // Add request details that might help with debugging
+    errorDetails.requestInfo = {
+      url: req.originalUrl,
+      query: req.query,
+      headers: {
+        accept: req.headers.accept,
+        contentType: req.headers['content-type'],
+        userAgent: req.headers['user-agent']
+      }
+    };
   }
   
   // Log the error with appropriate severity
   if (statusCode >= 500) {
-    log.error(`Server Error (${statusCode}): ${message}`, err);
+    log.error(`Server Error (${statusCode}): ${message} at ${req.method} ${req.path}`, err);
+    // Ensure stack trace is visible in console for severe errors
+    console.error('Stack trace:', err.stack);
+    
+    // Log original error details if available
+    if (err.originalError) {
+      console.error('Original error:', err.originalError);
+    }
+  } else if (statusCode === 401 || statusCode === 403) {
+    log.warn(`Auth Error (${statusCode}): ${message} at ${req.method} ${req.path}`, {
+      path: req.path,
+      hasSession: !!req.session,
+      isAuthenticated: !!req.isAuthenticated
+    });
   } else {
     log.warn(`Client Error (${statusCode}): ${message}`);
   }

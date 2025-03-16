@@ -120,6 +120,14 @@ function showDebugPanel() {
       <h6>Authentication</h6>
       <pre id="authDebug" class="bg-light p-2 small">Loading authentication data...</pre>
       
+      <h6 class="mt-3">Authentication Tests</h6>
+      <div class="d-flex gap-2 mb-3">
+        <button id="testApiKey" class="btn btn-sm btn-outline-primary">Test API Key</button>
+        <button id="testOAuth" class="btn btn-sm btn-outline-primary">Test OAuth</button>
+        <button id="testEndpoint" class="btn btn-sm btn-outline-secondary">Test Auth Endpoint</button>
+      </div>
+      <pre id="authTestResult" class="bg-light p-2 small">Run a test to see results</pre>
+      
       <h6 class="mt-3">Network Activity</h6>
       <pre id="networkDebug" class="bg-light p-2 small">Loading network data...</pre>
       
@@ -139,12 +147,22 @@ function showDebugPanel() {
     debugPanelActive = false;
   });
   
+  // Auth test buttons
+  document.getElementById('testApiKey').addEventListener('click', () => testAuth('apikey'));
+  document.getElementById('testOAuth').addEventListener('click', () => testAuth('oauth'));
+  document.getElementById('testEndpoint').addEventListener('click', () => testAuthEndpoint());
+  
   // Update info
   updateDebugInfo();
   
-  // Fetch server auth info
-  fetch('/api/auth/token-debug')
-    .then(res => res.json())
+  // Fetch server auth info using the new comprehensive endpoint
+  fetch('/api/debug/auth')
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}: ${res.statusText}`);
+      }
+      return res.json();
+    })
     .then(data => {
       const serverAuthDebug = document.getElementById('serverAuthDebug');
       if (serverAuthDebug) {
@@ -167,9 +185,16 @@ function updateDebugInfo() {
   // Client auth state
   const authDebug = document.getElementById('authDebug');
   if (authDebug) {
-    const token = getToken();
+    // Import these functions if they're not already available
+    // Make sure we're getting everything from clientAuth.js that we need
+    const { getToken, getAuthMethod } = window.clientAuth || {};
+    
+    const token = getToken ? getToken() : (localStorage.getItem('authToken') || null);
+    const authMethod = getAuthMethod ? getAuthMethod() : 'unknown';
+    
     authDebug.textContent = JSON.stringify({
-      isAuthenticated: !!token,
+      isAuthenticated: !!token || authMethod === 'apikey',
+      authMethod: authMethod,
       hasAuthToken: !!token,
       tokenLength: token ? token.length : 0,
       hasLocalStorageToken: !!localStorage.getItem('authToken'),
@@ -197,6 +222,112 @@ function updateDebugInfo() {
       recentRequests: networkLogs.summary || []
     }, null, 2);
   }
+  
+  // Update server auth info
+  fetch('/api/debug/auth')
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}: ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      const serverAuthDebug = document.getElementById('serverAuthDebug');
+      if (serverAuthDebug) {
+        serverAuthDebug.textContent = JSON.stringify(data, null, 2);
+      }
+    })
+    .catch(err => {
+      console.error('Error refreshing auth debug:', err);
+      // Don't update if there's an error to preserve existing data
+    });
+}
+
+/**
+ * Test authentication with specific method
+ * @param {string} method - Auth method to test ('apikey' or 'oauth')
+ */
+function testAuth(method) {
+  const resultElement = document.getElementById('authTestResult');
+  if (!resultElement) return;
+  
+  resultElement.textContent = `Testing ${method} authentication...`;
+  resultElement.className = 'bg-light p-2 small';
+  
+  // Test endpoint
+  fetch('/api/auth/test')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      resultElement.textContent = JSON.stringify(data, null, 2);
+      
+      // Add success/error class based on result
+      if (data.success) {
+        resultElement.className = 'bg-success text-white p-2 small';
+      } else {
+        resultElement.className = 'bg-danger text-white p-2 small';
+      }
+      
+      // Update debug info to reflect any changes
+      updateDebugInfo();
+    })
+    .catch(error => {
+      resultElement.textContent = `Error testing ${method} authentication: ${error.message}`;
+      resultElement.className = 'bg-danger text-white p-2 small';
+    });
+}
+
+/**
+ * Test the auth endpoint directly
+ */
+function testAuthEndpoint() {
+  const resultElement = document.getElementById('authTestResult');
+  if (!resultElement) return;
+  
+  resultElement.textContent = 'Testing authentication endpoint...';
+  resultElement.className = 'bg-light p-2 small';
+  
+  // Make a simple API call to verify authentication
+  fetch('/api/documents?limit=1')
+    .then(response => {
+      const status = response.status;
+      const isOk = response.ok;
+      
+      return response.text().then(text => {
+        let parsed = null;
+        try {
+          // Try to parse as JSON if possible
+          parsed = JSON.parse(text);
+        } catch (e) {
+          // Leave as text if it's not valid JSON
+          parsed = text.length > 500 ? text.substring(0, 500) + '...' : text;
+        }
+        
+        return {
+          status,
+          isOk,
+          body: parsed
+        };
+      });
+    })
+    .then(data => {
+      resultElement.textContent = JSON.stringify(data, null, 2);
+      
+      // Add success/error class based on status
+      if (data.isOk) {
+        resultElement.className = 'bg-success text-white p-2 small';
+      } else {
+        resultElement.className = 'bg-warning text-dark p-2 small';
+      }
+    })
+    .catch(error => {
+      resultElement.textContent = `Error testing endpoint: ${error.message}`;
+      resultElement.className = 'bg-danger text-white p-2 small';
+    });
 }
 
 /**
