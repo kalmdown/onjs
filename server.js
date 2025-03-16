@@ -1,4 +1,3 @@
-
 // server.js - Main application entry point
 
 require('./load-env'); // Add this at the top
@@ -97,6 +96,39 @@ app.get('/api/auth/status', (req, res) => {
     authenticated: req.isAuthenticated() || (req.session && !!req.session.oauthToken),
     method: authManager.getMethod() || 'none'
   });
+});
+
+// In server.js, after mounting your auth routes
+app.get('/api/auth/method', (req, res) => {
+  const authManager = req.app.get('authManager');
+  res.json({
+    method: authManager.getMethod(),
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
+  });
+});
+
+// Endpoint to receive client-side logs
+app.post('/api/logs', (req, res) => {
+  const { level, message, source, stack } = req.body;
+  
+  // Map client log levels to server log levels
+  switch (level) {
+    case 'error':
+      log.error(`[Browser] ${message}`, { source, stack });
+      break;
+    case 'warn':
+      log.warn(`[Browser] ${message}`, { source });
+      break;
+    case 'info':
+      log.info(`[Browser] ${message}`, { source });
+      break;
+    case 'debug':
+    default:
+      log.debug(`[Browser] ${message}`, { source });
+      break;
+  }
+  
+  res.status(200).end();
 });
 
 // Webhooks endpoint

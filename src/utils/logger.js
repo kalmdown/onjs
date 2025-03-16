@@ -18,6 +18,23 @@ class Logger {
       error: 3
     };
     
+    // Configure filters for different log types
+    this.filters = options.filters || {
+      server: {
+        enabled: process.env.LOG_SERVER !== 'false', // Default to true unless explicitly disabled
+        levels: ['info', 'warn', 'error'], // By default, filter out debug but keep others
+      },
+      auth: {
+        enabled: true,
+        levels: ['debug', 'info', 'warn', 'error'],
+      },
+      api: {
+        enabled: true,
+        levels: ['debug', 'info', 'warn', 'error'],
+      },
+      // Add more scopes as needed
+    };
+    
     // Ensure log directory exists if logging to file
     if (this.logToFile && !fs.existsSync(this.logDir)) {
       fs.mkdirSync(this.logDir, { recursive: true });
@@ -28,17 +45,90 @@ class Logger {
   }
 
   /**
-   * Check if the level should be logged based on the configured log level
+   * Check if the message should be logged based on filters and log level
    */
-  shouldLog(level) {
-    return this.logLevels[level] >= this.logLevels[this.logLevel];
+  shouldLog(level, message = '') {
+    // First check the log level
+    if (this.logLevels[level] < this.logLevels[this.logLevel]) {
+      return false;
+    }
+    
+    // Check scope-based filters
+    if (message.includes('[Server]')) {
+      // Apply server filter
+      const serverFilter = this.filters.server;
+      if (!serverFilter.enabled || !serverFilter.levels.includes(level)) {
+        return false;
+      }
+      
+      // Special case for GET requests
+      if (level === 'debug' && message.includes('GET')) {
+        return this.filters.server.showGetRequests !== true;
+      }
+    } 
+    else if (message.includes('[Auth]') || message.includes('[AUTH]')) {
+      // Apply auth filter
+      const authFilter = this.filters.auth;
+      if (!authFilter.enabled || !authFilter.levels.includes(level)) {
+        return false;
+      }
+    }
+    else if (message.includes('[API]')) {
+      // Apply API filter
+      const apiFilter = this.filters.api;
+      if (!apiFilter.enabled || !apiFilter.levels.includes(level)) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Set filter configuration for a specific scope
+   * @param {string} scope - The scope to configure (server, auth, api, etc.)
+   * @param {object} config - Filter configuration { enabled: boolean, levels: string[] }
+   */
+  setFilter(scope, config) {
+    if (!this.filters[scope]) {
+      this.filters[scope] = {
+        enabled: true,
+        levels: ['debug', 'info', 'warn', 'error'],
+      };
+    }
+    
+    if (config.enabled !== undefined) {
+      this.filters[scope].enabled = !!config.enabled;
+    }
+    
+    if (config.levels) {
+      this.filters[scope].levels = config.levels;
+    }
+    
+    if (scope === 'server' && config.showGetRequests !== undefined) {
+      this.filters.server.showGetRequests = !!config.showGetRequests;
+    }
+    
+    return this.filters[scope];
+  }
+  
+  /**
+   * Get the current filter configuration
+   * @param {string} scope - Optional scope to get filters for
+   * @returns {object} - The current filters
+   */
+  getFilters(scope) {
+    if (scope) {
+      return this.filters[scope];
+    }
+    return this.filters;
   }
 
   /**
    * Log an info message
    */
   info(message, ...args) {
-    if (this.shouldLog('info')) {
+    if (this.shouldLog('info', message)) {
       if (this.useBufferedLogs) {
         this.buffer.push({ level: 'info', message, args, timestamp: new Date() });
       } else {
@@ -55,7 +145,7 @@ class Logger {
    * Log a debug message
    */
   debug(message, ...args) {
-    if (this.shouldLog('debug')) {
+    if (this.shouldLog('debug', message)) {
       if (this.useBufferedLogs) {
         this.buffer.push({ level: 'debug', message, args, timestamp: new Date() });
       } else {
@@ -72,7 +162,7 @@ class Logger {
    * Log an error message
    */
   error(message, error) {
-    if (this.shouldLog('error')) {
+    if (this.shouldLog('error', message)) {
       if (this.useBufferedLogs) {
         this.buffer.push({ 
           level: 'error', 
@@ -94,7 +184,7 @@ class Logger {
    * Log a warning message
    */
   warn(message, ...args) {
-    if (this.shouldLog('warn')) {
+    if (this.shouldLog('warn', message)) {
       if (this.useBufferedLogs) {
         this.buffer.push({ level: 'warn', message, args, timestamp: new Date() });
       } else {
@@ -103,6 +193,23 @@ class Logger {
       
       if (this.logToFile) {
         this._writeToFile('warn.log', `WARN: ${message}`);
+      }
+    }
+  }
+
+  /**
+   * Log an authentication message (orange color)
+   */
+  auth(message, ...args) {
+    if (this.shouldLog('info', message)) {  // Using info level for auth messages
+      if (this.useBufferedLogs) {
+        this.buffer.push({ level: 'auth', message, args, timestamp: new Date() });
+      } else {
+        console.log(`%c[AUTH] ${message}`, 'color: #FF8C00', ...args);  // Orange color in console
+      }
+      
+      if (this.logToFile) {
+        this._writeToFile('auth.log', `AUTH: ${message}`);
       }
     }
   }
@@ -129,7 +236,7 @@ class Logger {
     const scopedLogger = {};
     
     // Create scoped versions of all logger methods
-    ['debug', 'info', 'warn', 'error'].forEach(method => {
+    ['debug', 'info', 'warn', 'error', 'auth'].forEach(method => {
       scopedLogger[method] = (...args) => {
         if (args[0] && typeof args[0] === 'string') {
           return this[method](`[${scopeName}] ${args[0]}`, ...args.slice(1));
@@ -183,4 +290,11 @@ class Logger {
 }
 
 // Export a singleton instance
-module.exports = new Logger();
+const logger = new Logger();
+
+// Example of setting filters
+// Uncomment these to change default filtering behavior
+// logger.setFilter('server', { enabled: true, levels: ['info', 'warn', 'error'], showGetRequests: false });
+// logger.setFilter('auth', { enabled: true, levels: ['debug', 'info', 'warn', 'error'] });
+
+module.exports = logger;

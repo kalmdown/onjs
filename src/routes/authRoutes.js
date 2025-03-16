@@ -15,7 +15,19 @@ const log = logger.scope('AuthRoutes');
  * @access Public
  */
 router.get("/login", function(req, res, next) {
+  const authManager = req.app.get('authManager');
   log.info('OAuth login initiated');
+  
+  // Check if we're actually using OAuth
+  if (authManager.getMethod() !== 'oauth') {
+    log.warn(`OAuth login attempted but server is using ${authManager.getMethod()} authentication`);
+    return res.status(400).json({
+      error: 'Authentication method mismatch',
+      message: `Server is configured to use ${authManager.getMethod()} authentication, not OAuth`,
+      authMethod: authManager.getMethod()
+    });
+  }
+  
   log.info('Auth configuration:', {
     clientId: !!config.onshape.clientId,
     clientSecret: !!config.onshape.clientSecret,
@@ -161,6 +173,22 @@ router.get("/status", (req, res) => {
   res.json({ 
     authenticated,
     method: authMethod || 'none'
+  });
+});
+
+/**
+ * Get current authentication method
+ */
+router.get('/api/auth/method', (req, res) => {
+  const authManager = req.app.get('authManager');
+  
+  // Log that this endpoint was accessed
+  const log = req.app.get('logger').scope('AuthRoutes');
+  log.debug('Authentication method requested by client');
+  
+  res.json({
+    method: authManager.getMethod(),
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
   });
 });
 
