@@ -7,14 +7,15 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const passport = require('passport');
+const crypto = require('crypto'); // Add this for generating request IDs
 const config = require('./config/index');
 const AuthManager = require('./src/auth/auth-manager');
 const authMiddleware = require('./src/middleware/authMiddleware');
 const logger = require('./src/utils/logger');
-const { configureOAuth } = require('./src/middleware/authMiddleware');
 const errorMiddleware = require('./src/middleware/error');
 const validateEnvironment = require('./src/utils/validate-envs');
 const log = require('./src/utils/logger').scope('Server');
+const axios = require('axios');
 
 // Run environment validation before initializing the app
 const envValidation = validateEnvironment();
@@ -118,21 +119,16 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Configure OAuth
-configureOAuth(authManager);
+const auth = authMiddleware(app);
+auth.configureOAuth(authManager);
 
-// Mount routes - Update this section
+// Mount routes
 app.use('/oauth', authRoutes);
 app.use('/api/auth', require('./src/routes/apiAuthRoutes'));
 app.use('/api/documents', documentRoutes);
 app.use('/api/elements', elementRoutes);
 app.use('/api/features', featureRoutes);
 app.use('/api/examples', exampleRoutes);
-
-// Remove these duplicate route definitions:
-// app.get('/api/auth/status', (req, res) => { /* ... */ });
-// app.get('/api/auth/method', (req, res) => { /* ... */ });
-// app.get('/api/auth/token-debug', (req, res) => { /* ... */ });
-// app.get('/api/auth/test', async (req, res) => { /* ... */ });
 
 // Endpoint to receive client-side logs
 app.post('/api/logs', (req, res) => {

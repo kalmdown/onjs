@@ -1,11 +1,11 @@
 // src/middleware/authMiddleware.js
 const passport = require('passport');
-const OnshapeStrategy = require('passport-onshape').Strategy;
 const ApiKeyStrategy = require('passport-headerapikey').HeaderAPIKeyStrategy;
 const OnshapeClient = require('../api/client');
 const AuthManager = require('../auth/auth-manager');
-const config = require('../config');
+const config = require('../../config'); // Updated path to config module
 const logger = require('../utils/logger');
+const axios = require('axios');
 
 // Scoped logger
 const log = logger.scope('AuthMiddleware');
@@ -14,31 +14,9 @@ const log = logger.scope('AuthMiddleware');
  * Authentication middleware
  */
 module.exports = function(app) {
-  // Passport configuration
-  passport.use(new OnshapeStrategy({
-      clientID: config.onshape.oauthClientId,
-      clientSecret: config.onshape.oauthClientSecret,
-      callbackURL: config.onshape.callbackUrl,
-      authorizationURL: config.onshape.authorizationUrl,
-      tokenURL: config.onshape.tokenUrl,
-      userURL: config.onshape.userUrl,
-      scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'
-    },
-    function(accessToken, refreshToken, profile, done) {
-      // asynchronous verification, for effect...
-      process.nextTick(function () {
-
-        // To keep the example simple, the user's Onshape profile is supplied to
-        // the route handler after being serialized to the session.  In a real
-        // application, the Onshape profile would typically be used to find or
-        // create a user record, and associate the Onshape account with that
-        // user.
-        profile.accessToken = accessToken;
-        profile.refreshToken = refreshToken;
-        return done(null, profile);
-      });
-    }
-  ));
+  // Initialize Passport
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   // API Key strategy
   passport.use(new ApiKeyStrategy({ header: 'Authorization', prefix: 'On ' },
@@ -79,10 +57,6 @@ module.exports = function(app) {
   passport.deserializeUser(function(user, done) {
     done(null, user);
   });
-
-  // Initialize Passport
-  app.use(passport.initialize());
-  app.use(passport.session());
 
   // Authentication check middleware
   app.use(function(req, res, next) {
@@ -138,4 +112,47 @@ module.exports = function(app) {
     // For non-API requests, redirect to the login page
     res.redirect('/oauth/login');
   };
+
+  // Configure OAuth function
+  function configureOAuth(authManager) {
+    // Set up OAuth routes
+    app.get('/oauth/login', (req, res) => {
+      const authUrl = `${config.onshape.authorizationURL}?client_id=${config.onshape.clientId}&redirect_uri=${config.onshape.callbackUrl}&response_type=code&scope=OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete`;
+      res.redirect(authUrl);
+    });
+
+    app.get('/oauth/callback', async (req, res) => {
+      const { code } = req.query;
+
+      try {
+        const tokenResponse = await axios.post(
+          config.onshape.tokenURL,
+          new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: config.onshape.clientId,
+            client_secret: config.onshape.clientSecret,
+            redirect_uri: config.onshape.callbackUrl,
+            code: code,
+          }),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          }
+        );
+
+        const { access_token, refresh_token } = tokenResponse.data;
+
+        log.info('OAuth callback successful');
+        req.session.oauthToken = access_token;
+        req.session.refreshToken = refresh_token;
+        res.redirect('/');
+      } catch (error) {
+        log.error('OAuth callback failed', error);
+        res.redirect('/oauth/login');
+      }
+    });
+  }
+
+  return { configureOAuth };
 };
