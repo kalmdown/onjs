@@ -118,17 +118,19 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Remove any duplicate auth middleware initialization
+// Initialize authentication middleware once
+const auth = require('./src/middleware/authMiddleware')(app);
+
 // Configure OAuth
-const auth = authMiddleware(app);
 auth.configureOAuth(authManager);
 
-// Mount routes
-app.use('/oauth', authRoutes);
-app.use('/api/auth', require('./src/routes/apiAuthRoutes'));
-app.use('/api/documents', documentRoutes);
-app.use('/api/elements', elementRoutes);
-app.use('/api/features', featureRoutes);
-app.use('/api/examples', exampleRoutes);
+// Mount routes with auth middleware
+app.use('/api/auth', require('./src/routes/apiAuthRoutes')(app, auth));
+app.use('/api/documents', require('./src/routes/documents')(app, auth));
+app.use('/api/elements', require('./src/routes/elements')(app, auth));
+app.use('/api/features', require('./src/routes/features')(app, auth));
+app.use('/api/examples', require('./src/routes/examples')(app, auth));
 
 // Endpoint to receive client-side logs
 app.post('/api/logs', (req, res) => {

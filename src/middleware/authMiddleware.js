@@ -10,6 +10,44 @@ const axios = require('axios');
 // Scoped logger
 const log = logger.scope('AuthMiddleware');
 
+// Helper function to create Onshape client from request
+const createClientFromRequest = (req, ClientClass = OnshapeClient) => {
+  const authManager = req.app.get('authManager');
+  if (!authManager) {
+    log.error('No auth manager found in app context');
+    return null;
+  }
+
+  try {
+    const clientOptions = {
+      baseurl: config.onshape.baseUrl,
+      authManager: authManager,
+      debug: config.debug
+    };
+    const client = new ClientClass(clientOptions);
+    log.info(`Initialized ${ClientClass.name} with ${authManager.getMethod()} authentication`);
+    return client;
+  } catch (error) {
+    log.error(`Failed to create Onshape client: ${error.message}`, error);
+    return null;
+  }
+};
+
+// Authentication check middleware
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated() || (req.user && req.user.method === 'apikey')) {
+    return next();
+  }
+
+  // For API requests, return a 401 Unauthorized response
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+
+  // For non-API requests, redirect to the login page
+  res.redirect('/oauth/login');
+};
+
 /**
  * Authentication middleware
  */
@@ -50,72 +88,16 @@ module.exports = function(app) {
   ));
 
   // Passport session serialization/deserialization
-  passport.serializeUser(function(user, done) {
+  passport.serializeUser((user, done) => {
     done(null, user);
   });
 
-  passport.deserializeUser(function(user, done) {
+  passport.deserializeUser((user, done) => {
     done(null, user);
   });
-
-  // Authentication check middleware
-  app.use(function(req, res, next) {
-    // Check if the user is authenticated
-    if (req.isAuthenticated() || (req.user && req.user.method === 'apikey')) {
-      return next();
-    }
-
-    // For API requests, return a 401 Unauthorized response
-    if (req.path.startsWith('/api/')) {
-      return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
-    }
-
-    // For non-API requests, redirect to the login page
-    res.redirect('/oauth/login');
-  });
-
-  // Helper function to create Onshape client from request
-  global.createClientFromRequest = (req, ClientClass = OnshapeClient) => {
-    const authManager = req.app.get('authManager');
-    if (!authManager) {
-      log.error('No auth manager found in app context');
-      return null;
-    }
-
-    try {
-      // Create client based on authentication method
-      const clientOptions = {
-        baseurl: config.onshape.baseUrl,
-        authManager: authManager,
-        debug: config.debug
-      };
-      const client = new ClientClass(clientOptions);
-      log.info(`Initialized ${ClientClass.name} with ${authManager.getMethod()} authentication`);
-      return client;
-    } catch (error) {
-      log.error(`Failed to create Onshape client: ${error.message}`, error);
-      return null;
-    }
-  };
-
-  // Is authenticated middleware
-  global.isAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated() || (req.user && req.user.method === 'apikey')) {
-      return next();
-    }
-
-    // For API requests, return a 401 Unauthorized response
-    if (req.path.startsWith('/api/')) {
-      return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
-    }
-
-    // For non-API requests, redirect to the login page
-    res.redirect('/oauth/login');
-  };
 
   // Configure OAuth function
   function configureOAuth(authManager) {
-    // Set up OAuth routes
     app.get('/oauth/login', (req, res) => {
       const authUrl = `${config.onshape.authorizationURL}?client_id=${config.onshape.clientId}&redirect_uri=${config.onshape.callbackUrl}&response_type=code&scope=OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete`;
       res.redirect(authUrl);
@@ -154,5 +136,10 @@ module.exports = function(app) {
     });
   }
 
-  return { configureOAuth };
+  // Return middleware functions
+  return {
+    configureOAuth,
+    isAuthenticated,
+    createClientFromRequest
+  };
 };
