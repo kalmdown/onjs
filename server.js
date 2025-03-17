@@ -299,16 +299,14 @@ app.use((req, res, next) => {
 // Error handling middleware
 app.use(errorMiddleware);
 
-// Start server
-const port = config.port;
-app.listen(port, () => {
-  log.info(`Server running at http://localhost:${port}`);
-  
-  // Log auth state
-  const authMethod = authManager.getMethod();
-  if (authMethod) {
-    log.info(`Authentication method: ${authMethod}`);
-  } else {
-    log.warn('No authentication method configured');
-  }
+// Find the server initialization code section
+
+// Before starting the server, ensure port is properly accessed
+const serverPort = config?.server?.port || parseInt(process.env.PORT, 10) || 3000;
+app.set('port', serverPort);
+
+// When starting the server
+app.listen(serverPort, () => {
+  logger.info(`[Server] Server running at http://localhost:${serverPort}`);
+  // Other startup logs...
 });
