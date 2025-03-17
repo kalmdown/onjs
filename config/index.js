@@ -1,7 +1,15 @@
-// config/index.js
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+const logger = require('../src/utils/logger');
+const { loadEnv, initialized } = require('../src/utils/load-env');
+
+const log = logger.scope('Config');
+
+if (!initialized) {
+  log.error('Environment not properly initialized');
+  process.exit(1);
+}
 
 // Check for .env file
 const envPath = path.resolve(process.cwd(), '.env');
@@ -42,69 +50,43 @@ if (process.env.NODE_ENV === 'production') {
   env('SESSION_SECRET', true);
 }
 
-// Export configuration object that purely reflects environment variables
-module.exports = {
-  // Allow dynamic configuration access via environment variables
-  env,
-  
-  // Basic app configuration
-  port: parseInt(env('PORT') || '3000'),
-  
-  // Onshape API configuration
+/**
+ * @typedef {Object} Config
+ * @property {Object} onshape - Onshape configuration
+ * @property {Object} session - Session configuration
+ * @property {Object} server - Server configuration
+ */
+
+/** @type {Config} */
+const config = {
   onshape: {
-    baseUrl: env('BASE_URL') || 'https://cad.onshape.com/',
-    apiUrl: env('API_URL') || 'https://cad.onshape.com/api/v10',
-    oauthUrl: env('OAUTH_URL') || 'https://oauth.onshape.com',
-    clientId: env('OAUTH_CLIENT_ID'),
-    clientSecret: env('OAUTH_CLIENT_SECRET'),
-    callbackUrl: env('OAUTH_CALLBACK_URL'),
-    scope: env('ONSHAPE_OAUTH_SCOPE'),
-    
-    // OAuth endpoints
-    get authorizationURL() {
-      return `${this.oauthUrl}/oauth/authorize`;
+    baseUrl: process.env.ONSHAPE_BASE_URL,
+    apiUrl: process.env.ONSHAPE_API_URL || process.env.ONSHAPE_BASE_URL,
+    authMethod: process.env.ONSHAPE_AUTH_METHOD?.toLowerCase(),
+    oauth: {
+      url: process.env.OAUTH_URL,
+      callbackUrl: process.env.OAUTH_CALLBACK_URL,
+      scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'
     },
-    get tokenURL() {
-      return `${this.oauthUrl}/oauth/token`;
-    },
-    
-    // Camel case variants for compatibility
-    get authorizationUrl() {
-      return this.authorizationURL;
-    },
-    get tokenUrl() {
-      return this.tokenURL;
+    apiKey: {
+      accessKey: process.env.ONSHAPE_ACCESS_KEY,
+      secretKey: process.env.ONSHAPE_SECRET_KEY
     }
   },
-  
-  // Top-level OAuth URLs for middleware compatibility
-  get authorizationURL() {
-    return this.onshape.authorizationURL;
-  },
-  get tokenURL() {
-    return this.onshape.tokenURL;
-  },
-  
-  // Session configuration
   session: {
-    name: env('SESSION_NAME') || 'onshape-session',
-    secret: env('SESSION_SECRET') || (process.env.NODE_ENV !== 'production' ? 'dev-secret-do-not-use-in-production' : undefined),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: (env('SESSION_SECURE') === 'true') || process.env.NODE_ENV === 'production',
-      maxAge: parseInt(env('SESSION_MAX_AGE') || (24 * 60 * 60 * 1000).toString()),
-    },
+    name: process.env.SESSION_NAME || 'onshape-session',
+    secret: process.env.SESSION_SECRET,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 24 * 60 * 60 * 1000
   },
-  
-  // Webhook configuration
-  webhook: {
-    callbackRootUrl: env('WEBHOOK_CALLBACK_ROOT_URL'),
+  server: {
+    port: parseInt(process.env.PORT) || 3000,
+    env: process.env.NODE_ENV || 'development',
+    webhookCallbackRoot: process.env.WEBHOOK_CALLBACK_ROOT_URL
   },
-  
-  // Auth configuration
-  auth: {
-    defaultMethod: authMethod,
-    unitSystem: env('ONSHAPE_UNIT_SYSTEM') || 'inch',
+  logging: {
+    enabled: process.env.LOG_SERVER !== 'false'
   }
 };
+
+module.exports = config;

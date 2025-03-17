@@ -9,62 +9,60 @@ let _authMethod = 'none'; // Add this line near the other state variables
  * Initialize authentication
  * @returns {Promise<boolean>} Promise resolving to whether authentication was successful
  */
-function init() {
+async function init() {
   console.log("Initializing auth module");
   
-  // Check URL parameters for tokens
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
-  const refreshToken = urlParams.get('refresh');
-  const error = urlParams.get('error');
-  const apiKeyAuth = urlParams.get('auth') === 'apikey';
-  
-  console.log("Checking authentication state");
-  
-  // Handle authentication errors
-  if (error) {
-    console.error("Authentication error:", error);
-    handleAuthError(error);
-    return Promise.resolve(false);
-  }
-  
-  // Check for API key auth success response from redirect
-  if (apiKeyAuth) {
-    console.log("API key authentication detected");
-    _isAuthenticated = true;
-    _authMethod = 'apikey'; // Store the auth method
+  try {
+    // Check URL parameters for tokens and auth type
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const refreshToken = urlParams.get('refresh');
+    const error = urlParams.get('error');
+    const apiKeyAuth = urlParams.get('auth') === 'apikey';
     
-    // Update UI to show API key auth state
-    updateAuthUI(true, 'apikey');
-    return Promise.resolve(true);
-  }
-  
-  // Check for tokens in URL
-  if (token) {
-    console.log("Token received in URL params");
-    _authToken = token;
-    _refreshToken = refreshToken || null;
-    _isAuthenticated = true;
-    _authMethod = 'oauth'; // Store the auth method
+    console.log("Checking authentication state");
     
-    // Save tokens
-    try {
-      localStorage.setItem('authToken', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-    } catch (e) {
-      console.warn("Could not save token to localStorage:", e);
+    // Handle authentication errors
+    if (error) {
+      console.error("Authentication error:", error);
+      handleAuthError(error);
+      return false;
     }
     
-    // Clean URL by removing query parameters without refreshing page
-    window.history.replaceState({}, document.title, window.location.pathname);
+    // Check for API key auth success response from redirect
+    if (apiKeyAuth) {
+      console.log("API key authentication detected");
+      _isAuthenticated = true;
+      _authMethod = 'apikey';
+      updateAuthUI(true, 'apikey');
+      return true;
+    }
     
-    // Update UI
-    updateAuthUI(true, 'oauth');
-    return Promise.resolve(true);
-  } else {
-    // Check for stored token in localStorage
+    // Handle OAuth tokens in URL
+    if (token) {
+      console.log("Token received in URL params");
+      _authToken = token;
+      _refreshToken = refreshToken || null;
+      _isAuthenticated = true;
+      _authMethod = 'oauth';
+      
+      // Save tokens to localStorage
+      try {
+        localStorage.setItem('authToken', token);
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
+      } catch (e) {
+        console.warn("Could not save token to localStorage:", e);
+      }
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      updateAuthUI(true, 'oauth');
+      return true;
+    }
+    
+    // Check for stored OAuth tokens
     const storedToken = localStorage.getItem('authToken');
     const storedRefresh = localStorage.getItem('refreshToken');
     
@@ -73,36 +71,32 @@ function init() {
       _authToken = storedToken;
       _refreshToken = storedRefresh;
       _isAuthenticated = true;
-      _authMethod = 'oauth'; // Store the auth method
-      
-      // Update UI
+      _authMethod = 'oauth';
       updateAuthUI(true, 'oauth');
-      return Promise.resolve(true);
+      return true;
     }
+    
+    // If no tokens found, check server auth method
+    const method = await checkServerAuthMethod();
+    if (method === 'apikey') {
+      console.log("Server is using API key authentication");
+      _isAuthenticated = true;
+      _authMethod = 'apikey';
+      updateAuthUI(true, 'apikey');
+      return true;
+    }
+    
+    // No valid authentication found
+    console.warn("No valid authentication found");
+    updateAuthUI(false);
+    return false;
+    
+  } catch (error) {
+    console.error("Error during auth initialization:", error);
+    handleAuthError(error.message);
+    updateAuthUI(false);
+    return false;
   }
-  
-  // If we reach here, check the server's auth method
-  // This allows us to handle API key authentication scenarios
-  return checkServerAuthMethod()
-    .then(method => {
-      if (method === 'apikey') {
-        console.log("Server is using API key authentication");
-        _isAuthenticated = true;
-        _authMethod = 'apikey'; // Store the auth method
-        updateAuthUI(true, 'apikey');
-        return true;
-      } else {
-        // If we reach here, not authenticated
-        console.warn("No valid authentication found");
-        updateAuthUI(false);
-        return false;
-      }
-    })
-    .catch(err => {
-      console.error("Error checking server auth method:", err);
-      updateAuthUI(false);
-      return false;
-    });
 }
 
 /**
@@ -111,10 +105,21 @@ function init() {
  */
 function checkServerAuthMethod() {
   return fetch('/api/auth/method')
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then(data => {
       console.log("Server auth method:", data.method);
+      console.log("Auth configuration:", data.isConfigured ? "Configured" : "Not configured");
       return data.method;
+    })
+    .catch(error => {
+      console.error("Error checking server auth method:", error);
+      // Return 'none' as the default if the request fails
+      return 'none';
     });
 }
 
