@@ -1,39 +1,79 @@
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
-const logger = require('../src/utils/logger');
-const { loadEnv, initialized } = require('../src/utils/load-env');
+
+// Use try-catch to handle potential import errors
+let logger;
+let loadEnv;
+let initialized = false;
+
+try {
+  logger = require('../src/utils/logger');
+} catch (error) {
+  console.error('Failed to import logger, using console as fallback:', error.message);
+  // Create console fallback
+  logger = {
+    scope: () => ({
+      error: console.error,
+      warn: console.warn,
+      info: console.info,
+      debug: console.debug
+    })
+  };
+}
+
+try {
+  const loadEnvModule = require('../src/utils/load-env');
+  loadEnv = loadEnvModule.loadEnv;
+  initialized = loadEnvModule.initialized;
+} catch (error) {
+  console.error('Failed to import load-env module:', error.message);
+}
 
 const log = logger.scope('Config');
 
 if (!initialized) {
-  log.error('Environment not properly initialized');
-  process.exit(1);
+  log.warn('Environment not initialized via load-env, using direct validation');
 }
 
 // Check for .env file
 const envPath = path.resolve(process.cwd(), '.env');
 if (!fs.existsSync(envPath)) {
-  console.warn('\x1b[33m%s\x1b[0m', 'Warning: .env file not found at: ' + envPath);
-  console.warn('\x1b[33m%s\x1b[0m', 'Please create an .env file with required configuration.');
-  console.warn('\x1b[33m%s\x1b[0m', 'See .env.example for required variables.');
+  log.warn('Warning: .env file not found at: ' + envPath);
+  log.warn('Please create an .env file with required configuration.');
+  log.warn('See .env.example for required variables.');
 }
 
 // Define environment variables with validation
-function env(key, required = false) {
+function env(key, required = false, defaultVal) {
   const value = process.env[key];
   
-  if (required && value === undefined) {
-    const errorMsg = `Required environment variable ${key} is missing`;
-    console.error('\x1b[31m%s\x1b[0m', errorMsg);
+  if (value === undefined) {
+    if (required) {
+      const errorMsg = `Required environment variable ${key} is missing`;
+      log.error(errorMsg);
+      
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(errorMsg);
+      }
+    }
     
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(errorMsg);
+    if (defaultVal !== undefined) {
+      // Set the environment variable to the default value
+      // so it's available for other parts of the application
+      process.env[key] = defaultVal;
+      return defaultVal;
     }
   }
   
   return value;
 }
+
+// Set defaults for non-critical values
+env('SESSION_NAME', false, 'onshape-session');
+env('NODE_ENV', false, 'development');
+env('PORT', false, '3000');
+env('ONSHAPE_OAUTH_SCOPE', false, 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete');
 
 // Check auth-specific required variables based on selected auth method
 const authMethod = (env('ONSHAPE_AUTH_METHOD') || 'oauth').toLowerCase();
@@ -66,7 +106,7 @@ const config = {
     oauth: {
       url: process.env.OAUTH_URL,
       callbackUrl: process.env.OAUTH_CALLBACK_URL,
-      scope: 'OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete'
+      scope: process.env.ONSHAPE_OAUTH_SCOPE
     },
     apiKey: {
       accessKey: process.env.ONSHAPE_ACCESS_KEY,
@@ -74,14 +114,14 @@ const config = {
     }
   },
   session: {
-    name: process.env.SESSION_NAME || 'onshape-session',
+    name: process.env.SESSION_NAME,
     secret: process.env.SESSION_SECRET,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 24 * 60 * 60 * 1000
+    maxAge: parseInt(process.env.SESSION_MAX_AGE || '86400000')
   },
   server: {
-    port: parseInt(process.env.PORT) || 3000,
-    env: process.env.NODE_ENV || 'development',
+    port: parseInt(process.env.PORT),
+    env: process.env.NODE_ENV,
     webhookCallbackRoot: process.env.WEBHOOK_CALLBACK_ROOT_URL
   },
   logging: {

@@ -12,6 +12,7 @@ const log = logger.scope('AuthMiddleware');
  */
 const createClientFromRequest = (req) => {
     const authManager = req.app.get('authManager');
+    const config = req.app.get('config');
     
     if (!authManager) {
         log.error('No auth manager found in app context');
@@ -19,7 +20,20 @@ const createClientFromRequest = (req) => {
     }
 
     try {
+        // Get baseUrl from config or auth manager
+        let baseUrl = null;
+        if (config?.onshape?.baseUrl) {
+            baseUrl = config.onshape.baseUrl;
+        } else if (authManager.baseUrl) {
+            baseUrl = authManager.baseUrl;
+        }
+        
+        if (!baseUrl) {
+            throw new Error('Base URL is required');
+        }
+        
         const clientOptions = {
+            baseUrl,
             authManager
         };
         
