@@ -1,11 +1,10 @@
-// src/routes/authRoutes.js - Create a fixed version with oauthRedirect support
+// src/routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
-const { passport, isAuthenticated, createClientFromRequest } = require('../middleware/authMiddleware');
+const passport = require('passport');
 const logger = require('../utils/logger');
-const config = require('../../config'); // Add this line
+const config = require('../../config');
 const { createFallbackAuthRoutes } = require('../middleware/fix-auth');
-const { OnshapeClient } = require('../api/client');
 
 // Create a scoped logger
 const log = logger.scope('AuthRoutes');
@@ -33,84 +32,32 @@ router.get("/login", function(req, res, next) {
     authUrl: config.onshape.authorizationURL
   });
   
-  // Directly build and log the auth URL to verify it's correct
+  // Directly build the authorization URL and redirect the user
   const authUrl = `${config.onshape.authorizationURL}?client_id=${config.onshape.clientId}&response_type=code&redirect_uri=${encodeURIComponent(config.onshape.callbackUrl)}`;
-  log.info('Complete auth URL would be: ' + authUrl);
+  log.info('Redirecting to auth URL: ' + authUrl);
   
-  next();
+  return res.redirect(authUrl);
 }, passport.authenticate("oauth2"));
 
 /**
- * @route GET /oauthRedirect - Direct callback from Onshape
- * @description OAuth callback endpoint that matches what Onshape is using
- * @access Public
- */
-router.get('/oauthRedirect', function(req, res, next) {
-  log.info('OAuth callback received at /oauthRedirect path');
-  log.info('Request URL: ' + req.originalUrl);
-  log.info('Auth code present: ' + (req.query.code ? 'YES' : 'NO'));
-  log.info('State param: ' + req.query.state);
-  log.info('Error param: ' + (req.query.error || 'none'));
-  
-  // Store these in variables to access them in case authentication fails
-  req.oauthCode = req.query.code;
-  req.oauthState = req.query.state;
-  
-  next();
-}, passport.authenticate('oauth2', { 
-  failureRedirect: '/?error=auth_failed',
-  session: true
-}), function(req, res) {
-  log.info('OAuth authentication successful');
-  log.info('User token available: ' + (req.user?.accessToken ? 'YES' : 'NO'));
-  
-  if (req.user && req.user.accessToken) {
-    log.info('Token length: ' + req.user.accessToken.length);
-    log.info('Refresh token available: ' + (req.user.refreshToken ? 'YES' : 'NO'));
-    
-    // Store tokens in session for non-passport requests
-    req.session.oauthToken = req.user.accessToken;
-    req.session.refreshToken = req.user.refreshToken || null;
-    
-    // Update the auth manager with tokens
-    const authManager = req.app.get('authManager');
-    if (authManager) {
-      authManager.accessToken = req.user.accessToken;
-      authManager.refreshToken = req.user.refreshToken || null;
-      authManager.setMethod('oauth');
-      log.info('Updated global auth manager with OAuth tokens');
-    } else {
-      log.warn('No auth manager found in app context');
-    }
-    
-    // Include tokens in URL for client-side
-    const redirectUrl = `/?token=${encodeURIComponent(req.user.accessToken)}&refresh=${encodeURIComponent(req.user.refreshToken || '')}`;
-    log.info('Redirecting to:', redirectUrl);
-    res.redirect(redirectUrl);
-  } else {
-    log.error('Missing tokens in user object after OAuth authentication');
-    res.redirect('/?error=missing_tokens');
-  }
-});
-
-/**
  * @route GET /oauth/callback
- * @description Original OAuth callback endpoint (keeping for backward compatibility)
+ * @description Handle OAuth callback
  * @access Public
  */
 router.get('/callback', function(req, res, next) {
   log.info('OAuth callback received at /oauth/callback path');
-  log.info('Full URL:', req.originalUrl);
   log.info('Code present:', !!req.query.code);
+  log.info('State present:', !!req.query.state);
+  
+  // Store authentication code for use in the next middleware
+  req.authCode = req.query.code;
   
   next();
 }, passport.authenticate('oauth2', { 
   failureRedirect: '/?error=auth_failed',
   session: true
-}), function(req, res) {
+}), async function(req, res) {
   log.info('OAuth authentication successful');
-  log.info('User object:', req.user ? 'Present' : 'Missing');
-  log.info('Access token:', req.user?.accessToken ? 'Present (length: ' + req.user.accessToken.length + ')' : 'Missing');
   
   if (req.user && req.user.accessToken) {
     log.debug('Token length:', req.user.accessToken.length);
@@ -135,9 +82,118 @@ router.get('/callback', function(req, res, next) {
     const redirectUrl = `/?token=${encodeURIComponent(req.user.accessToken)}&refresh=${encodeURIComponent(req.user.refreshToken || '')}`;
     log.info('Redirecting to:', redirectUrl);
     res.redirect(redirectUrl);
+  } else if (req.authCode) {
+    // If we don't have user tokens but we have the auth code, try to exchange it manually
+    log.info('No user tokens available, attempting to exchange code manually');
+    try {
+      const authManager = req.app.get('authManager');
+      if (!authManager) {
+        throw new Error('No auth manager available');
+      }
+      
+      const tokenResponse = await authManager.exchangeCodeForToken(req.authCode);
+      
+      if (tokenResponse && tokenResponse.accessToken) {
+        log.info('Successfully exchanged code for token manually');
+        
+        // Store in session
+        req.session.oauthToken = tokenResponse.accessToken;
+        req.session.refreshToken = tokenResponse.refreshToken || null;
+        
+        // Redirect with token
+        const redirectUrl = `/?token=${encodeURIComponent(tokenResponse.accessToken)}&refresh=${encodeURIComponent(tokenResponse.refreshToken || '')}`;
+        return res.redirect(redirectUrl);
+      } else {
+        log.error('Failed to exchange code for token manually');
+        return res.redirect('/?error=token_exchange_failed');
+      }
+    } catch (error) {
+      log.error('Error exchanging code for token:', error.message);
+      return res.redirect('/?error=token_exchange_error');
+    }
   } else {
     log.error('Missing tokens in user object after OAuth authentication');
     res.redirect('/?error=missing_tokens');
+  }
+});
+
+/**
+ * @route GET /oauthRedirect - Direct callback from Onshape
+ * @description OAuth callback endpoint that matches what Onshape is using
+ * @access Public
+ */
+router.get('/oauthRedirect', function(req, res, next) {
+  log.info('OAuth callback received at /oauthRedirect path');
+  log.info('Request URL: ' + req.originalUrl);
+  log.info('Auth code present: ' + (req.query.code ? 'YES' : 'NO'));
+  log.info('State param: ' + (req.query.state || 'none'));
+  log.info('Error param: ' + (req.query.error || 'none'));
+  
+  // If there's an error, redirect with error
+  if (req.query.error) {
+    return res.redirect(`/?error=${encodeURIComponent(req.query.error)}`);
+  }
+  
+  // If no code, redirect with error
+  if (!req.query.code) {
+    return res.redirect('/?error=no_code_provided');
+  }
+  
+  // Store code for use in passport authentication or manual exchange
+  req.authCode = req.query.code;
+  
+  next();
+}, passport.authenticate('oauth2', { 
+  failureRedirect: '/?error=auth_failed',
+  session: true
+}), async function(req, res) {
+  // Same logic as the /callback route
+  log.info('OAuth authentication successful through /oauthRedirect');
+  
+  if (req.user && req.user.accessToken) {
+    // Store tokens in session
+    req.session.oauthToken = req.user.accessToken;
+    req.session.refreshToken = req.user.refreshToken || null;
+    
+    // Update auth manager
+    const authManager = req.app.get('authManager');
+    if (authManager) {
+      authManager.accessToken = req.user.accessToken;
+      authManager.refreshToken = req.user.refreshToken || null;
+      authManager.setMethod('oauth');
+    }
+    
+    // Redirect with tokens
+    const redirectUrl = `/?token=${encodeURIComponent(req.user.accessToken)}&refresh=${encodeURIComponent(req.user.refreshToken || '')}`;
+    return res.redirect(redirectUrl);
+  } else if (req.authCode) {
+    // Try manual exchange
+    try {
+      const authManager = req.app.get('authManager');
+      if (!authManager) {
+        throw new Error('No auth manager available');
+      }
+      
+      const tokenResponse = await authManager.exchangeCodeForToken(req.authCode);
+      
+      if (tokenResponse && tokenResponse.accessToken) {
+        // Store in session
+        req.session.oauthToken = tokenResponse.accessToken;
+        req.session.refreshToken = tokenResponse.refreshToken || null;
+        
+        // Redirect with token
+        const redirectUrl = `/?token=${encodeURIComponent(tokenResponse.accessToken)}&refresh=${encodeURIComponent(tokenResponse.refreshToken || '')}`;
+        return res.redirect(redirectUrl);
+      } else {
+        return res.redirect('/?error=token_exchange_failed');
+      }
+    } catch (error) {
+      log.error('Error exchanging code for token:', error.message);
+      return res.redirect('/?error=token_exchange_error');
+    }
+  } else {
+    log.error('Missing tokens and auth code after OAuth authentication');
+    res.redirect('/?error=missing_auth_data');
   }
 });
 
@@ -181,59 +237,6 @@ router.get("/status", (req, res) => {
     authenticated,
     method: authMethod || 'none'
   });
-});
-
-/**
- * @route GET /oauth/test
- * @description Test the authentication with a simple API call
- * @access Private
- */
-router.get('/test', isAuthenticated, async (req, res, next) => {
-  try {
-    // Get auth manager
-    const authManager = req.app.get('authManager');
-    if (!authManager) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Auth manager not found in app context' 
-      });
-    }
-    
-    // Get auth method and create client
-    const authMethod = authManager.getMethod();
-    log.info(`Testing authentication with method: ${authMethod}`);
-    
-    // Create client using authMiddleware helper
-    const client = createClientFromRequest(req, OnshapeClient);
-    if (!client) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to create Onshape client' 
-      });
-    }
-    
-    // Test auth by making a simple API call
-    log.info('Making test API call to Onshape');
-    
-    // Try a simple API call to test authentication
-    const result = await client.api.get('/users/sessioninfo');
-    
-    // Log success and return detailed response
-    log.info('Authentication test successful');
-    return res.json({
-      success: true,
-      method: authMethod,
-      message: 'Authentication test successful',
-      response: result
-    });
-  } catch (error) {
-    log.error('Error during authentication test:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Authentication test failed',
-      details: error.message 
-    });
-  }
 });
 
 // Export either the OAuth routes or fallback routes
