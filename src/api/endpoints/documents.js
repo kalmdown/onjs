@@ -12,6 +12,9 @@ class DocumentsApi {
    * @param {OnshapeClient} client - The Onshape client instance
    */
   constructor(client) {
+    if (!client) {
+      throw new Error('Onshape client is required');
+    }
     this.client = client;
     this.logger = logger.scope('DocumentsApi');
   }
@@ -20,72 +23,23 @@ class DocumentsApi {
    * Get documents with optional filters
    */
   async getDocuments(options = {}) {
-    const queryParams = {
-      limit: options.limit || 20,
-      offset: options.offset || 0
-    };
-
-    if (options.sortColumn) {
-      queryParams.sortColumn = options.sortColumn;
-    }
-
-    if (options.sortOrder) {
-      queryParams.sortOrder = options.sortOrder;
-    }
-
     try {
-      // Make the API call to get documents
-      const response = await this.client.get('/documents', queryParams);
-
-      this.logger.debug(`Retrieved ${response.totalCount || 0} documents`);
-
-      // Handle different response formats
-      // Onshape API returns documents in an 'items' array property
-      if (response && response.items && Array.isArray(response.items)) {
-        // Standard format with items array
-        return response.items.map(doc => ({
-          id: doc.id,
-          name: doc.name,
-          owner: doc.owner?.name || 'Unknown',
-          createdAt: doc.createdAt,
-          modifiedAt: doc.modifiedAt,
-          thumbnail: doc.thumbnail,
-          public: !!doc.public,
-          documentType: doc.documentType || 0,
-          defaultWorkspace: doc.defaultWorkspace?.id,
-          permission: doc.permission,
-          description: doc.description || ''
-        }));
-      } else if (Array.isArray(response)) {
-        // Direct array format
-        return response.map(doc => ({
-          id: doc.id,
-          name: doc.name,
-          owner: doc.owner?.name || 'Unknown',
-          createdAt: doc.createdAt,
-          modifiedAt: doc.modifiedAt,
-          thumbnail: doc.thumbnail,
-          public: !!doc.public,
-          documentType: doc.documentType || 0,
-          defaultWorkspace: doc.defaultWorkspace?.id,
-          permission: doc.permission,
-          description: doc.description || ''
-        }));
-      } else {
-        // Unexpected format, return the raw response to prevent errors
-        this.logger.warn('Unexpected document response format', {
-          hasItems: !!response.items,
-          isArray: Array.isArray(response),
-          responseType: typeof response,
-          keys: response ? Object.keys(response) : []
-        });
-
-        // Return empty array as fallback
-        return [];
+      if (!this.client) {
+        throw new Error('Onshape client not initialized');
       }
+
+      const response = await this.client.get('/api/documents', {
+        params: {
+          limit: options.limit || 20,
+          offset: options.offset || 0,
+          sortColumn: options.sortColumn || 'modifiedAt',
+          sortOrder: options.sortOrder || 'desc'
+        }
+      });
+
+      return response.data;
     } catch (error) {
-      this.logger.error(`Failed to get documents: ${error.message}`);
-      throw error;
+      throw new Error(`Failed to get documents: ${error.message}`);
     }
   }
 

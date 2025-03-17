@@ -1,6 +1,13 @@
 // server.js - Main application entry point
 
-require('./load-env'); // Add this at the top
+// Load and validate environment variables first
+const loadEnv = require('./src/utils/load-env');
+
+// Validate environment before proceeding
+if (!loadEnv.initialized) {
+    console.error('Environment initialization failed');
+    process.exit(1);
+}
 
 const express = require('express');
 const path = require('path');
@@ -120,7 +127,7 @@ app.use(passport.session());
 
 // Remove any duplicate auth middleware initialization
 // Initialize authentication middleware once
-const auth = require('./src/middleware/authMiddleware')(app);
+const auth = authMiddleware(app);
 
 // Configure OAuth
 auth.configureOAuth(authManager);
