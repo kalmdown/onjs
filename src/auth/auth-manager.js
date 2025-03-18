@@ -171,7 +171,9 @@ _initMethod() {
       }
       
       return {
-        'Authorization': `Bearer ${this.accessToken}`
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       };
     } 
     else if (authMethod === 'apikey') {
@@ -201,18 +203,14 @@ _initMethod() {
         accessKeyEnd: '...' + this.accessKey.substring(this.accessKey.length - 4)
       });
       
-      // Generate the authorization headers using API key
-      const authHeaders = this.buildApiKeyHeaders(method, path, queryParams, bodyString);
+      // Use Basic Auth instead of HMAC signature (simpler and more reliable)
+      const credentials = Buffer.from(`${this.accessKey}:${this.secretKey}`).toString('base64');
       
-      // Log header info for debugging
-      this.logger.debug('Generated API key auth headers', {
-        hasDateHeader: !!authHeaders['Date'],
-        hasContentTypeHeader: !!authHeaders['Content-Type'],
-        hasAuthorizationHeader: !!authHeaders['Authorization'],
-        authHeaderLength: authHeaders['Authorization'] ? authHeaders['Authorization'].length : 0
-      });
-      
-      return authHeaders;
+      return {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
     } 
     else {
       throw new AuthenticationError(`Unknown auth method: ${authMethod}`);

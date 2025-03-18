@@ -28,7 +28,7 @@ class DocumentsApi {
         throw new Error('Onshape client not initialized');
       }
 
-      const response = await this.client.get('/api/documents', {
+      const response = await this.client.get('/documents', { // Remove '/api/' prefix
         params: {
           limit: options.limit || 20,
           offset: options.offset || 0,
@@ -52,7 +52,8 @@ class DocumentsApi {
     }
 
     try {
-      const document = await this.api.get(`/documents/${documentId}`);
+      // Change this.api.get to this.client.get for consistency
+      const document = await this.client.get(`/documents/${documentId}`);
       this.logger.debug(`Retrieved document: ${document.name} (${document.id})`);
       return new Document(document, this.client);
     } catch (error) {
@@ -77,7 +78,8 @@ class DocumentsApi {
     }
 
     try {
-      const document = await this.api.post('/documents', data);
+      // Change this.api.post to this.client.post
+      const document = await this.client.post('/documents', data);
       this.logger.info(`Created document: ${document.name} (${document.id})`);
       return new Document(document, this.client);
     } catch (error) {
@@ -96,7 +98,8 @@ class DocumentsApi {
 
     try {
       const queryParams = forever ? { forever: true } : {};
-      await this.api.delete(`/documents/${documentId}`, queryParams);
+      // Change this.api.delete to this.client.delete  
+      await this.client.delete(`/documents/${documentId}`, queryParams);
       this.logger.info(`Deleted document: ${documentId}`);
       return true;
     } catch (error) {
@@ -117,7 +120,8 @@ class DocumentsApi {
     }
 
     try {
-      const workspaces = await this.api.get(`/documents/${documentId}/workspaces`);
+      // Change this.api.get to this.client.get
+      const workspaces = await this.client.get(`/documents/${documentId}/workspaces`);
       this.logger.debug(`Retrieved ${workspaces.length} workspaces for document ${documentId}`);
       return workspaces;
     } catch (error) {
@@ -138,7 +142,8 @@ class DocumentsApi {
     }
 
     try {
-      const document = await this.api.post('/documents', {
+      // Change this.api.post to this.client.post
+      const document = await this.client.post('/documents', {
         name,
         isPublic: true // Required for Free accounts
       });
@@ -162,7 +167,8 @@ class DocumentsApi {
         limit: options.limit || 20
       };
 
-      const response = await this.api.get('/documents', queryParams);
+      // Change this.api.get to this.client.get
+      const response = await this.client.get('/documents', queryParams);
 
       this.logger.debug(`Found ${response.items?.length || 0} public documents for query: ${query}`);
 

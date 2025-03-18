@@ -20,25 +20,51 @@ const createClientFromRequest = (req) => {
     }
 
     try {
-        // Get baseUrl from config or auth manager
+        // Get baseUrl from various sources with detailed logging
         let baseUrl = null;
+        
+        // Try to get from config object
         if (config?.onshape?.baseUrl) {
             baseUrl = config.onshape.baseUrl;
-        } else if (authManager.baseUrl) {
+            log.debug(`Using baseUrl from config: ${baseUrl}`);
+        } 
+        // Try to get from auth manager
+        else if (authManager.baseUrl) {
             baseUrl = authManager.baseUrl;
+            log.debug(`Using baseUrl from authManager: ${baseUrl}`);
         }
         
-        if (!baseUrl) {
+        // Extended debug logging to diagnose the issue
+        log.debug('Auth configuration debug:', {
+            hasConfig: !!config,
+            hasOnshapeConfig: !!(config && config.onshape),
+            configKeys: config ? Object.keys(config) : [],
+            onshapeConfigKeys: config?.onshape ? Object.keys(config.onshape) : [],
+            configBaseUrl: config?.onshape?.baseUrl || 'undefined',
+            authManagerBaseUrl: authManager.baseUrl || 'undefined',
+            authManagerMethod: authManager.getMethod()
+        });
+        
+        // Validate baseUrl exists and is a non-empty string
+        if (!baseUrl || typeof baseUrl !== 'string' || baseUrl.trim() === '') {
+            log.error('Base URL not found in config or auth manager');
+            log.error('Verify that config.onshape.baseUrl is set correctly');
             throw new Error('Base URL is required');
         }
         
-        const clientOptions = {
-            baseUrl,
-            authManager
-        };
+        // Trim and normalize the base URL (remove trailing slash if present)
+        baseUrl = baseUrl.trim();
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
         
-        const client = new OnshapeClient(clientOptions);
-        log.debug(`Created Onshape client with ${authManager.getMethod()} authentication`);
+        // Create client with explicit options
+        const client = new OnshapeClient({
+            baseUrl: baseUrl,
+            authManager: authManager
+        });
+        
+        log.debug(`Successfully created Onshape client with ${authManager.getMethod()} authentication`);
         return client;
     } catch (error) {
         log.error(`Failed to create Onshape client: ${error.message}`);
@@ -160,10 +186,60 @@ module.exports = function(app) {
         });
     }
 
+    // Add this helper method to verify headers are being applied
+    async function testHeaders() {
+        const headers = this.getAuthHeaders('GET', '/documents');
+        log.debug('Generated auth headers:', {
+            hasAuth: !!headers.Authorization,
+            authType: headers.Authorization ? headers.Authorization.split(' ')[0] : 'none',
+            contentType: headers['Content-Type'],
+            accept: headers.Accept
+        });
+        return headers;
+    }
+
+    // Add debug endpoint to test client
+    app.get('/api/debug/client-test', async (req, res) => {
+        try {
+            const client = createClientFromRequest(req);
+            if (!client) {
+                return res.status(500).json({ error: 'Failed to create client' });
+            }
+            
+            // Test headers
+            const authManager = req.app.get('authManager');
+            const headers = authManager.getAuthHeaders('GET', '/documents');
+            
+            // Test client methods
+            const hasGetMethod = typeof client.get === 'function';
+            const hasPostMethod = typeof client.post === 'function';
+            
+            res.json({
+                baseUrl: client.baseUrl,
+                authMethod: authManager.getMethod(),
+                headers: {
+                    hasAuth: !!headers.Authorization,
+                    authType: headers.Authorization ? headers.Authorization.split(' ')[0] : 'none',
+                    contentType: headers['Content-Type']
+                },
+                clientMethods: {
+                    hasGet: hasGetMethod,
+                    hasPost: hasPostMethod
+                }
+            });
+        } catch (error) {
+            res.status(500).json({
+                error: error.message,
+                stack: error.stack
+            });
+        }
+    });
+
     // Return middleware functions
     return {
         configureOAuth,
         isAuthenticated,
-        createClientFromRequest
+        createClientFromRequest,
+        testHeaders
     };
 };
