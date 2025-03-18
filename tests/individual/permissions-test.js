@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const path = require('path');
 
 // Load environment variables from .env file
-const envPath = path.resolve(__dirname, '../.env');
+const envPath = path.resolve(__dirname, '../../.env');
 console.log(`Attempting to load environment variables from: ${envPath}`);
 
 const result = dotenv.config({ path: envPath });
@@ -32,10 +32,9 @@ if (!accessKey || !secretKey) {
 }
 
 /**
- * Generate authentication headers
- * Using Basic Auth which has proven more reliable for API access
+ * Generate Basic Auth headers for API requests
  */
-function generateAuthHeaders(method, path, queryParams = {}) {
+function generateBasicAuthHeaders() {
   // Create base64 encoded credentials for Basic Auth
   const credentials = Buffer.from(`${accessKey}:${secretKey}`).toString('base64');
   
@@ -148,7 +147,7 @@ async function makeRequest(method, path, data = null, queryParams = {}) {
   if (data) console.log('Body:', JSON.stringify(data));
 
   try {
-    const headers = generateAuthHeaders(method, path, queryParams);
+    const headers = generateBasicAuthHeaders();
     console.log('Auth headers generated');
 
     const url = `${baseUrl}${path}`;
@@ -358,7 +357,7 @@ async function checkPermissions() {
   }
   
   // Update recommended format to match Onshape's passport format
-  console.log('\nRecommended scope format for Onshape: OAuth2ReadPII OAuth2Read OAuth2Write');
+  console.log('\nRecommended scope format for Onshape: OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete');
   console.log('=============================================');
 }
 

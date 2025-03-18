@@ -132,6 +132,18 @@ const auth = authMiddleware(app);
 // Configure OAuth
 auth.configureOAuth(authManager);
 
+// Add before your existing routes
+app.use((req, res, next) => {
+  if (req.path.includes('/api/documents')) {
+    log.debug('API documents request headers:', {
+      auth: req.headers.authorization ? req.headers.authorization.substring(0, 20) + '...' : 'missing',
+      contentType: req.headers['content-type'],
+      accept: req.headers.accept
+    });
+  }
+  next();
+});
+
 // Mount routes with auth middleware
 app.use('/api/auth', require('./src/routes/apiAuthRoutes')(app, auth));
 app.use('/api/documents', require('./src/routes/documents')(app, auth));
