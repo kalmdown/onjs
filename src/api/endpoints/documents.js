@@ -17,6 +17,13 @@ class DocumentsApi {
     }
     this.client = client;
     this.logger = logger.scope('DocumentsApi');
+    
+    // Log client capabilities for debugging
+    this.logger.debug('DocumentsApi initialized', {
+      clientType: this.client.constructor.name,
+      hasGetMethod: typeof this.client.get === 'function',
+      hasPostMethod: typeof this.client.post === 'function'
+    });
   }
 
   /**
@@ -24,11 +31,22 @@ class DocumentsApi {
    */
   async getDocuments(options = {}) {
     try {
+      this.logger.debug('Fetching documents with options:', options);
+      
       if (!this.client) {
         throw new Error('Onshape client not initialized');
       }
-
-      const response = await this.client.get('/documents', { // Remove '/api/' prefix
+      
+      if (typeof this.client.get !== 'function') {
+        this.logger.error('Client does not have get method', {
+          clientType: this.client.constructor.name,
+          clientMethods: Object.keys(this.client).filter(k => typeof this.client[k] === 'function')
+        });
+        throw new Error('Client does not have get method');
+      }
+      
+      // Use the correct API path (without /api prefix)
+      const response = await this.client.get('/documents', { 
         params: {
           limit: options.limit || 20,
           offset: options.offset || 0,
@@ -36,9 +54,11 @@ class DocumentsApi {
           sortOrder: options.sortOrder || 'desc'
         }
       });
-
-      return response.data;
+      
+      this.logger.debug(`Retrieved ${response.items ? response.items.length : 0} documents`);
+      return response;
     } catch (error) {
+      this.logger.error(`Failed to get documents: ${error.message}`, error);
       throw new Error(`Failed to get documents: ${error.message}`);
     }
   }
@@ -52,7 +72,7 @@ class DocumentsApi {
     }
 
     try {
-      // Change this.api.get to this.client.get for consistency
+      // Use this.client (not this.api)
       const document = await this.client.get(`/documents/${documentId}`);
       this.logger.debug(`Retrieved document: ${document.name} (${document.id})`);
       return new Document(document, this.client);
@@ -69,21 +89,26 @@ class DocumentsApi {
    * Create a new document
    */
   async createDocument(options) {
-    const data = typeof options === 'string' 
-      ? { name: options }
-      : options;
-
-    if (!data.name) {
+    // Validation
+    if (!options.name) {
       throw new ValidationError('Document name is required');
     }
 
+    // Prepare request data
+    const data = {
+      name: options.name,
+      description: options.description || '',
+      isPublic: options.isPublic !== undefined ? options.isPublic : false,
+      ownerType: options.ownerType !== undefined ? options.ownerType : 0 // Default to personal (0)
+    };
+
     try {
-      // Change this.api.post to this.client.post
+      // Use this.client (not this.api)
       const document = await this.client.post('/documents', data);
-      this.logger.info(`Created document: ${document.name} (${document.id})`);
+      this.logger.debug(`Created document: ${document.name} (${document.id})`);
       return new Document(document, this.client);
     } catch (error) {
-      this.logger.error('Failed to create document:', error.message);
+      this.logger.error(`Failed to create document: ${error.message}`, error);
       throw error;
     }
   }
@@ -96,16 +121,17 @@ class DocumentsApi {
       throw new ValidationError('Document ID is required');
     }
 
+    const queryParams = {};
+    if (forever) {
+      queryParams.forever = true;
+    }
+
     try {
-      const queryParams = forever ? { forever: true } : {};
-      // Change this.api.delete to this.client.delete  
-      await this.client.delete(`/documents/${documentId}`, queryParams);
-      this.logger.info(`Deleted document: ${documentId}`);
+      // Use this.client (not this.api)
+      await this.client.delete(`/documents/${documentId}`, { params: queryParams });
+      this.logger.debug(`Deleted document: ${documentId} (forever: ${forever})`);
       return true;
     } catch (error) {
-      if (error.statusCode === 404) {
-        throw new NotFoundError('Document', documentId);
-      }
       this.logger.error(`Failed to delete document ${documentId}:`, error.message);
       throw error;
     }
@@ -120,14 +146,11 @@ class DocumentsApi {
     }
 
     try {
-      // Change this.api.get to this.client.get
+      // Use this.client (not this.api)
       const workspaces = await this.client.get(`/documents/${documentId}/workspaces`);
       this.logger.debug(`Retrieved ${workspaces.length} workspaces for document ${documentId}`);
       return workspaces;
     } catch (error) {
-      if (error.statusCode === 404) {
-        throw new NotFoundError('Document', documentId);
-      }
       this.logger.error(`Failed to get workspaces for document ${documentId}:`, error.message);
       throw error;
     }
@@ -142,16 +165,17 @@ class DocumentsApi {
     }
 
     try {
-      // Change this.api.post to this.client.post
+      // Use this.client (not this.api)
       const document = await this.client.post('/documents', {
         name,
-        isPublic: true // Required for Free accounts
+        description: 'Created by onJS',
+        isPublic: true,
+        ownerType: 0  // Personal (works with free accounts)
       });
-
-      this.logger.info(`Created public document: ${document.name} (${document.id})`);
+      this.logger.debug(`Created public document: ${document.name} (${document.id})`);
       return new Document(document, this.client);
     } catch (error) {
-      this.logger.error('Failed to create public document:', error.message);
+      this.logger.error(`Failed to create public document: ${error.message}`, error);
       throw error;
     }
   }

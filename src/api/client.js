@@ -126,19 +126,18 @@ class OnshapeClient {
         this.logger.debug(`Adjusted API path to include version: ${apiPath}`);
       }
       
-      // Format request body
-      let bodyString = '';
-      if (data !== null && data !== undefined) {
-        bodyString = typeof data === 'string' ? data : JSON.stringify(data);
-      }
-      
       // Get authentication headers
-      const headers = this.authManager.getAuthHeaders(
-        method,
-        apiPath,
-        queryParams,
-        bodyString
-      );
+      let headers = {};
+      try {
+        headers = this.authManager.getAuthHeaders(
+          method,
+          apiPath,
+          queryParams
+        );
+      } catch (authError) {
+        this.logger.error(`Auth header generation failed: ${authError.message}`);
+        throw new ApiError(`Authentication header generation failed: ${authError.message}`, 401);
+      }
       
       // Add standard headers if not already present
       const requestHeaders = {
@@ -148,47 +147,35 @@ class OnshapeClient {
       };
       
       // Debug logging
-      if (this.debug) {
-        this.logger.debug(`${method} ${apiPath}`, {
-          queryParams: Object.keys(queryParams),
-          headers: Object.keys(requestHeaders),
-          bodySize: bodyString ? bodyString.length : 0
-        });
-      } else {
-        this.logger.debug(`${method} ${apiPath}`);
-      }
+      this.logger.debug(`${method} ${apiPath}`, {
+        baseUrl: this.baseUrl,
+        fullUrl: `${this.baseUrl}${apiPath}`,
+        authType: headers.Authorization ? headers.Authorization.split(' ')[0] : 'none'
+      });
       
       // Make the request
       const response = await axios({
         method,
         url: `${this.baseUrl}${apiPath}`,
         headers: requestHeaders,
-        data: data,
+        data,
         params: queryParams
       });
       
       return response.data;
     } catch (error) {
-      // Enhanced error handling
-      let errorMessage = `API request failed: ${error.message}`;
-      let statusCode = 500;
-      let errorData = null;
+      this.logger.error(`API request failed: ${error.message}`);
       
+      // Enhanced error info
       if (error.response) {
-        statusCode = error.response.status;
-        errorData = error.response.data;
-        
-        this.logger.error(`API Error ${statusCode} for ${method} ${path}`, {
-          statusText: error.response.statusText,
-          data: errorData
-        });
-      } else if (error.request) {
-        this.logger.error(`API Request Error: No response received for ${method} ${path}`);
-      } else {
-        this.logger.error(`API Error during request setup: ${error.message}`);
+        this.logger.error(`Status: ${error.response.status}, Message: ${error.response.data?.message || 'Unknown'}`);
       }
       
-      throw new ApiError(errorMessage, statusCode, error, errorData);
+      throw new ApiError(
+        error.message || 'API request failed',
+        error.response?.status || 500,
+        error
+      );
     }
   }
   
