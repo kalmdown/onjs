@@ -17,43 +17,38 @@ module.exports = function(app, auth) {
    * @access Private
    */
   router.get('/', isAuthenticated, async (req, res, next) => {
+    const log = logger.scope('DocumentRoutes');
+    const options = {
+      limit: parseInt(req.query.limit) || 20,
+      offset: parseInt(req.query.offset) || 0,
+      sortColumn: req.query.sortColumn || 'modifiedAt',
+      sortOrder: req.query.sortOrder || 'desc'
+    };
+    
+    log.info(`Fetching documents: limit=${options.limit}, offset=${options.offset}, sort=${options.sortColumn}:${options.sortOrder}`);
+    
     try {
-      log.info('Documents route: Authentication check passed');
-
-      // Initialize DocumentsApi with the authenticated client
-      const documentsApi = new DocumentsApi(req.onshapeClient);
-
-      // Get documents with pagination
-      const limit = parseInt(req.query.limit) || 20;
-      const offset = parseInt(req.query.offset) || 0;
-      const sortColumn = req.query.sortColumn || 'modifiedAt';
-      const sortOrder = req.query.sortOrder || 'desc';
-
-      log.info(`Fetching documents: limit=${limit}, offset=${offset}, sort=${sortColumn}:${sortOrder}`);
-
-      // Get documents
-      const documentsResponse = await documentsApi.getDocuments({
-        limit,
-        offset,
-        sortColumn,
-        sortOrder
-      });
-
-      // Handle empty or null response
-      if (!documentsResponse) {
-        log.warn('No documents returned from API');
-        return res.json([]);
+      if (!req.onshapeClient) {
+        log.error('No Onshape client available');
+        return res.status(500).json({ error: 'API client not available' });
       }
-
-      // Normalize the response
-      const documents = Array.isArray(documentsResponse) 
-        ? documentsResponse 
-        : (documentsResponse.items || []);
-
-      return res.json(documents);
-
+      
+      // Debug client capabilities
+      log.debug('Client info:', {
+        type: req.onshapeClient.constructor.name,
+        hasGetMethod: typeof req.onshapeClient.get === 'function',
+        methods: Object.keys(req.onshapeClient).filter(k => typeof req.onshapeClient[k] === 'function')
+      });
+      
+      // Initialize API endpoint
+      const documentsApi = new DocumentsApi(req.onshapeClient);
+      
+      const documents = await documentsApi.getDocuments(options);
+      log.debug(`Retrieved ${documents.items?.length || 0} documents`);
+      
+      res.json(documents);
     } catch (error) {
-      log.error(`Error fetching documents: ${error.message}`);
+      log.error(`Error fetching documents: ${error.message}`, error);
       next(error);
     }
   });

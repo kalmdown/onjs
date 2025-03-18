@@ -89,43 +89,52 @@ module.exports = function(app) {
      */
     const isAuthenticated = (req, res, next) => {
         const authManager = req.app.get('authManager');
-        const authMethod = authManager ? authManager.getMethod() : null;
+        const log = logger.scope('AuthMiddleware');
         
         if (!authManager) {
-            log.error('No authentication manager found');
-            return res.status(500).json({ 
-                error: 'Server Error', 
-                message: 'Authentication not configured' 
-            });
+            log.error('No auth manager found in application');
+            return res.status(500).json({ error: 'Authentication service unavailable' });
         }
-
-        if (req.isAuthenticated() || 
-            authMethod === 'apikey' || 
-            (req.session && req.session.oauthToken)) {
+      
+        // Check authentication based on method
+        const authMethod = authManager.getMethod();
+      
+        if (authMethod === 'oauth') {
+            // For OAuth, use Passport's isAuthenticated
+            if (!req.isAuthenticated || !req.isAuthenticated()) {
+                log.debug('OAuth authentication failed: Not authenticated');
+                return res.status(401).json({ error: 'Not authenticated' });
+            }
+        } else if (authMethod === 'apikey') {
+            // API Key auth is considered pre-authenticated
+            log.debug('Using API key authentication');
+        } else {
+            // No valid auth method
+            log.error('No valid authentication method configured');
+            return res.status(401).json({ error: 'No authentication method available' });
+        }
+      
+        // Authentication successful, create client for this request
+        try {
+            req.onshapeClient = createClientFromRequest(req);
+            
+            // Add extra debug info
+            log.debug('Client attached to request', {
+                hasClient: !!req.onshapeClient,
+                clientType: req.onshapeClient?.constructor.name,
+                hasGetMethod: typeof req.onshapeClient?.get === 'function'
+            });
             
             if (!req.onshapeClient) {
-                const client = createClientFromRequest(req);
-                if (!client) {
-                    return res.status(500).json({ 
-                        error: 'Server Error', 
-                        message: 'Failed to initialize client' 
-                    });
-                }
-                req.onshapeClient = client;
+                log.error('Failed to create Onshape client');
+                return res.status(500).json({ error: 'Failed to initialize API client' });
             }
             
-            log.debug(`User authenticated via ${authMethod || 'session'}`);
-            return next();
+            next();
+        } catch (error) {
+            log.error(`Error creating client: ${error.message}`);
+            return res.status(500).json({ error: 'Error initializing API client' });
         }
-
-        if (req.xhr || req.path.startsWith('/api/')) {
-            return res.status(401).json({ 
-                error: 'Unauthorized', 
-                message: 'Authentication required' 
-            });
-        }
-
-        res.redirect('/oauth/login');
     };
 
     /**
