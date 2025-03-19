@@ -12,172 +12,62 @@ let lastResponse = null;
 let requestLog = [];
 
 /**
- * Make an API call to the backend server
+ * Make an authenticated API call with enhanced logging
+ * @param {string} endpoint - API endpoint path
+ * @param {object} options - Fetch options
+ * @returns {Promise<any>} API response
  */
-export async function apiCall(endpoint, method = 'GET', body = null) {
+export async function apiCall(endpoint, options = {}) {
+  const defaultOptions = {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  const requestOptions = { ...defaultOptions, ...options };
+  const url = endpoint.startsWith('/') ? `/api${endpoint}` : `/api/${endpoint}`;
+  
+  // Generate a unique ID for this request to correlate logs
+  const requestId = Math.random().toString(36).substring(2, 8);
+  
+  logDebug(`[${requestId}] API Request: ${requestOptions.method} ${url}`);
+  
   try {
-    const startTime = performance.now();
+    const startTime = Date.now();
+    const response = await fetch(url, requestOptions);
+    const endTime = Date.now();
     
-    // Build the options for the fetch request
-    const options = { 
-      method, 
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      // Include credentials to ensure cookies are sent with the request
-      // This is important for API key auth which relies on session
-      credentials: 'same-origin'
-    };
+    logDebug(`[${requestId}] API Response: ${response.status} (${endTime - startTime}ms)`);
     
-    // Get the current auth method and token
-    const authMethod = getAuthMethod();
-    const token = getToken();
-    
-    // Add auth header only for OAuth authentication
-    if (token) {
-      options.headers['Authorization'] = `Bearer ${token}`;
-      logDebug(`Adding OAuth token to request headers`);
-    } else if (authMethod === 'apikey') {
-      // For API key auth, we don't need to add a token
-      // The server will use the API key from the AuthManager
-      logDebug('Using API key authentication for this request');
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
       
-      // Add a custom header to help with debugging
-      options.headers['X-Auth-Method'] = 'apikey';
-    } else {
-      logDebug('No authentication available for this request');
-    }
-    
-    // Add body data for POST/PUT requests
-    if (body && (method === 'POST' || method === 'PUT')) {
-      options.body = JSON.stringify(body);
-      logInfo(`Making ${method} request to /api/${endpoint} with payload`);
-    } else {
-      logInfo(`Making ${method} request to /api/${endpoint}`);
-    }
-    
-    // Store API call details for debug and export
-    const apiCallDetails = {
-      url: `/api/${endpoint}`,
-      method,
-      headers: {...options.headers},
-      body,
-      timestamp: new Date().toISOString()
-    };
-    
-    apiCalls.push(apiCallDetails);
-    lastRequest = apiCallDetails;
-    
-    // Log the full request details
-    logDebug('API Request details:', {
-      url: `/api/${endpoint}`,
-      method: method,
-      headers: options.headers,
-      authMethod,
-      hasToken: !!token
-    });
-    
-    // Make the request
-    const response = await fetch(`/api/${endpoint}`, options);
-    
-    // Record response time
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-    
-    // Process and log response
-    try {
-      // Try to parse as JSON first
-      const responseData = await response.json();
-      
-      // Store response details
-      lastResponse = {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries([...response.headers.entries()]),
-        data: responseData,
-        timestamp: new Date().toISOString(),
-        duration
-      };
-      
-      // Add to request log (keep last 10)
-      requestLog.unshift({request: lastRequest, response: lastResponse});
-      if (requestLog.length > 10) requestLog.pop();
-      
-      // Log response summary
-      logDebug(`API Response (${response.status}, ${duration.toFixed(0)}ms): `, 
-               response.ok ? 'Success' : 'Error');
-      
-      // Handle non-success responses
-      if (!response.ok) {
-        if (response.status === 401) {
-          logError('Authentication error: ' + (responseData.error || 'Unauthorized'));
-          
-          // Different handling based on auth method
-          if (authMethod === 'apikey') {
-            logError('API key authentication failed. Check server API key configuration.');
-          } else {
-            logError('OAuth token invalid or expired. Redirecting to login...');
-            
-            // For serious auth issues with OAuth, redirect to login
-            if (authMethod === 'oauth') {
-              setTimeout(() => {
-                window.location.href = '/oauth/login';
-              }, 1000);
-            }
-          }
-        }
-        
-        throw new Error(responseData.error || `API error: ${response.status}`);
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText };
       }
       
-      return responseData;
-    } catch (parseError) {
-      // If JSON parsing fails, handle text response
-      const textResponse = await response.text().catch(() => 'No response body');
+      logError(`[${requestId}] API Error: ${response.status} ${response.statusText}`, errorData);
       
-      // Store response details
-      lastResponse = {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries([...response.headers.entries()]),
-        data: { text: textResponse },
-        timestamp: new Date().toISOString(),
-        duration,
-        parseError: parseError.message
-      };
-      
-      // Add to request log
-      requestLog.unshift({request: lastRequest, response: lastResponse});
-      if (requestLog.length > 10) requestLog.pop();
-      
-      // Log error
-      logError(`API Response parsing error: ${parseError.message}`);
-      
-      // For successful responses with parsing errors, return the text
-      if (response.ok) {
-        return { text: textResponse, parseError: true };
-      } else {
-        throw new Error(`API error: ${response.status} - ${textResponse}`);
-      }
+      throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.message || errorText}`);
+    }
+    
+    // Check if response is empty
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      logDebug(`[${requestId}] API Success: ${typeof data === 'object' ? 'Object/Array returned' : 'Non-object returned'}`);
+      return data;
+    } else {
+      const text = await response.text();
+      logDebug(`[${requestId}] API Success: Text response (${text.length} bytes)`);
+      return text;
     }
   } catch (error) {
-    logError(`API call failed: ${error.message}`);
-    
-    // Add error to response log
-    const errorResponse = {
-      error: error.message,
-      timestamp: new Date().toISOString()
-    };
-    
-    if (lastRequest) {
-      requestLog.unshift({
-        request: lastRequest, 
-        response: errorResponse
-      });
-      if (requestLog.length > 10) requestLog.pop();
-    }
-    
-    // Rethrow the error for the caller to handle
+    logError(`[${requestId}] API Exception: ${error.message}`);
     throw error;
   }
 }
@@ -295,7 +185,7 @@ export async function getWorkspaces(documentId) {
 }
 
 /**
- * Fetch all elements for a document
+ * Fetch all elements for a document with improved error handling
  * 
  * @param {string} documentId Document ID
  * @returns {Promise<Array>} Array of elements
@@ -306,51 +196,139 @@ export async function fetchElementsForDocument(documentId) {
   }
   
   try {
-    const workspaces = await getWorkspaces(documentId);
+    logDebug(`Fetching elements for document ${documentId}`);
+    
+    // Try to get workspaces first
+    let workspaces;
+    try {
+      workspaces = await getWorkspaces(documentId);
+    } catch (wsError) {
+      logError(`Failed to fetch workspaces: ${wsError.message}`);
+      // Generate a default workspace as fallback
+      workspaces = [{ id: 'default', isDefault: true }];
+    }
+    
     const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
     
     if (!defaultWorkspace) {
       throw new Error('No workspace found for document');
     }
     
-    const response = await apiCall(`documents/${documentId}/w/${defaultWorkspace.id}/elements`);
-    return response.elements || response;
+    // Now get elements
+    try {
+      const response = await apiCall(`documents/${documentId}/w/${defaultWorkspace.id}/elements`);
+      const elements = response.elements || response;
+      logDebug(`Retrieved ${elements.length} elements for document ${documentId}`);
+      return elements;
+    } catch (elemError) {
+      logError(`Failed to fetch elements: ${elemError.message}`);
+      throw elemError;
+    }
   } catch (error) {
-    logError(`Failed to fetch elements: ${error.message}`);
+    logError(`Failed to fetch elements for document ${documentId}: ${error.message}`);
     return [];
   }
 }
 
 /**
- * Fetch planes for a part studio
+ * Legacy version of fetchPlanesForPartStudio (renamed to avoid duplicate declaration)
  * 
  * @param {string} documentId Document ID
  * @param {string} partStudioId Part studio ID
  * @param {boolean} includeCustomPlanes Whether to include custom planes
  * @returns {Promise<Array>} Array of planes
  */
-export async function fetchPlanesForPartStudio(documentId, partStudioId, includeCustomPlanes = true) {
-  if (!documentId || !partStudioId) {
-    throw new Error('Document ID and Part Studio ID are required');
+export async function fetchPlanesLegacy(documentId, partStudioId, includeCustomPlanes = true) {
+  // Forward to the new implementation for backwards compatibility
+  return fetchPlanesForPartStudio(documentId, null, partStudioId, {
+    includeCustomPlanes
+  });
+}
+
+/**
+ * Fetches planes for a part studio
+ * @param {string} documentId - Document ID
+ * @param {string} workspaceId - Workspace ID
+ * @param {string} elementId - Element ID (part studio)
+ * @param {Object} [options] - Additional options
+ * @returns {Promise<Array>} List of planes
+ */
+export async function fetchPlanesForPartStudio(documentId, workspaceId, elementId, options = {}) {
+  // Parameter validation
+  if (!documentId) {
+    throw new Error('Document ID is required');
+  }
+  
+  if (!elementId) {
+    throw new Error('Element ID (part studio) is required');
   }
   
   try {
-    logDebug(`API Call: Fetching planes with includeCustomPlanes=${includeCustomPlanes}`);
+    const includeCustomPlanes = options?.includeCustomPlanes !== false;
     
-    const workspaces = await getWorkspaces(documentId);
-    const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
-    
-    if (!defaultWorkspace) {
-      throw new Error('No workspace found for document');
+    // If no workspace ID provided, fetch the default workspace
+    if (!workspaceId) {
+      logDebug('No workspace ID provided, fetching default workspace');
+      try {
+        const workspaces = await getWorkspaces(documentId);
+        const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
+        
+        if (!defaultWorkspace) {
+          throw new Error('No workspace found for document');
+        }
+        
+        workspaceId = defaultWorkspace.id;
+        logDebug(`Using default workspace: ${workspaceId}`);
+      } catch (wsError) {
+        logError(`Failed to get workspaces: ${wsError.message}`);
+        throw new Error(`Could not determine workspace for document: ${wsError.message}`);
+      }
     }
+
+    // Explicit debugging of the request
+    logDebug(`Fetching planes for document=${documentId}, workspace=${workspaceId}, element=${elementId}`);
     
-    // Make API request to get planes through our server API
-    const endpoint = `documents/${documentId}/w/${defaultWorkspace.id}/e/${partStudioId}/planes?includeCustomPlanes=${includeCustomPlanes}`;
-    const data = await apiCall(endpoint);
+    // IMPORTANT: The router is mounted at /api/planes, so the correct URL format is:
+    // planes/:documentId/w/:workspaceId/e/:elementId
+    const endpoint = `planes/${documentId}/w/${workspaceId}/e/${elementId}`;
     
-    logDebug('Planes response:', data);
+    // Construct query string separately for better clarity and debugging
+    const queryParams = new URLSearchParams();
+    queryParams.append('includeCustomPlanes', String(includeCustomPlanes));
     
-    return data.planes || [];
+    const fullEndpoint = `${endpoint}?${queryParams.toString()}`;
+    console.log(`[DEBUG] Constructed planes endpoint: ${fullEndpoint}`);
+    
+    try {
+      const response = await apiCall(fullEndpoint);
+      
+      if (Array.isArray(response)) {
+        const standardCount = response.filter(p => p.type === 'STANDARD').length;
+        const customCount = response.filter(p => p.type === 'CUSTOM').length;
+        logDebug(`Received ${response.length} planes (${standardCount} standard, ${customCount} custom)`);
+      }
+      
+      return response;
+    } catch (apiError) {
+      logError(`API call to planes endpoint failed: ${apiError.message}`);
+      
+      // If the server is unreachable, use fallback planes
+      if (apiError.message && (apiError.message.includes('Network Error') || 
+          apiError.message.includes('CONNECTION_REFUSED'))) {
+        logWarn('Server connection issue, using fallback planes');
+        
+        // Return standard planes as fallback
+        const fallbackPlanes = [
+          { id: `${elementId}_JHD`, name: "TOP", type: "STANDARD", transientId: "TOP" },
+          { id: `${elementId}_JFD`, name: "FRONT", type: "STANDARD", transientId: "FRONT" },
+          { id: `${elementId}_JGD`, name: "RIGHT", type: "STANDARD", transientId: "RIGHT" }
+        ];
+        
+        return fallbackPlanes;
+      }
+      
+      throw apiError;
+    }
   } catch (error) {
     logError(`API error fetching planes: ${error.message}`);
     throw error;

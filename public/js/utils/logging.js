@@ -47,6 +47,26 @@ export function logDebug(message, data) {
 }
 
 /**
+ * Log a warning message
+ * @param {string} message - The message to log
+ * @param {Object} [data] - Optional data to include with the log
+ */
+export function logWarn(message, data) {
+  const logData = data ? ` ${JSON.stringify(data)}` : '';
+  console.warn(`[WARN] ${message}${logData}`);
+  
+  // If you have server-side logging, add it here
+  try {
+    if (typeof window !== 'undefined') {
+      // Send to server if needed
+      logToServer('warn', message, data);
+    }
+  } catch (e) {
+    // Silently handle errors in logging
+  }
+}
+
+/**
  * Client-side logging utility that can send logs to the server
  */
 class ClientLogger {

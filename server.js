@@ -36,6 +36,7 @@ const documentRoutes = require('./src/routes/documents');
 const elementRoutes = require('./src/routes/elements');
 const featureRoutes = require('./src/routes/features');
 const exampleRoutes = require('./src/routes/examples');
+const planesRoutes = require('./src/routes/planes');
 
 // Configure logger based on environment
 if (process.env.NODE_ENV === 'production') {
@@ -187,6 +188,7 @@ app.use('/api/documents', require('./src/routes/documents')(app, auth));
 app.use('/api/elements', require('./src/routes/elements')(app, auth));
 app.use('/api/features', require('./src/routes/features')(app, auth));
 app.use('/api/examples', require('./src/routes/examples')(app, auth));
+app.use('/api/planes', require('./src/routes/planes')(app, auth));
 
 // Endpoint to receive client-side logs
 app.post('/api/logs', (req, res) => {
