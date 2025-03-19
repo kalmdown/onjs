@@ -2,8 +2,9 @@
 /**
  * Represents an Onshape Part Studio
  */
-const { FeatureError } = require('../utils_errors');
+const { FeatureError } = require('../utils/errors');
 const logger = require('../utils/logger');
+const FeaturesApi = require('../api/endpoints/features');
 
 // Create scoped logger
 const log = logger.scope('PartStudio');
@@ -26,9 +27,12 @@ class PartStudio {
     this._api = _api || document._api;
     this._client = _client || document._client;
     
-    if (!this._api) {
-      throw new Error('API access not provided to PartStudio');
+    if (!this._client) {
+      throw new Error('API client not provided to PartStudio');
     }
+    
+    // Create API endpoints
+    this.endpoints = new FeaturesApi(this._client);
     
     // Track features in this part studio
     this._features = [];
@@ -42,7 +46,7 @@ class PartStudio {
    */
   async getPlanes() {
     try {
-      const response = await this._api.endpoints.getPlanes(
+      const response = await this.endpoints.getPlanes(
         this.document.id,
         { wvm: 'w', wvmid: this.document.defaultWorkspace.id },
         this.id
@@ -51,7 +55,7 @@ class PartStudio {
       log.debug(`Retrieved ${response.length} planes from part studio ${this.id}`);
       return response;
     } catch (error) {
-      throw new OnshapeFeatureError('Failed to get planes', error);
+      throw new FeatureError('Failed to get planes', error);
     }
   }
   
@@ -94,7 +98,7 @@ class PartStudio {
       };
       
       // Call the Onshape API to create the extrusion feature
-      const response = await this._api.endpoints.addFeature(
+      const response = await this.endpoints.addFeature(
         this.document.id,
         { wvm: 'w', wvmid: this.document.defaultWorkspace.id },
         this.id,
@@ -103,7 +107,7 @@ class PartStudio {
       
       // Process response
       if (!response.feature) {
-        throw new OnshapeFeatureError('Invalid response when creating extrusion feature');
+        throw new FeatureError('Invalid response when creating extrusion feature');
       }
       
       log.info(`Created extrusion feature: ${response.feature.featureId}`);
@@ -114,7 +118,7 @@ class PartStudio {
         status: response.feature.featureStatus
       };
     } catch (error) {
-      throw new OnshapeFeatureError('Failed to create extrusion feature', error);
+      throw new FeatureError('Failed to create extrusion feature', error);
     }
   }
   

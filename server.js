@@ -132,6 +132,23 @@ const auth = authMiddleware(app);
 // Configure OAuth
 auth.configureOAuth(authManager);
 
+// Add before routes are registered
+
+// Add route debugging middleware in development
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    if (req.path.includes('/api/')) {
+      const log = require('./src/utils/logger').scope('RouteDebug');
+      log.debug(`${req.method} ${req.path}`, {
+        params: req.params,
+        query: req.query,
+        body: req.body && typeof req.body === 'object' ? Object.keys(req.body).length : 0
+      });
+    }
+    next();
+  });
+}
+
 // Add before your existing routes
 app.use((req, res, next) => {
   if (req.path.includes('/api/documents')) {
@@ -139,6 +156,26 @@ app.use((req, res, next) => {
       auth: req.headers.authorization ? req.headers.authorization.substring(0, 20) + '...' : 'missing',
       contentType: req.headers['content-type'],
       accept: req.headers.accept
+    });
+  }
+  next();
+});
+
+// Add this middleware before the routes are registered
+// (after the existing document request middleware)
+
+// Debug middleware for plane requests
+app.use((req, res, next) => {
+  if (req.path.includes('/planes')) {
+    const log = require('./src/utils/logger').scope('PlanesDebug');
+    log.debug(`Planes request: ${req.method} ${req.path}`, {
+      params: req.params,
+      query: req.query,
+      headers: {
+        auth: req.headers.authorization ? `${req.headers.authorization.split(' ')[0]} ...` : 'missing',
+        contentType: req.headers['content-type'],
+        accept: req.headers.accept
+      }
     });
   }
   next();
@@ -310,6 +347,35 @@ app.use((req, res, next) => {
 
 // Error handling middleware
 app.use(errorMiddleware);
+
+// Add this before the existing error handler or replace it
+
+// More detailed error handler
+app.use((err, req, res, next) => {
+  const logger = require('./src/utils/logger');
+  const log = logger.scope('ErrorMiddleware');
+  
+  // Log error details
+  log.error(`API Error: ${err.message}`, {
+    path: req.path,
+    method: req.method,
+    statusCode: err.statusCode || 500,
+    stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined
+  });
+  
+  // Handle API errors specifically
+  if (err.name === 'ApiError') {
+    return res.status(err.statusCode || 500).json({
+      error: err.message,
+      details: err.details || undefined
+    });
+  }
+  
+  // General error response
+  res.status(err.statusCode || 500).json({
+    error: err.message || 'Internal server error'
+  });
+});
 
 // Find the server initialization code section
 

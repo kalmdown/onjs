@@ -189,8 +189,14 @@ class OffsetPlane extends Plane {
         ]
       };
       
+      // Create endpoints if needed
+      if (!this.partStudio.endpoints) {
+        const FeaturesApi = require('../api/endpoints/features');
+        this.partStudio.endpoints = new FeaturesApi(this._client);
+      }
+      
       // Upload to Onshape
-      const response = await this._api.endpoints.addFeature(
+      const response = await this.partStudio.endpoints.addFeature(
         this.partStudio.document.id,
         { wvm: 'w', wvmid: this.partStudio.document.defaultWorkspace.id },
         this.partStudio.id,
@@ -229,7 +235,13 @@ class OffsetPlane extends Plane {
     `;
     
     try {
-      const response = await this._api.endpoints.evalFeaturescript(
+      // Create endpoints if needed
+      if (!this.partStudio.endpoints) {
+        const FeaturesApi = require('../api/endpoints/features');
+        this.partStudio.endpoints = new FeaturesApi(this._client);
+      }
+      
+      const response = await this.partStudio.endpoints.evalFeaturescript(
         this.partStudio.document.id,
         { wvm: 'w', wvmid: this.partStudio.document.defaultWorkspace.id },
         this.partStudio.id,
