@@ -46,14 +46,51 @@ class OnshapeClient {
   }
   
   /**
-   * Make a GET request
+   * Perform a GET request to the Onshape API
    * @param {string} path - API path
    * @param {Object} [options={}] - Request options
-   * @param {Object} [options.params={}] - URL query parameters
-   * @returns {Promise<Object>} Response data
+   * @returns {Promise<Object>} - API response
    */
   async get(path, options = {}) {
-    return this.request('GET', path, null, options.params || {});
+    try {
+      // Support direct header pass-through for compatibility with curl commands
+      const useDirectHeaders = options.headers && options.headers.Authorization;
+      
+      // Create config for axios
+      const config = {
+        method: 'get',
+        url: this._buildUrl(path),
+        params: options.params || {},
+        paramsSerializer: this._serializeParams,
+        ...options
+      };
+      
+      // Only set headers from auth manager if not using direct headers
+      if (!useDirectHeaders) {
+        config.headers = {
+          ...await this.authManager.getAuthHeaders(),
+          ...(options.headers || {})
+        };
+      }
+      
+      if (this.debug) {
+        logger.debug(`Making GET request to: ${config.url}`);
+        logger.debug(`With params: ${JSON.stringify(config.params || {})}`);
+        
+        // Mask the auth token for logging
+        const sanitizedHeaders = { ...config.headers };
+        if (sanitizedHeaders.Authorization) {
+          sanitizedHeaders.Authorization = sanitizedHeaders.Authorization.split(' ')[0] + ' ***';
+        }
+        logger.debug(`With headers: ${JSON.stringify(sanitizedHeaders || {})}`);
+      }
+      
+      const response = await axios(config);
+      return response.data;
+    } catch (error) {
+      this._handleError(error);
+      throw error;
+    }
   }
   
   /**

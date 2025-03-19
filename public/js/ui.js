@@ -37,6 +37,8 @@ export function setupUI() {
   
   // Add debug button
   addDebugButton();
+  
+  console.log('[DEBUG] UI.js loaded, partStudioSelector instance:', partStudioSelector);
 }
 
 export function registerEventHandlers() {
@@ -336,35 +338,86 @@ function testAuthEndpoint() {
 function onDocumentSelectChange() {
   const selectedId = documentSelect.value;
   
-  if (selectedId) {
-    selectedDocument = getDocumentById(selectedId);
-    documentName.value = '';
-    documentName.disabled = true;
-    logInfo(`Selected document: ${selectedDocument.name}`);
-    
-    // Load part studios for this document
-    partStudioSelector.loadPartStudios(selectedId);
-  } else {
-    selectedDocument = null;
-    documentName.disabled = false;
-    // Reset selectors
-    partStudioSelector.reset();
-    planeSelector.reset();
-    logInfo('Creating a new document');
-  }
+  console.log('[DEBUG] Document selection changed to:', selectedId);
   
-  updateConvertButton();
+  try {
+    if (selectedId) {
+      selectedDocument = getDocumentById(selectedId);
+      
+      if (!selectedDocument) {
+        logError(`Could not find document with ID: ${selectedId}`);
+        return;
+      }
+      
+      documentName.value = '';
+      documentName.disabled = true;
+      logInfo(`Selected document: ${selectedDocument.name}`);
+      
+      // Debug the part studio selector instance
+      console.log('[DEBUG] About to load part studios, selector:', partStudioSelector);
+      
+      // Check if the method exists
+      if (typeof partStudioSelector.loadPartStudios !== 'function') {
+        console.error('[DEBUG] loadPartStudios is not a function on the partStudioSelector instance!');
+      } else {
+        // Load part studios for this document
+        try {
+          console.log('[DEBUG] Calling partStudioSelector.loadPartStudios with:', selectedId);
+          partStudioSelector.loadPartStudios(selectedId)
+            .then(partStudios => {
+              console.log('[DEBUG] Part studios loaded:', partStudios);
+            })
+            .catch(err => {
+              logError(`Error loading part studios: ${err.message}`);
+              console.error('[DEBUG] Error loading part studios:', err);
+            });
+        } catch (partStudioError) {
+          logError(`Error initializing part studio load: ${partStudioError.message}`);
+          console.error('[DEBUG] Part studio loading error:', partStudioError);
+        }
+      }
+    } else {
+      selectedDocument = null;
+      documentName.disabled = false;
+      // Reset selectors
+      console.log('[DEBUG] Resetting part studio selector');
+      partStudioSelector.reset();
+      planeSelector.reset();
+      logInfo('Creating a new document');
+    }
+    
+    updateConvertButton();
+  } catch (error) {
+    logError(`Error handling document selection: ${error.message}`);
+    console.error('[DEBUG] Document selection error:', error);
+  }
 }
 
 /**
  * Handle part studio selection change
  */
 function onPartStudioSelect(partStudio) {
-  if (partStudio && partStudio.id) {
-    logInfo(`Selected part studio: ${partStudio.name}`);
-    
-    // Load planes for this part studio
-    planeSelector.loadPlanes(partStudio.documentId, partStudio.id);
+  try {
+    if (partStudio && partStudio.id && partStudio.documentId) {
+      logInfo(`Selected part studio: ${partStudio.name}`);
+      
+      // Load planes for this part studio
+      try {
+        planeSelector.loadPlanes(partStudio.documentId, partStudio.id)
+          .catch(err => {
+            logError(`Error loading planes: ${err.message}`);
+            // Don't throw here - we want to continue even if planes fail to load
+          });
+      } catch (planeError) {
+        logError(`Error initializing plane load: ${planeError.message}`);
+      }
+    } else {
+      logInfo('No part studio selected or invalid selection');
+      planeSelector.reset();
+    }
+  } catch (error) {
+    logError(`Error handling part studio selection: ${error.message}`);
+    planeSelector.reset();
   }
 }
 
