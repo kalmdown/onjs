@@ -1,7 +1,6 @@
 // src\api\endpoints\elements.js
 const logger = require('../../utils/logger');
 const { NotFoundError, ValidationError } = require('../../utils/errors');
-const { Element } = require('../../models');
 
 /**
  * API endpoints for Onshape elements
@@ -12,9 +11,17 @@ class ElementsApi {
    * @param {OnshapeClient} client - The Onshape client instance
    */
   constructor(client) {
+    if (!client) {
+      throw new Error('Onshape client is required');
+    }
     this.client = client;
-    this.api = client.api;
     this.logger = logger.scope('ElementsApi');
+    
+    // Log client capabilities for debugging
+    this.logger.debug('ElementsApi initialized', {
+      clientType: this.client.constructor.name,
+      hasGetMethod: typeof this.client.get === 'function'
+    });
   }
   
   /**
@@ -28,27 +35,34 @@ class ElementsApi {
       throw new ValidationError('Document ID is required');
     }
     
+    if (!workspaceId) {
+      throw new ValidationError('Workspace ID is required');
+    }
+
     try {
-      // If no workspace ID, get workspaces and use the first one
-      if (!workspaceId) {
-        const workspaces = await this.client.documents.getWorkspaces(documentId);
-        if (!workspaces || workspaces.length === 0) {
-          throw new Error('No workspaces found in document');
-        }
-        workspaceId = workspaces[0].id;
+      this.logger.debug(`Fetching elements for document ${documentId} workspace ${workspaceId}`);
+      
+      if (!this.client) {
+        throw new Error('Onshape client not initialized');
       }
       
-      const elements = await this.api.get(`/documents/${documentId}/elements`);
-      this.logger.debug(`Retrieved ${elements.length} elements for document ${documentId}`);
+      if (typeof this.client.get !== 'function') {
+        this.logger.error('Client does not have get method', {
+          clientType: this.client.constructor.name,
+          clientMethods: Object.keys(this.client).filter(k => typeof this.client[k] === 'function')
+        });
+        throw new Error('Client does not have get method');
+      }
       
-      // Convert to Element models
-      return elements.map(elem => new Element(elem, documentId, workspaceId, this.client));
+      // Use correct path format
+      const path = `/documents/d/${documentId}/w/${workspaceId}/elements`;
+      const response = await this.client.get(path);
+      
+      this.logger.debug(`Retrieved ${response.length || 0} elements`);
+      return response;
     } catch (error) {
-      if (error.statusCode === 404) {
-        throw new NotFoundError('Document', documentId);
-      }
-      this.logger.error(`Failed to get elements for document ${documentId}:`, error.message);
-      throw error;
+      this.logger.error(`Failed to get elements: ${error.message}`, error);
+      throw new Error(`Failed to get elements: ${error.message}`);
     }
   }
   
@@ -202,6 +216,34 @@ class ElementsApi {
       return planes;
     } catch (error) {
       this.logger.error(`Failed to get planes for element ${elementId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific element by ID
+   * 
+   * @param {string} documentId - Document ID
+   * @param {string} workspaceId - Workspace ID
+   * @param {string} elementId - Element ID
+   * @returns {Promise<Object>} - Element details
+   */
+  async getElement(documentId, workspaceId, elementId) {
+    if (!documentId || !workspaceId || !elementId) {
+      throw new ValidationError('Document ID, workspace ID, and element ID are required');
+    }
+
+    try {
+      const path = `/documents/d/${documentId}/w/${workspaceId}/elements/${elementId}`;
+      const element = await this.client.get(path);
+      
+      this.logger.debug(`Retrieved element ${elementId}`);
+      return element;
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new NotFoundError('Element', elementId);
+      }
+      this.logger.error(`Failed to get element ${elementId}: ${error.message}`);
       throw error;
     }
   }

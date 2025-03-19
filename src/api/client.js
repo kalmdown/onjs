@@ -103,72 +103,94 @@ class OnshapeClient {
     return this.request('PATCH', path, data, options.params || {});
   }
   
+  // Update the request method to use the API version from config
+
   /**
    * Make a request to the Onshape API
    * @param {string} method - HTTP method
    * @param {string} path - API path
    * @param {Object|null} data - Request body data
-   * @param {Object} [queryParams={}] - URL query parameters
+   * @param {Object} [options={}] - Request options
    * @returns {Promise<Object>} Response data
    */
-  async request(method, path, data = null, queryParams = {}) {
+  async request(method, path, data = null, options = {}) {
     const axios = require('axios');
     const { ApiError } = require('../utils/errors');
+    const config = require('../../config'); // Updated path to the correct location
     
     try {
       // Make sure path has a leading slash
       const pathWithSlash = path.startsWith('/') ? path : '/' + path;
       
-      // Ensure API version prefix if needed
-      let apiPath = pathWithSlash;
-      if (!pathWithSlash.includes('/api/v')) {
-        apiPath = '/api/v6' + pathWithSlash;
-        this.logger.debug(`Adjusted API path to include version: ${apiPath}`);
+      // Extract query parameters from options
+      const queryParams = options.params || {};
+      
+      // Use the API base URL from configuration
+      const baseApiUrl = config.onshape.apiUrl || this.baseUrl;
+      
+      // Build the full URL - don't try to parse or modify the API URL
+      const fullUrl = baseApiUrl.endsWith('/') 
+        ? `${baseApiUrl.slice(0, -1)}${pathWithSlash}` 
+        : `${baseApiUrl}${pathWithSlash}`;
+      
+      // Format request body
+      let bodyString = '';
+      if (data !== null && data !== undefined) {
+        bodyString = typeof data === 'string' ? data : JSON.stringify(data);
       }
       
-      // Get authentication headers
-      let headers = {};
+      // Get authentication headers - need to use the full path for auth
+      let headers;
       try {
         headers = this.authManager.getAuthHeaders(
           method,
-          apiPath,
-          queryParams
+          pathWithSlash,
+          queryParams,
+          bodyString
         );
       } catch (authError) {
-        this.logger.error(`Auth header generation failed: ${authError.message}`);
-        throw new ApiError(`Authentication header generation failed: ${authError.message}`, 401);
+        this.logger.error(`Failed to generate auth headers: ${authError.message}`);
+        throw new ApiError(`Authentication error: ${authError.message}`, 401);
       }
       
       // Add standard headers if not already present
       const requestHeaders = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json,application/vnd.onshape.v6+json',
+        'Accept': 'application/json',
         ...headers
       };
       
-      // Debug logging
-      this.logger.debug(`${method} ${apiPath}`, {
-        baseUrl: this.baseUrl,
-        fullUrl: `${this.baseUrl}${apiPath}`,
-        authType: headers.Authorization ? headers.Authorization.split(' ')[0] : 'none'
+      // Debug logging with sanitized headers
+      this.logger.debug(`${method} ${pathWithSlash}`, {
+        baseUrl: baseApiUrl,
+        fullUrl: fullUrl,
+        queryParamsCount: Object.keys(queryParams).length,
+        hasAuth: !!requestHeaders.Authorization
       });
       
-      // Make the request
+      // Make the request using the full URL directly
       const response = await axios({
         method,
-        url: `${this.baseUrl}${apiPath}`,
+        url: fullUrl,
         headers: requestHeaders,
-        data,
-        params: queryParams
+        data: data,
+        params: queryParams,
+        timeout: 30000 // 30 second timeout
       });
       
       return response.data;
     } catch (error) {
-      this.logger.error(`API request failed: ${error.message}`);
-      
-      // Enhanced error info
+      // Enhanced error logging
       if (error.response) {
-        this.logger.error(`Status: ${error.response.status}, Message: ${error.response.data?.message || 'Unknown'}`);
+        this.logger.error(`API Response Error: ${error.response.status} for ${method} ${path}`, {
+          statusCode: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+      } else if (error.request) {
+        this.logger.error(`API Request Error: No response received for ${method} ${path}`);
+      } else {
+        this.logger.error(`API Error during request setup: ${error.message}`);
       }
       
       throw new ApiError(

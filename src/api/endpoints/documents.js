@@ -28,6 +28,12 @@ class DocumentsApi {
 
   /**
    * Get documents with optional filters
+   * @param {Object} [options={}] - Filter and pagination options
+   * @param {number} [options.limit=20] - Maximum number of documents to return
+   * @param {number} [options.offset=0] - Number of documents to skip
+   * @param {string} [options.sortColumn='modifiedAt'] - Column to sort by
+   * @param {string} [options.sortOrder='desc'] - Sort direction ('asc' or 'desc')
+   * @returns {Promise<Object>} Response including documents list
    */
   async getDocuments(options = {}) {
     try {
@@ -45,21 +51,25 @@ class DocumentsApi {
         throw new Error('Client does not have get method');
       }
       
-      // Use the correct API path (without /api prefix)
-      const response = await this.client.get('/documents', { 
+      // Set up request options with query parameters
+      const requestOptions = {
         params: {
           limit: options.limit || 20,
           offset: options.offset || 0,
           sortColumn: options.sortColumn || 'modifiedAt',
           sortOrder: options.sortOrder || 'desc'
         }
-      });
+      };
+      
+      // Make the request
+      this.logger.debug('Making request to /documents endpoint', requestOptions);
+      const response = await this.client.get('/documents', requestOptions);
       
       this.logger.debug(`Retrieved ${response.items ? response.items.length : 0} documents`);
       return response;
     } catch (error) {
       this.logger.error(`Failed to get documents: ${error.message}`, error);
-      throw new Error(`Failed to get documents: ${error.message}`);
+      throw error;
     }
   }
 
