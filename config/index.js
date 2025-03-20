@@ -129,4 +129,22 @@ const config = {
   }
 };
 
+// Normalize URLs by removing trailing slashes
+if (config.onshape.baseUrl && config.onshape.baseUrl.endsWith('/')) {
+  config.onshape.baseUrl = config.onshape.baseUrl.slice(0, -1);
+}
+
+if (config.onshape.apiUrl && config.onshape.apiUrl.endsWith('/')) {
+  config.onshape.apiUrl = config.onshape.apiUrl.slice(0, -1);
+}
+
+// Add fallback defaults if values are still not set
+if (!config.onshape.baseUrl) {
+  config.onshape.baseUrl = 'https://cad.onshape.com';
+}
+
+if (!config.onshape.apiUrl) {
+  config.onshape.apiUrl = 'https://cad.onshape.com/api/v10';
+}
+
 module.exports = config;

@@ -3,46 +3,43 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 const RestClient = require('./rest-client');
 const DocumentsApi = require('./endpoints/documents');
+const config = require('../../config'); // Fix the config import path
 
 /**
  * Client for making authenticated requests to the Onshape API
  */
 class OnshapeClient {
   /**
-   * Create a new OnshapeClient
+   * Constructor for OnshapeClient
    * @param {Object} options - Client options
-   * @param {string} options.baseUrl - The Onshape API base URL
-   * @param {Object} options.authManager - The authentication manager instance
+   * @param {string} options.baseUrl - Base URL for Onshape
+   * @param {string} options.apiUrl - API URL including version
+   * @param {AuthManager} options.authManager - Authentication manager
    * @param {boolean} [options.debug=false] - Enable debug logging
    */
-  constructor(options) {
-    const logger = require('../utils/logger');
-    
-    // Validate required options
-    if (!options) {
-      throw new Error('OnshapeClient options are required');
-    }
-    
-    if (!options.baseUrl) {
-      throw new Error('baseUrl is required for OnshapeClient');
-    }
-    
-    if (!options.authManager) {
-      throw new Error('authManager is required for OnshapeClient');
-    }
-    
-    // Initialize properties
-    this.baseUrl = options.baseUrl;
+  constructor(options = {}) {
+    // Use configuration values from the config object, no direct env var access
+    this.baseUrl = options.baseUrl || config.onshape.baseUrl;
+    this.apiUrl = options.apiUrl || config.onshape.apiUrl;
     this.authManager = options.authManager;
-    this.debug = !!options.debug;
-    this.logger = logger.scope('OnshapeClient');
+    this.debug = options.debug || false;
     
-    // Ensure baseUrl doesn't end with a trailing slash
-    if (this.baseUrl.endsWith('/')) {
-      this.baseUrl = this.baseUrl.slice(0, -1);
+    if (!this.authManager) {
+      throw new Error('AuthManager is required');
     }
     
-    this.logger.debug(`OnshapeClient initialized with baseUrl: ${this.baseUrl}`);
+    // Remove trailing slash from URLs if present
+    this.baseUrl = this.baseUrl?.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+    this.apiUrl = this.apiUrl?.endsWith('/') ? this.apiUrl.slice(0, -1) : this.apiUrl;
+    
+    // Validate configuration
+    if (!this.baseUrl) {
+      throw new Error('Base URL is required');
+    }
+    
+    if (!this.apiUrl) {
+      throw new Error('API URL is required');
+    }
   }
   
   /**
@@ -153,7 +150,6 @@ class OnshapeClient {
   async request(method, path, data = null, options = {}) {
     const axios = require('axios');
     const { ApiError } = require('../utils/errors');
-    const config = require('../../config'); // Updated path to the correct location
     
     try {
       // Make sure path has a leading slash
@@ -259,6 +255,74 @@ class OnshapeClient {
       }
     }
     return result;
+  }
+
+  /**
+   * Handle API errors - implementation was missing causing client tests to fail
+   * @param {Error} error - Error object from Axios
+   * @private
+   */
+  _handleError(error) {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // outside the range of 2xx
+      const statusCode = error.response.status;
+      const statusText = error.response.statusText;
+      const data = error.response.data;
+      
+      logger.error(`API Response Error: ${statusCode} for ${error.config?.method?.toUpperCase() || 'unknown'} ${error.config?.url || 'unknown'}`, {
+        statusCode,
+        statusText,
+        data
+      });
+    } else if (error.request) {
+      // The request was made but no response was received
+      logger.error(`API Request Error: No response received for ${error.config?.method?.toUpperCase() || 'unknown'} ${error.config?.url || 'unknown'}`);
+    } else {
+      // Something happened in setting up the request
+      logger.error(`API Error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Build a complete URL from the API URL and path
+   * @param {string} path - API path
+   * @returns {string} - Complete URL
+   * @private
+   */
+  _buildUrl(path) {
+    // Ensure path has leading slash
+    const formattedPath = path.startsWith('/') ? path : '/' + path;
+    
+    // If path already contains /api/, assume it's a full path relative to baseUrl
+    if (formattedPath.includes('/api/')) {
+      return `${this.baseUrl}${formattedPath}`;
+    }
+    
+    // Otherwise, use the apiUrl and append the path
+    return `${this.apiUrl}${formattedPath}`;
+  }
+
+  /**
+   * Serialize parameters for URL
+   * @param {Object} params - Parameters to serialize
+   * @returns {string} - Serialized parameters
+   * @private
+   */
+  _serializeParams(params) {
+    if (!params || Object.keys(params).length === 0) {
+      return '';
+    }
+    
+    return Object.entries(params)
+      .map(([key, value]) => {
+        if (value === undefined || value === null) {
+          return null;
+        }
+        return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+      })
+      .filter(Boolean)
+      .join('&');
   }
 }
 
