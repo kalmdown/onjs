@@ -422,6 +422,37 @@ _initMethod() {
       'Content-Type': contentString ? 'application/json' : undefined
     };
   }
+
+  /**
+   * Get authentication headers for API_KEY authentication method
+   * @private
+   * @returns {Object} Authentication headers
+   */
+  _getApiKeyAuthHeaders() {
+    try {
+      const accessKey = process.env.ONSHAPE_ACCESS_KEY;
+      const secretKey = process.env.ONSHAPE_SECRET_KEY;
+      
+      if (!accessKey || !secretKey) {
+        throw new Error('API key credentials not found in environment variables');
+      }
+      
+      // Create the Basic Auth header exactly as in working direct approach
+      const authStr = `${accessKey}:${secretKey}`;
+      const base64Auth = Buffer.from(authStr).toString('base64');
+      const authHeader = `Basic ${base64Auth}`;
+      
+      // Use lowercase 'accept' to match working direct approach
+      return {
+        'Authorization': authHeader,
+        'accept': 'application/json;charset=UTF-8; qs=0.09',
+        'Content-Type': 'application/json'
+      };
+    } catch (error) {
+      this.logger.error(`Error creating API key auth headers: ${error.message}`);
+      throw error;
+    }
+  }
 }
 
 module.exports = AuthManager;

@@ -4,7 +4,6 @@
 
 import { Selector } from './utils/selector.js';
 import { logInfo, logError, logDebug, logWarn } from './utils/logging.js';
-import { fetchPlanesForPartStudio } from './api.js';
 
 export class PlaneSelector extends Selector {
   constructor() {
@@ -67,15 +66,15 @@ export class PlaneSelector extends Selector {
       console.log(`[DEBUG] Data is an array with ${data.length} planes`);
       planes = data;
     }
-    // If data has a planes property that's an array, use that
-    else if (data && data.planes && Array.isArray(data.planes)) {
-      console.log(`[DEBUG] Data has planes property with ${data.planes.length} planes`);
-      planes = data.planes;
-    }
     // If data has a referencePlanes property that's an array, use that
     else if (data && data.referencePlanes && Array.isArray(data.referencePlanes)) {
       console.log(`[DEBUG] Data has referencePlanes property with ${data.referencePlanes.length} planes`);
       planes = data.referencePlanes;
+    }
+    // If data has features property that's an array, filter for plane features
+    else if (data && data.features && Array.isArray(data.features)) {
+      console.log(`[DEBUG] Data has features property - extracting planes`);
+      planes = this.extractPlanesFromFeatures(data.features);
     }
     // Default to empty array if we can't figure out the format
     else {
@@ -92,6 +91,51 @@ export class PlaneSelector extends Selector {
     return planes.map(plane => ({
       ...plane,
       name: plane.name + (plane.type === 'CUSTOM' ? ' (Custom)' : '')
+    }));
+  }
+
+  /**
+   * Extract plane features from a list of features
+   * @param {Array} features - Features to search
+   * @returns {Array} - Extracted planes
+   */
+  extractPlanesFromFeatures(features) {
+    console.log(`[DEBUG] Extracting planes from ${features?.length || 0} features`);
+    
+    if (!features || !features.length) {
+      console.log(`[DEBUG] No features to extract planes from`);
+      return [];
+    }
+    
+    // Look for plane features using multiple criteria
+    const planeFeatures = features.filter(feature => {
+      // Skip features without required properties
+      if (!feature) return false;
+      
+      const featureType = (feature.featureType || '').toLowerCase();
+      const name = (feature.name || '').toLowerCase();
+      const typeName = (feature.typeName || '').toLowerCase();
+      
+      // Return true for any feature that looks like a plane
+      return featureType.includes('plane') || 
+             typeName.includes('plane') ||
+             name.includes('plane') || 
+             featureType === 'cplane';
+    });
+    
+    console.log(`[DEBUG] Found ${planeFeatures.length} potential plane features`);
+    if (planeFeatures.length > 0) {
+      console.log(`[DEBUG] Plane feature names: ${planeFeatures.map(p => p.name).join(', ')}`);
+    }
+    
+    // Map plane features to the format expected by the UI
+    return planeFeatures.map(feature => ({
+      id: feature.featureId || `plane_${feature.name?.replace(/\s+/g, '_')?.toLowerCase()}`,
+      name: feature.name || 'Unnamed Plane',
+      type: 'CUSTOM',
+      featureId: feature.featureId,
+      featureType: feature.featureType,
+      typeName: feature.typeName
     }));
   }
 
@@ -122,39 +166,51 @@ export class PlaneSelector extends Selector {
       this.workspaceId = workspaceId;
       this.elementId = elementId;
       
-      // Use the API utility with the updated endpoint
-      console.log(`[DEBUG] Calling fetchPlanesForPartStudio API`);
-      let planesData;
+      // Use 'w' as default workspace if null or undefined
+      const wsId = workspaceId || 'w';
       
+      // Create standard planes based on known Onshape plane IDs
+      // Standard planes have permanent IDs:
+      // "JHD" for Top plane
+      // "JHC" for Front plane
+      // "JHF" for Right plane
+      const standardPlanes = [
+        { id: "JHD", name: "TOP", type: "STANDARD", transientId: "TOP" },
+        { id: "JHC", name: "FRONT", type: "STANDARD", transientId: "FRONT" },
+        { id: "JHF", name: "RIGHT", type: "STANDARD", transientId: "RIGHT" }
+      ];
+      
+      console.log(`[DEBUG] Using ${standardPlanes.length} standard planes with known IDs`);
+      
+      // Get custom planes from features endpoint
+      const featuresUrl = `/api/features?documentId=${documentId}&elementId=${elementId}&workspaceId=${wsId}`;
+      console.log(`[DEBUG] Fetching features for custom planes from: ${featuresUrl}`);
+      
+      let customPlanes = [];
       try {
-        planesData = await fetchPlanesForPartStudio(
-          documentId, 
-          workspaceId, 
-          elementId,
-          { includeCustomPlanes: true }
-        );
-        console.log(`[DEBUG] API returned planes data:`, planesData);
-      } catch (apiError) {
-        console.error('[DEBUG] API call failed:', apiError);
-        throw apiError;
+        const featuresResponse = await fetch(featuresUrl);
+        
+        if (featuresResponse.ok) {
+          const featuresData = await featuresResponse.json();
+          console.log(`[DEBUG] Retrieved ${featuresData.features?.length || 0} features`);
+          
+          // Extract custom planes from features
+          customPlanes = this.extractPlanesFromFeatures(featuresData.features || []);
+          console.log(`[DEBUG] Extracted ${customPlanes.length} custom planes from features`);
+        } else {
+          console.warn(`[DEBUG] Features endpoint returned ${featuresResponse.status}`);
+        }
+      } catch (featuresError) {
+        console.error('[DEBUG] Error fetching features:', featuresError);
       }
       
-      // Check for undefined/null result
-      if (!planesData) {
-        console.warn('[DEBUG] API returned undefined/null result');
-        planesData = [];
-      }
+      // Combine standard and custom planes
+      this.planes = [...standardPlanes, ...customPlanes];
       
-      // Process the data to handle different formats
-      console.log('[DEBUG] Processing planes data');
-      this.planes = this.processPlaneData(planesData);
-      
-      console.log(`[DEBUG] Processed ${this.planes.length} planes`);
+      console.log(`[DEBUG] Combined ${this.planes.length} total planes (${standardPlanes.length} standard, ${customPlanes.length} custom)`);
       
       if (this.planes.length) {
         console.log(`[DEBUG] Setting ${this.planes.length} planes in selector`);
-        
-        // Set the items in the selector UI
         this.setItems(this.planes);
         
         // Select the first item if available
@@ -171,24 +227,8 @@ export class PlaneSelector extends Selector {
     } catch (error) {
       console.error(`[DEBUG] Failed to load planes:`, error);
       logError(`Failed to load planes: ${error.message}`);
-      
-      // Create default fallback planes
-      const defaultPlanes = [
-        { id: `${elementId}_JHD`, name: "TOP", type: "STANDARD", transientId: "TOP" },
-        { id: `${elementId}_JFD`, name: "FRONT", type: "STANDARD", transientId: "FRONT" },
-        { id: `${elementId}_JGD`, name: "RIGHT", type: "STANDARD", transientId: "RIGHT" }
-      ];
-      
-      console.log('[DEBUG] Using default planes as fallback', defaultPlanes);
-      
-      this.planes = defaultPlanes;
-      this.setItems(defaultPlanes);
-      
-      if (defaultPlanes.length > 0) {
-        this.selectItem(defaultPlanes[0]);
-      }
-      
-      return defaultPlanes;
+      this.setItems([]);
+      return [];
     } finally {
       this.isLoading = false;
       this.updateUI();
