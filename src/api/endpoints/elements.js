@@ -1,6 +1,7 @@
 // src\api\endpoints\elements.js
 const logger = require('../../utils/logger');
 const { NotFoundError, ValidationError } = require('../../utils/errors');
+const { getOnshapeHeaders } = require('../../utils/api-headers');
 
 /**
  * API endpoints for Onshape elements
@@ -54,9 +55,14 @@ class ElementsApi {
         throw new Error('Client does not have get method');
       }
       
-      // Use correct path format
-      const path = `/documents/d/${documentId}/w/${workspaceId}/elements`;
-      const response = await this.client.get(path);
+      // Use the same path format that's working in planes.js
+      const path = `documents/d/${documentId}/w/${workspaceId}/elements`;
+      
+      this.logger.debug(`Making API request to: ${path}`);
+      
+      const response = await this.client.get(path, {
+        headers: getOnshapeHeaders()
+      });
       
       this.logger.debug(`Retrieved ${response.length || 0} elements`);
       return response;

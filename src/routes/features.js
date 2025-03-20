@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
 const FeaturesApi = require('../api/endpoints/features');
+const { getOnshapeHeaders } = require('../utils/api-headers');
 
 const log = logger.scope('FeaturesRoutes');
 
@@ -49,35 +50,59 @@ module.exports = function(app, auth) {
         });
       }
       
-      // Default to 'w' for main workspace if not specified
-      const wsId = workspaceId || 'w';
+      // Update the workspace ID handling and API path construction
+      // The workspace ID should be a complete ID, not just 'w'
+      // 'w' is a URL segment in Onshape API, not an actual workspace ID
+      let wsId = workspaceId;
+      if (!wsId || wsId === 'w') {
+        // Need to get the default workspace for this document
+        log.debug(`No specific workspace ID provided, fetching default workspace for document: ${documentId}`);
+        
+        // Get the document information which includes workspace data
+        const docResponse = await onshapeClient.get(
+          `documents/${documentId}`, // Remove the 'd/' prefix, as it's already handled by the client
+          {
+            headers: {
+              'accept': 'application/json;charset=UTF-8; qs=0.09'  // Use lowercase 'accept' to match working examples
+            }
+          }
+        );
+        
+        // Extract the default workspace ID
+        if (docResponse && docResponse.defaultWorkspace && docResponse.defaultWorkspace.id) {
+          wsId = docResponse.defaultWorkspace.id;
+          log.debug(`Found default workspace ID: ${wsId}`);
+        } else {
+          // If we can't get the workspace ID, we need to fail properly
+          log.error('Failed to retrieve default workspace ID for document');
+          return res.status(500).json({
+            error: 'Workspace ID error',
+            message: 'Could not determine workspace ID for the document'
+          });
+        }
+      }
       
       log.debug(`Getting features for document: ${documentId}, workspace: ${wsId}, element: ${elementId}`);
       
       try {
-        // Align implementation with successful test file approach
+        // Align implementation with successful cURL example
         log.debug(`Attempting to get features from Onshape API`);
         
-        // Fix the URL format - remove duplicate w/ and e/ segments
-        // Correct format: /api/partstudios/d/{did}/w/{wid}/e/{eid}/features
+        // Update the API path construction to ensure correct format
         const apiPath = `partstudios/d/${documentId}/w/${wsId}/e/${elementId}/features`;
         
-        log.debug(`Making API request to: ${apiPath}`);
+        log.debug(`API request path: ${apiPath}`);
         
-        // Use the exact same parameters as the working test
+        // Use the parameters from the successful cURL example
         const features = await onshapeClient.get(
           apiPath, 
           {
             params: {
-              includeMateFeatures: true,           // Include mate features
-              includeSuppressionState: true,       // Include suppression state
-              includePropertyFeatures: true,       // Include property features
-              featureId: 'all'                     // Get all features
+              rollbackBarIndex: -1,
+              includeGeometryIds: true,
+              noSketchGeometry: false
             },
-            headers: {
-              'Accept': 'application/vnd.onshape.v1.0+json;charset=UTF-8;qs=0.1',
-              'Content-Type': 'application/json'
-            }
+            headers: getOnshapeHeaders()
           }
         );
         
