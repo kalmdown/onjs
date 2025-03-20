@@ -185,72 +185,36 @@ export async function getWorkspaces(documentId) {
 }
 
 /**
- * Fetch all elements for a document with improved error handling
- * 
- * @param {string} documentId Document ID
- * @returns {Promise<Array>} Array of elements
+ * Fetch all elements in a document
+ * @param {string} documentId - The document ID
+ * @returns {Promise<Array>} - The elements in the document
  */
 export async function fetchElementsForDocument(documentId) {
+  logDebug(`API call: fetchElementsForDocument(${documentId})`);
+  
   if (!documentId) {
+    logError('Missing documentId in fetchElementsForDocument');
     throw new Error('Document ID is required');
   }
   
   try {
-    logDebug(`Fetching elements for document ${documentId}`);
-    
-    // Try to get workspaces first
-    let workspaces;
-    try {
-      workspaces = await getWorkspaces(documentId);
-    } catch (wsError) {
-      logError(`Failed to fetch workspaces: ${wsError.message}`);
-      // Generate a default workspace as fallback
-      workspaces = [{ id: 'default', isDefault: true }];
-    }
-    
-    const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
-    
-    if (!defaultWorkspace) {
-      throw new Error('No workspace found for document');
-    }
-    
-    // Now get elements
-    try {
-      const response = await apiCall(`documents/${documentId}/w/${defaultWorkspace.id}/elements`);
-      const elements = response.elements || response;
-      logDebug(`Retrieved ${elements.length} elements for document ${documentId}`);
-      return elements;
-    } catch (elemError) {
-      logError(`Failed to fetch elements: ${elemError.message}`);
-      throw elemError;
-    }
+    // Use the apiCall helper for consistency with other API calls
+    const data = await apiCall(`documents/${documentId}/elements`);
+    logDebug(`fetchElementsForDocument returned ${data?.length || 0} elements`);
+    return data;
   } catch (error) {
-    logError(`Failed to fetch elements for document ${documentId}: ${error.message}`);
-    return [];
+    logError(`Error in fetchElementsForDocument: ${error.message}`);
+    throw error;
   }
-}
-
-/**
- * Legacy version of fetchPlanesForPartStudio (renamed to avoid duplicate declaration)
- * 
- * @param {string} documentId Document ID
- * @param {string} partStudioId Part studio ID
- * @param {boolean} includeCustomPlanes Whether to include custom planes
- * @returns {Promise<Array>} Array of planes
- */
-export async function fetchPlanesLegacy(documentId, partStudioId, includeCustomPlanes = true) {
-  // Forward to the new implementation for backwards compatibility
-  return fetchPlanesForPartStudio(documentId, null, partStudioId, {
-    includeCustomPlanes
-  });
 }
 
 /**
  * Fetches planes for a part studio
  * @param {string} documentId - Document ID
- * @param {string} workspaceId - Workspace ID
+ * @param {string} workspaceId - Workspace ID (optional, will fetch default if not provided)
  * @param {string} elementId - Element ID (part studio)
  * @param {Object} [options] - Additional options
+ * @param {boolean} [options.includeCustomPlanes=true] - Whether to include custom planes
  * @returns {Promise<Array>} List of planes
  */
 export async function fetchPlanesForPartStudio(documentId, workspaceId, elementId, options = {}) {
@@ -297,39 +261,20 @@ export async function fetchPlanesForPartStudio(documentId, workspaceId, elementI
     queryParams.append('includeCustomPlanes', String(includeCustomPlanes));
     
     const fullEndpoint = `${endpoint}?${queryParams.toString()}`;
-    console.log(`[DEBUG] Constructed planes endpoint: ${fullEndpoint}`);
+    logDebug(`Constructed planes endpoint: ${fullEndpoint}`);
     
-    try {
-      const response = await apiCall(fullEndpoint);
-      
-      if (Array.isArray(response)) {
-        const standardCount = response.filter(p => p.type === 'STANDARD').length;
-        const customCount = response.filter(p => p.type === 'CUSTOM').length;
-        logDebug(`Received ${response.length} planes (${standardCount} standard, ${customCount} custom)`);
-      }
-      
-      return response;
-    } catch (apiError) {
-      logError(`API call to planes endpoint failed: ${apiError.message}`);
-      
-      // If the server is unreachable, use fallback planes
-      if (apiError.message && (apiError.message.includes('Network Error') || 
-          apiError.message.includes('CONNECTION_REFUSED'))) {
-        logWarn('Server connection issue, using fallback planes');
-        
-        // Return standard planes as fallback
-        const fallbackPlanes = [
-          { id: `${elementId}_JHD`, name: "TOP", type: "STANDARD", transientId: "TOP" },
-          { id: `${elementId}_JFD`, name: "FRONT", type: "STANDARD", transientId: "FRONT" },
-          { id: `${elementId}_JGD`, name: "RIGHT", type: "STANDARD", transientId: "RIGHT" }
-        ];
-        
-        return fallbackPlanes;
-      }
-      
-      throw apiError;
+    // Make the API call and return the result directly - no fallback
+    const response = await apiCall(fullEndpoint);
+    
+    if (Array.isArray(response)) {
+      const standardCount = response.filter(p => p.type === 'STANDARD').length;
+      const customCount = response.filter(p => p.type === 'CUSTOM').length;
+      logDebug(`Received ${response.length} planes (${standardCount} standard, ${customCount} custom)`);
     }
+    
+    return response;
   } catch (error) {
+    // No fallback - propagate the error so it can be properly handled
     logError(`API error fetching planes: ${error.message}`);
     throw error;
   }

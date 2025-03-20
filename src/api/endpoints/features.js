@@ -52,13 +52,24 @@ class FeaturesApi {
         throw new Error('Client does not have get method');
       }
       
-      // Use correct path format for Onshape API
-      const path = `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`;
+      // Use correct path format without /api/v10 prefix (client adds this)
+      const path = `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`;
+      
       this.logger.debug(`Making API request to: ${path}`);
       
-      const response = await this.client.get(path);
+      // Use the exact query parameters that work from the test
+      const response = await this.client.get(path, {
+        params: {
+          rollbackBarIndex: -1,
+          includeGeometryIds: true,
+          noSketchGeometry: false
+        },
+        headers: {
+          'accept': 'application/json;charset=UTF-8; qs=0.09'
+        }
+      });
       
-      this.logger.debug(`Retrieved ${response.features?.length || 0} features from API`);
+      this.logger.debug(`Retrieved features data from API`);
       return response;
     } catch (error) {
       this.logger.error(`Failed to get features: ${error.message}`, error);

@@ -4,6 +4,7 @@ const router = express.Router();
 const logger = require('../utils/logger');
 const DocumentsApi = require('../api/endpoints/documents');
 const ElementsApi = require('../api/endpoints/elements');
+const { getOnshapeHeaders } = require('../utils/api-headers');
 
 // Create a scoped logger
 const log = logger.scope('DocumentRoutes');
@@ -11,6 +12,8 @@ const log = logger.scope('DocumentRoutes');
 // Export router configuration function
 module.exports = function(app, auth) {
   const { isAuthenticated } = auth;
+
+  log.info('Initializing documents API routes');
 
   /**
    * @route GET /api/documents
@@ -337,6 +340,70 @@ module.exports = function(app, auth) {
     } catch (error) {
       log.error(`Error in test endpoint: ${error.message}`);
       next(error);
+    }
+  });
+
+  /**
+   * @route GET /api/documents/:documentId/elements
+   * @description Get elements in a specific document
+   * @access Private
+   */
+  router.get('/:documentId/elements', isAuthenticated, async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      
+      log.debug(`Getting elements for document: ${documentId}`);
+      
+      const onshapeClient = req.onshapeClient || app.get('onshapeClient');
+      if (!onshapeClient) {
+        log.error('Onshape client not available on request');
+        return res.status(500).json({ error: 'API client not available' });
+      }
+      
+      // Get default workspace for the document
+      log.debug(`Getting default workspace for document: ${documentId}`);
+      
+      // First, get the document info to find the default workspace
+      const docPath = `documents/${documentId}`;
+      
+      log.debug(`Fetching document info from: ${docPath}`);
+      
+      const docResponse = await onshapeClient.get(
+        docPath, 
+        {
+          headers: getOnshapeHeaders()
+        }
+      );
+      
+      if (!docResponse || !docResponse.defaultWorkspace || !docResponse.defaultWorkspace.id) {
+        log.error('Failed to get default workspace for document');
+        return res.status(500).json({
+          error: 'Document error',
+          message: 'Could not determine default workspace for document'
+        });
+      }
+      
+      const workspaceId = docResponse.defaultWorkspace.id;
+      log.debug(`Using default workspace: ${workspaceId}`);
+      
+      // Now get the elements using the workspace ID
+      const elementsPath = `documents/d/${documentId}/w/${workspaceId}/elements`;
+      
+      log.debug(`Fetching elements from: ${elementsPath}`);
+      
+      const elementsResponse = await onshapeClient.get(
+        elementsPath, 
+        {
+          headers: getOnshapeHeaders()
+        }
+      );
+      
+      log.debug(`Retrieved ${elementsResponse?.length || 0} elements from API`);
+      
+      res.json(elementsResponse);
+    } catch (error) {
+      log.error(`Error getting elements: ${error.message}`);
+      res.status(500).json({ error: 'Failed to get elements', message: error.message });
     }
   });
 
