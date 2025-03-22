@@ -183,12 +183,13 @@ app.use((req, res, next) => {
 });
 
 // Mount routes with auth middleware
+app.use('/oauth', authRoutes);
 app.use('/api/auth', require('./src/routes/apiAuthRoutes')(app, auth));
-app.use('/api/documents', require('./src/routes/documents')(app, auth));
-app.use('/api/elements', require('./src/routes/elements')(app, auth));
-app.use('/api/features', require('./src/routes/features')(app, auth));
-app.use('/api/examples', require('./src/routes/examples')(app, auth));
-app.use('/api/planes', require('./src/routes/planes')(app, auth));
+app.use('/api/documents', documentRoutes(app, auth));
+app.use('/api/elements', elementRoutes(app, auth));
+app.use('/api/features', featureRoutes(app, auth));
+app.use('/api/examples', exampleRoutes(app, auth));
+app.use('/api/planes', planesRoutes(app, auth));
 
 // Endpoint to receive client-side logs
 app.post('/api/logs', (req, res) => {

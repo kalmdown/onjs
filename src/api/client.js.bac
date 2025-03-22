@@ -1,0 +1,359 @@
+// src\api\client.js
+const axios = require('axios');
+const crypto = require('crypto'); // Add this import for API key authentication
+const logger = require('../utils/logger');
+const RestClient = require('./rest-client');
+const DocumentsApi = require('./endpoints/documents');
+const config = require('../../config'); // Fix the config import path
+
+/**
+ * Client for making authenticated requests to the Onshape API
+ */
+class OnshapeClient {
+  /**
+   * Constructor for OnshapeClient
+   * @param {Object} options - Client options
+   * @param {string} options.baseUrl - Base URL for Onshape
+   * @param {string} options.apiUrl - API URL including version
+   * @param {AuthManager} options.authManager - Authentication manager
+   * @param {boolean} [options.debug=false] - Enable debug logging
+   */
+  constructor(options = {}) {
+    // Initialize logger first with correct path
+    this.logger = require('../utils/logger').scope('OnshapeClient');
+    
+    // Ensure logger is properly initialized
+    this.logger = options.logger || require('../utils/logger').scope('OnshapeClient');
+    
+    // Store authentication credentials
+    this.accessKey = options.accessKey;
+    this.secretKey = options.secretKey;
+    this.authToken = options.authToken;
+    
+    // Store base URL
+    this.baseUrl = options.baseUrl || process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v10';
+    
+    // Remove trailing slash if present
+    if (this.baseUrl.endsWith('/')) {
+      this.baseUrl = this.baseUrl.slice(0, -1);
+    }
+    
+    // Create axios instance
+    this.client = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    this.logger.debug('OnshapeClient initialized', { 
+      hasAccessKey: !!this.accessKey,
+      hasSecretKey: !!this.secretKey,
+      hasAuthToken: !!this.authToken,
+      baseUrl: this.baseUrl
+    });
+  }
+  
+  /**
+   * Perform a GET request to the Onshape API
+   * @param {string} path - API path
+   * @param {Object} [params={}] - URL query parameters
+   * @returns {Promise<Object>} - API response
+   */
+  async get(path, params = {}) {
+    if (this.logger && this.logger.debug) {
+      this.logger.debug(`GET ${path}`);
+    }
+    
+    const config = {};
+    
+    // Add query parameters if provided
+    if (params && Object.keys(params).length > 0) {
+      config.params = params;
+    }
+    
+    return this.request('get', path, null, config);
+  }
+  
+  /**
+   * Make a POST request
+   * @param {string} path - API path
+   * @param {Object} data - Request body data
+   * @param {Object} [options={}] - Request options
+   * @param {Object} [options.params={}] - URL query parameters
+   * @returns {Promise<Object>} Response data
+   */
+  async post(path, data, config = {}) {
+    // Safely access logger
+    if (this.logger && this.logger.debug) {
+      this.logger.debug(`POST ${path}`);
+    }
+    
+    // Safe logger access
+    const logger = this.logger || console;
+    const logMethod = logger.debug ? 'debug' : 'log';
+    
+    // Log request (safely)
+    try {
+      logger[logMethod](`POST ${path}`, {
+        dataSize: data ? JSON.stringify(data).length : 0,
+        hasConfig: !!config
+      });
+    } catch (logError) {
+      // Fallback if logger fails
+      console.log(`POST ${path} - Logger error: ${logError.message}`);
+    }
+    
+    // Continue with existing request code
+    return this.request('post', path, data, config);
+  }
+  
+  /**
+   * Make a PUT request
+   * @param {string} path - API path
+   * @param {Object} data - Request body data
+   * @param {Object} [options={}] - Request options
+   * @param {Object} [options.params={}] - URL query parameters
+   * @returns {Promise<Object>} Response data
+   */
+  async put(path, data, options = {}) {
+    return this.request('PUT', path, data, options.params || {});
+  }
+  
+  /**
+   * Make a DELETE request
+   * @param {string} path - API path
+   * @param {Object} [options={}] - Request options
+   * @param {Object} [options.params={}] - URL query parameters
+   * @returns {Promise<Object>} Response data
+   */
+  async delete(path, options = {}) {
+    return this.request('DELETE', path, null, options.params || {});
+  }
+  
+  /**
+   * Make a PATCH request
+   * @param {string} path - API path
+   * @param {Object} data - Request body data
+   * @param {Object} [options={}] - Request options
+   * @param {Object} [options.params={}] - URL query parameters
+   * @returns {Promise<Object>} Response data
+   */
+  async patch(path, data, options = {}) {
+    return this.request('PATCH', path, data, options.params || {});
+  }
+  
+  // Update the request method to use the API version from config
+
+  /**
+   * Make a request to the Onshape API
+   * @param {string} method - HTTP method
+   * @param {string} path - API path
+   * @param {Object|null} data - Request body data
+   * @param {Object} [options={}] - Request options
+   * @returns {Promise<Object>} Response data
+   */
+  async request(method, path, data = null, options = {}) {
+    // Safe logger access
+    const log = this.logger || console;
+    const logDebug = log.debug || console.log;
+    const logError = log.error || console.error;
+    
+    // Merge provided config with defaults
+    const requestConfig = {
+      ...options,
+      method,
+      url: path
+    };
+    
+    if (data) {
+      requestConfig.data = data;
+    }
+    
+    // Apply authentication
+    if (!requestConfig.headers) {
+      requestConfig.headers = {};
+    }
+    
+    try {
+      // Apply API key authentication if available
+      if (this.accessKey && this.secretKey) {
+        // Log authentication method for debugging
+        logDebug('Using API key authentication for request');
+        
+        const authHeaders = this.getApiKeyHeaders(method, path, data);
+        requestConfig.headers = {
+          ...requestConfig.headers,
+          ...authHeaders
+        };
+      } 
+      // Apply OAuth token if available
+      else if (this.authToken) {
+        logDebug('Using OAuth token authentication for request');
+        requestConfig.headers.Authorization = `Bearer ${this.authToken}`;
+      } 
+      else {
+        logError('No authentication credentials available for request');
+      }
+      
+      // Make the request
+      const response = await this.client.request(requestConfig);
+      return response.data;
+    } catch (error) {
+      logError(`Request failed: ${error.message}`, {
+        path,
+        method,
+        hasResponse: !!error.response,
+        status: error.response?.status
+      });
+      
+      // Enhanced error handling
+      if (error.response) {
+        const statusCode = error.response.status;
+        const errorMessage = error.response.data?.message || error.response.data?.error || error.message;
+        
+        logError(`API error (${statusCode}): ${errorMessage}`);
+        
+        // Enhance error with response details
+        const enhancedError = new Error(`API error (${statusCode}): ${errorMessage}`);
+        enhancedError.statusCode = statusCode;
+        enhancedError.response = error.response;
+        throw enhancedError;
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * Helper method to sanitize headers for logging (hide sensitive values)
+   * @private
+   */
+  _sanitizeHeadersForLogging(headers) {
+    const result = {};
+    for (const key in headers) {
+      if (key.toLowerCase() === 'authorization') {
+        // Show auth type but hide the actual token
+        const value = headers[key] || '';
+        const parts = value.split(' ');
+        if (parts.length > 1) {
+          result[key] = `${parts[0]} ...`;
+        } else {
+          result[key] = '...';
+        }
+      } else {
+        result[key] = headers[key];
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Handle API errors - implementation was missing causing client tests to fail
+   * @param {Error} error - Error object from Axios
+   * @private
+   */
+  _handleError(error) {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // outside the range of 2xx
+      const statusCode = error.response.status;
+      const statusText = error.response.statusText;
+      const data = error.response.data;
+      
+      logger.error(`API Response Error: ${statusCode} for ${error.config?.method?.toUpperCase() || 'unknown'} ${error.config?.url || 'unknown'}`, {
+        statusCode,
+        statusText,
+        data
+      });
+    } else if (error.request) {
+      // The request was made but no response was received
+      logger.error(`API Request Error: No response received for ${error.config?.method?.toUpperCase() || 'unknown'} ${error.config?.url || 'unknown'}`);
+    } else {
+      // Something happened in setting up the request
+      logger.error(`API Error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Build a complete URL from the API URL and path
+   * @param {string} path - API path
+   * @returns {string} - Complete URL
+   * @private
+   */
+  _buildUrl(path) {
+    // Ensure path has leading slash
+    const formattedPath = path.startsWith('/') ? path : '/' + path;
+    
+    // If path already contains /api/, assume it's a full path relative to baseUrl
+    if (formattedPath.includes('/api/')) {
+      return `${this.baseUrl}${formattedPath}`;
+    }
+    
+    // Otherwise, use the apiUrl and append the path
+    return `${this.apiUrl}${formattedPath}`;
+  }
+
+  /**
+   * Serialize parameters for URL
+   * @param {Object} params - Parameters to serialize
+   * @returns {string} - Serialized parameters
+   * @private
+   */
+  _serializeParams(params) {
+    if (!params || Object.keys(params).length === 0) {
+      return '';
+    }
+    
+    return Object.entries(params)
+      .map(([key, value]) => {
+        if (value === undefined || value === null) {
+          return null;
+        }
+        return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+      })
+      .filter(Boolean)
+      .join('&');
+  }
+
+  /**
+   * Add API key authentication helper
+   * @param {string} method - HTTP method
+   * @param {string} path - API path
+   * @param {Object|null} data - Request body data
+   * @returns {Object} - Authentication headers
+   * @private
+   */
+  getApiKeyHeaders(method, path, data) {
+    if (!this.accessKey || !this.secretKey) {
+      throw new Error('API key and secret are required for API key authentication');
+    }
+    
+    // Get current date in required format
+    const date = new Date().toUTCString();
+    
+    // Build the string to sign
+    const method_upper = method.toUpperCase();
+    const content_type = 'application/json';
+    const content_md5 = data ? crypto.createHash('md5').update(JSON.stringify(data)).digest('base64') : '';
+    const path_with_query = path.includes('?') ? path : path;
+    
+    const stringToSign = [method_upper, content_md5, content_type, date, path_with_query].join('\n').toLowerCase();
+    
+    // Create signature
+    const signature = crypto.createHmac('sha256', this.secretKey)
+      .update(stringToSign)
+      .digest('base64');
+    
+    // Return headers
+    return {
+      'Date': date,
+      'Content-Type': content_type,
+      'Content-MD5': content_md5,
+      'Authorization': `On ${this.accessKey}:${signature}`
+    };
+  }
+}
+
+module.exports = OnshapeClient;

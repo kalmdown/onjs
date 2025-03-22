@@ -1,5 +1,6 @@
+// public/js/examples/cylinder.js
 import { apiCall } from '../api.js';
-import { isAuthenticated } from '../clientAuth.js'; // Add isAuthenticated import
+import { getToken } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logSuccess, logError } from '../utils/logging.js';
 
@@ -9,8 +10,7 @@ import { logInfo, logSuccess, logError } from '../utils/logging.js';
  * This example creates a circle sketch and extrudes it to create a cylinder.
  */
 export async function runExample1() {
-  // Replace token check with more robust authentication check
-  if (!isAuthenticated()) {
+  if (!getToken()) {
     logError('Please authenticate first');
     return;
   }
@@ -71,25 +71,25 @@ export async function runExample1() {
     // Step 5: Create a sketch on the selected plane
     logInfo(`Creating sketch on ${sketchPlane} plane...`);
     const sketchFeature = {
-      btType: 'BTMSketch-151',
-      featureType: 'newSketch',
-      name: 'Base Circle',
-      parameters: [{
-        btType: 'BTMParameterQueryList-148',
-        queries: [{
-          btType: 'BTMIndividualQuery-138',
-          deterministicIds: [sketchPlane]
-        }],
-        parameterId: 'sketchPlane'
-      }]
+      feature: {
+        btType: 'BTMSketch-151',
+        featureType: 'newSketch',
+        name: 'Base Circle',
+        parameters: [{
+          btType: 'BTMParameterEnum-145',
+          value: "TOP", // Use string value for standard plane
+          parameterId: 'sketchPlane'
+        }]
+      }
     };
     
     logInfo(`Sketch feature payload: ${JSON.stringify(sketchFeature)}`);
     
+    // Use the features endpoint to create a sketch
     const sketchFeatureResponse = await apiCall(
-      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`,
+      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}`,
       'POST',
-      { feature: sketchFeature }  // Wrap in the proper "feature" property
+      sketchFeature
     );
     
     const sketchId = sketchFeatureResponse.feature.featureId;
@@ -98,7 +98,7 @@ export async function runExample1() {
     // Step 6: Draw a circle in the sketch
     logInfo('Drawing circle with radius 0.5 inches at origin...');
     await apiCall(
-      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/sketches/${sketchId}/entities`,
+      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/sketches/${sketchId}/entities`,
       'POST',
       {
         type: 'BTMSketchCircle-73',
@@ -111,7 +111,7 @@ export async function runExample1() {
     // Step 7: Close the sketch
     logInfo('Finalizing sketch...');
     await apiCall(
-      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/sketches/${sketchId}`,
+      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/sketches/${sketchId}`,
       'POST',
       { action: 'close' }
     );
@@ -119,54 +119,56 @@ export async function runExample1() {
     // Step 8: Extrude the sketch to create the cylinder
     logInfo('Extruding circle to create cylinder with height 1 inch...');
     const extrudeFeature = {
-      btType: 'BTMFeature-134',
-      name: 'Cylinder Extrude',
-      featureType: 'extrude',
-      parameters: [
-        {
-          btType: 'BTMParameterQueryList-148',
-          queries: [{
-            btType: 'BTMIndividualSketchRegionQuery-140',
-            featureId: sketchId
-          }],
-          parameterId: 'entities'
-        },
-        {
-          btType: 'BTMParameterEnum-145',
-          namespace: '',
-          enumName: 'ExtendedToolBodyType',
-          value: 'SOLID',
-          parameterId: 'bodyType'
-        },
-        {
-          btType: 'BTMParameterEnum-145',
-          namespace: '',
-          enumName: 'NewBodyOperationType',
-          value: 'NEW',
-          parameterId: 'operationType'
-        },
-        {
-          btType: 'BTMParameterEnum-145',
-          namespace: '',
-          enumName: 'BoundingType',
-          value: 'BLIND',
-          parameterId: 'endBound'
-        },
-        {
-          btType: 'BTMParameterQuantity-147',
-          isInteger: false,
-          expression: '1 in',
-          parameterId: 'depth'
-        }
-      ]
+      feature: {
+        btType: 'BTMFeature-134',
+        name: 'Cylinder Extrude',
+        featureType: 'extrude',
+        parameters: [
+          {
+            btType: 'BTMParameterQueryList-148',
+            queries: [{
+              btType: 'BTMIndividualSketchRegionQuery-140',
+              featureId: sketchId
+            }],
+            parameterId: 'entities'
+          },
+          {
+            btType: 'BTMParameterEnum-145',
+            namespace: '',
+            enumName: 'ExtendedToolBodyType',
+            value: 'SOLID',
+            parameterId: 'bodyType'
+          },
+          {
+            btType: 'BTMParameterEnum-145',
+            namespace: '',
+            enumName: 'NewBodyOperationType',
+            value: 'NEW',
+            parameterId: 'operationType'
+          },
+          {
+            btType: 'BTMParameterEnum-145',
+            namespace: '',
+            enumName: 'BoundingType',
+            value: 'BLIND',
+            parameterId: 'endBound'
+          },
+          {
+            btType: 'BTMParameterQuantity-147',
+            isInteger: false,
+            expression: '1 in',
+            parameterId: 'depth'
+          }
+        ]
+      }
     };
     
     logInfo(`Extrude feature payload: ${JSON.stringify(extrudeFeature)}`);
     
     await apiCall(
-      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`,
+      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}`,
       'POST',
-      { feature: extrudeFeature }  // Wrap in the proper "feature" property
+      extrudeFeature
     );
     
     logSuccess('Successfully created cylinder in Onshape!');
@@ -178,5 +180,6 @@ export async function runExample1() {
     
   } catch (error) {
     logError(`Error: ${error.message}`);
-  }
+    console.error('Full error:', error);
 }
+  }

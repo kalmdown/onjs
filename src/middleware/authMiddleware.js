@@ -1,8 +1,8 @@
 // src/middleware/authMiddleware.js
+// src/middleware/authMiddleware.js
 const passport = require('passport');
-const ApiKeyStrategy = require('passport-headerapikey').HeaderAPIKeyStrategy;
-const OnshapeClient = require('../api/client');
 const logger = require('../utils/logger');
+const OnshapeClient = require('../api/client');
 const config = require('../../config');
 
 // Create scoped logger
@@ -10,111 +10,42 @@ const log = logger.scope('AuthMiddleware');
 
 /**
  * Helper function to create Onshape client from request
+ * @param {Object} req - Express request object
+ * @returns {Object} - Onshape API client
  */
-function createClientFromRequest(req) {
-    const logger = require('../utils/logger');
-    const log = logger.scope('AuthMiddleware');
-    
-    // Get the app's config
-    const config = require('../../config');
-    
-    // Get auth manager from app (correctly)
-    const authManager = req.app.get('authManager');
-    
-    if (!authManager) {
-        log.error('Auth manager not available in app context');
-        return null;
-    }
-    
-    // Get auth method from auth manager
-    const authMethod = authManager.getMethod();
-    
-    log.debug(`Using ${authMethod} authentication`);
-    
-    // For API key authentication
-    if (authMethod === 'apikey') {
-        try {
-            // Get API keys from config or auth manager
-            const accessKey = config.onshape.apiKey.accessKey;
-            const secretKey = config.onshape.apiKey.secretKey;
-            
-            if (!accessKey || !secretKey) {
-                log.error('API keys not found in configuration');
-                return null;
-            }
-            
-            // Create OnshapeClient with API keys
-            const OnshapeClient = require('../api/client');
-            return new OnshapeClient({
-                accessKey,
-                secretKey,
-                baseUrl: config.onshape.apiUrl
-            });
-        } catch (error) {
-            log.error(`Error creating client: ${error.message}`, error);
-            return null;
-        }
-    }
-    
-    // Existing OAuth handling
-    
-    if (!authManager) {
-        log.error('No auth manager found in app context');
-        return null;
-    }
-
+const createClientFromRequest = (req) => {
     try {
-        // Get baseUrl from various sources with detailed logging
-        let baseUrl = null;
+        const authManager = req.app.get('authManager');
         
-        // Try to get from config object
-        if (config?.onshape?.baseUrl) {
-            baseUrl = config.onshape.baseUrl;
-            log.debug(`Using baseUrl from config: ${baseUrl}`);
-        } 
-        // Try to get from auth manager
-        else if (authManager.baseUrl) {
-            baseUrl = authManager.baseUrl;
-            log.debug(`Using baseUrl from authManager: ${baseUrl}`);
+        if (!authManager) {
+            log.error('No auth manager found in app context');
+            throw new Error('Authentication manager not available');
         }
+
+        // Get baseUrl from config
+        const baseUrl = config.onshape.baseUrl;
+        const apiUrl = config.onshape.apiUrl;
         
-        // Extended debug logging to diagnose the issue
-        log.debug('Auth configuration debug:', {
-            hasConfig: !!config,
-            hasOnshapeConfig: !!(config && config.onshape),
-            configKeys: config ? Object.keys(config) : [],
-            onshapeConfigKeys: config?.onshape ? Object.keys(config.onshape) : [],
-            configBaseUrl: config?.onshape?.baseUrl || 'undefined',
-            authManagerBaseUrl: authManager.baseUrl || 'undefined',
-            authManagerMethod: authManager.getMethod()
-        });
-        
-        // Validate baseUrl exists and is a non-empty string
-        if (!baseUrl || typeof baseUrl !== 'string' || baseUrl.trim() === '') {
-            log.error('Base URL not found in config or auth manager');
-            log.error('Verify that config.onshape.baseUrl is set correctly');
+        if (!baseUrl) {
+            log.error('Base URL not found in config');
             throw new Error('Base URL is required');
-        }
-        
-        // Trim and normalize the base URL (remove trailing slash if present)
-        baseUrl = baseUrl.trim();
-        if (baseUrl.endsWith('/')) {
-            baseUrl = baseUrl.slice(0, -1);
         }
         
         // Create client with explicit options
         const client = new OnshapeClient({
             baseUrl: baseUrl,
-            authManager: authManager
+            apiUrl: apiUrl,
+            authManager: authManager,
+            debug: process.env.NODE_ENV !== 'production'
         });
         
         log.debug(`Successfully created Onshape client with ${authManager.getMethod()} authentication`);
         return client;
     } catch (error) {
         log.error(`Failed to create Onshape client: ${error.message}`);
-        return null;
+        throw error;
     }
-}
+};
 
 /**
  * Authentication middleware factory
@@ -133,7 +64,6 @@ module.exports = function(app) {
      */
     const isAuthenticated = (req, res, next) => {
         const authManager = req.app.get('authManager');
-        const log = logger.scope('AuthMiddleware');
         
         if (!authManager) {
             log.error('No auth manager found in application');
@@ -160,13 +90,17 @@ module.exports = function(app) {
       
         // Authentication successful, create client for this request
         try {
-            req.onshapeClient = createClientFromRequest(req);
+            // Create a new client for each request
+            const onshapeClient = createClientFromRequest(req);
+            
+            // Explicitly attach the client to the request object
+            req.onshapeClient = onshapeClient;
             
             // Add extra debug info
             log.debug('Client attached to request', {
                 hasClient: !!req.onshapeClient,
-                clientType: req.onshapeClient?.constructor.name,
-                hasGetMethod: typeof req.onshapeClient?.get === 'function'
+                clientType: req.onshapeClient.constructor.name,
+                hasGetMethod: typeof req.onshapeClient.get === 'function'
             });
             
             if (!req.onshapeClient) {
@@ -177,7 +111,7 @@ module.exports = function(app) {
             next();
         } catch (error) {
             log.error(`Error creating client: ${error.message}`);
-            return res.status(500).json({ error: 'Error initializing API client' });
+            return res.status(500).json({ error: 'Error initializing API client: ' + error.message });
         }
     };
 
@@ -185,8 +119,6 @@ module.exports = function(app) {
      * Configure OAuth routes and handlers
      */
     function configureOAuth(authManager) {
-        const config = app.get('config');
-        
         // Login route
         app.get('/oauth/login', (req, res) => {
             if (authManager.getMethod() === 'apikey') {
@@ -239,18 +171,6 @@ module.exports = function(app) {
         });
     }
 
-    // Add this helper method to verify headers are being applied
-    async function testHeaders() {
-        const headers = this.getAuthHeaders('GET', '/documents');
-        log.debug('Generated auth headers:', {
-            hasAuth: !!headers.Authorization,
-            authType: headers.Authorization ? headers.Authorization.split(' ')[0] : 'none',
-            contentType: headers['Content-Type'],
-            accept: headers.Accept
-        });
-        return headers;
-    }
-
     // Add debug endpoint to test client
     app.get('/api/debug/client-test', async (req, res) => {
         try {
@@ -292,7 +212,6 @@ module.exports = function(app) {
     return {
         configureOAuth,
         isAuthenticated,
-        createClientFromRequest,
-        testHeaders
+        createClientFromRequest
     };
 };

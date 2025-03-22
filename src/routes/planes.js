@@ -1,10 +1,7 @@
-/**
- * Planes API route handler
- */
+// src/routes/planes.js
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
-const { getOnshapeHeaders } = require('../utils/api-headers');
 
 const log = logger.scope('PlanesRoutes');
 
@@ -14,95 +11,89 @@ module.exports = function(app, auth) {
   log.info('Initializing planes API routes');
 
   /**
-   * @route GET /:documentId/w/:workspaceId/e/:elementId
+   * @route GET /api/planes/:documentId/w/:workspaceId/e/:elementId
    * @description Get planes for a part studio
    * @access Private
    */
-  router.get('/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res) => {
+  router.get('/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId } = req.params;
+      const includeCustomPlanes = req.query.includeCustomPlanes !== 'false';
       
-      log.debug(`Getting planes for document: ${documentId}, workspace: ${workspaceId}, element: ${elementId}`);
+      log.debug(`Fetching planes for document=${documentId}, workspace=${workspaceId}, element=${elementId}`, {
+        includeCustomPlanes
+      });
       
-      const onshapeClient = req.onshapeClient || app.get('onshapeClient');
-      if (!onshapeClient) {
-        log.error('Onshape client not available on request');
+      if (!req.onshapeClient) {
         return res.status(500).json({ error: 'API client not available' });
       }
-      
-      // Create standard planes based on known IDs
+
+      // First prepare standard planes as a fallback in case the API call fails
       const standardPlanes = [
         { id: "JHD", name: "TOP", type: "STANDARD", transientId: "TOP" },
-        { id: "JHC", name: "FRONT", type: "STANDARD", transientId: "FRONT" },
-        { id: "JHF", name: "RIGHT", type: "STANDARD", transientId: "RIGHT" }
+        { id: "JFD", name: "FRONT", type: "STANDARD", transientId: "FRONT" },
+        { id: "JGF", name: "RIGHT", type: "STANDARD", transientId: "RIGHT" }
       ];
       
-      // Always fetch custom planes
-      let customPlanes = [];
       try {
-        // The client is not automatically applying the API base URL
-        // Use the correct endpoint format for features without duplicating "/api/v10"
-        const featuresPath = `partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`;
+        // Try the direct API path for fetching planes
+        // Using the proper API path format: /api/partstudios/d/{did}/w/{wid}/e/{eid}/planes
+        const path = `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/referencefeatures`;
+        const queryParams = { includeCustomPlanes };
         
-        log.debug(`Fetching features from: ${featuresPath}`);
+        log.debug(`Making API request to: ${path}`);
+        const planesResponse = await req.onshapeClient.get(path, { params: queryParams });
         
-        // Use the exact query parameters that work in the test file
-        const featuresResponse = await onshapeClient.get(
-          featuresPath, 
-          {
-            params: {
-              rollbackBarIndex: -1,
-              includeGeometryIds: true,
-              noSketchGeometry: false,
-              featureId: 'all'  // Add this parameter to ensure all features are returned
-            },
-            headers: getOnshapeHeaders()
-          }
-        );
+        if (!planesResponse) {
+          log.warn('No planes returned from API, using standard planes');
+          return res.json(standardPlanes);
+        }
         
-        // Extract features from response
-        const features = featuresResponse.features || [];
+        // Handle different response formats from the API
+        let planes;
         
-        log.debug(`Retrieved ${features.length} features from API`);
-        
-        // Filter for plane features
-        customPlanes = features.filter(feature => {
-          // Check in various properties
-          const featureType = (feature.featureType || feature.type || '').toLowerCase();
-          const name = (feature.name || '').toLowerCase();
+        if (Array.isArray(planesResponse)) {
+          // Direct array of planes
+          planes = planesResponse;
+        } else if (planesResponse.referencePlanes) {
+          // Reference planes in an object
+          planes = planesResponse.referencePlanes;
+        } else if (planesResponse.features) {
+          // Features list - extract plane features
+          const planeFeatures = planesResponse.features.filter(feature => {
+            return feature.message?.planeName || 
+                 feature.message?.name?.toLowerCase().includes('plane') ||
+                 feature.name?.toLowerCase().includes('plane');
+          });
           
-          return featureType.includes('plane') || 
-                 featureType === 'cplane' ||
-                 name.includes('plane') || 
-                 name.includes('planar');
-        }).map(feature => ({
-          id: feature.featureId || `plane_${feature.name?.replace(/\s+/g, '_')?.toLowerCase()}`,
-          name: feature.name || 'Unnamed Plane',
-          type: 'CUSTOM',
-          featureId: feature.featureId,
-          featureType: feature.featureType
-        }));
+          planes = planeFeatures.map(feature => ({
+            id: feature.featureId,
+            name: feature.message?.planeName || feature.message?.name || feature.name,
+            type: 'CUSTOM',
+            transientId: feature.featureId
+          }));
+          
+          // Add standard planes
+          planes = [...standardPlanes, ...planes];
+        } else {
+          // If response format is unrecognized, fall back to standard planes
+          log.warn('Unknown planes response format, using standard planes');
+          planes = standardPlanes;
+        }
         
-        log.info(`Found ${customPlanes.length} custom planes in features`);
-      } catch (featuresError) {
-        log.error(`Failed to get features: ${featuresError.message}`);
-        // Continue with standard planes even if custom planes fail
+        log.debug(`Returning ${planes.length} planes`);
+        return res.json(planes);
+      } catch (error) {
+        log.error(`Failed to get planes from API: ${error.message}`);
+        
+        // Fall back to standard planes on error
+        return res.json(standardPlanes);
       }
-      
-      // Combine planes
-      const allPlanes = [...standardPlanes, ...customPlanes];
-      
-      log.info(`Returning ${allPlanes.length} planes (${standardPlanes.length} standard, ${customPlanes.length} custom)`);
-      
-      res.json(allPlanes);
     } catch (error) {
-      log.error(`Error getting planes: ${error.message}`);
-      res.status(500).json({ error: 'Failed to get planes', message: error.message });
+      log.error(`Error in planes route: ${error.message}`);
+      next(error);
     }
   });
-
-  // Add this before returning the router
-  router.source = __filename;
 
   return router;
 };
