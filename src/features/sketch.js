@@ -1,4 +1,4 @@
-// src\features\sketch.js
+// src/features/sketch.js
 /**
  * Interface to the Sketch Feature
  */
