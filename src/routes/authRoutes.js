@@ -239,10 +239,15 @@ router.get("/status", (req, res) => {
   });
 });
 
+// Add this at the end of the file before the conditional export
+router.source = __filename;
+
 // Export either the OAuth routes or fallback routes
 if (config.onshape.clientId && config.onshape.clientSecret) {
   module.exports = router;
 } else {
   log.warn('Using fallback auth routes since OAuth is not configured');
-  module.exports = createFallbackAuthRoutes();
+  const fallbackRouter = createFallbackAuthRoutes();
+  fallbackRouter.source = __filename + ' (fallback)';
+  module.exports = fallbackRouter;
 }

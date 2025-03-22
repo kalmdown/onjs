@@ -12,12 +12,14 @@ class FeaturesApi {
    */
   constructor(client) {
     if (!client) {
-      throw new Error('Onshape client is required');
+      throw new Error('OnshapeClient is required for FeaturesApi');
     }
-    this.client = client;
-    this.logger = logger.scope('FeaturesApi');
     
-    // Log client capabilities for debugging
+    this.client = client;
+    
+    // Ensure logger is available
+    this.logger = require('../../utils/logger').scope('FeaturesApi');
+    
     this.logger.debug('FeaturesApi initialized', {
       clientType: this.client.constructor.name,
       hasGetMethod: typeof this.client.get === 'function'
@@ -79,41 +81,77 @@ class FeaturesApi {
 
   /**
    * Add a feature to a part studio
-   * 
-   * @param {string} documentId - Document ID
-   * @param {Object} wvm - Workspace/version/microversion identifier
-   * @param {string} elementId - Element ID (part studio)
-   * @param {Object} feature - Feature definition
-   * @returns {Promise<Object>} - Added feature result
+   * @param {string} documentId Document ID
+   * @param {object} wvm Workspace/version/microversion object
+   * @param {string} elementId Element ID
+   * @param {object} featureData Feature data
+   * @returns {Promise<object>} Feature creation response
    */
-  async addFeature(documentId, wvm, elementId, feature) {
-    if (!documentId || !wvm || !elementId) {
-      throw new ValidationError('Document ID, workspace/version/microversion, and element ID are required');
+  async addFeature(documentId, wvm, elementId, featureData) {
+    if (!documentId) {
+      throw new ValidationError('Document ID is required');
     }
-
-    if (!feature) {
-      throw new ValidationError('Feature definition is required');
+    
+    if (!wvm || !wvm.wvm || !wvm.wvmid) {
+      throw new ValidationError('Workspace/version/microversion is required');
     }
-
+    
+    if (!elementId) {
+      throw new ValidationError('Element ID is required');
+    }
+    
+    if (!featureData) {
+      throw new ValidationError('Feature data is required');
+    }
+    
+    const wvmType = wvm.wvm;
+    const wvmId = wvm.wvmid;
+    
     try {
-      // Construct WVM path segment
-      const wvmType = wvm.wvm || 'w';
-      const wvmId = wvm.wvmid || wvm.workspaceId || wvm.versionId || wvm.microversionId;
-      
-      if (!wvmId) {
-        throw new ValidationError('Invalid WVM identifier: missing ID');
-      }
-      
+      // Build the API path for the feature endpoint
       const path = `/partstudios/d/${documentId}/${wvmType}/${wvmId}/e/${elementId}/features`;
       
-      this.logger.debug(`Adding feature to part studio ${elementId}`);
-      const response = await this.client.post(path, feature);
+      // Ensure feature data is correctly formatted
+      // Onshape expects a specific structure with a feature property
+      const requestData = featureData.feature ? featureData : { feature: featureData };
       
-      this.logger.debug(`Added feature: ${response.feature?.featureId || 'unknown'}`);
+      this.logger.debug(`Adding feature to ${path}`, { 
+        documentId, 
+        wvmType, 
+        wvmId, 
+        elementId, 
+        featureType: requestData.feature.featureType || 'unknown' 
+      });
+      
+      // Verify client has post method before calling
+      if (typeof this.client.post !== 'function') {
+        throw new Error('Client does not support POST method');
+      }
+      
+      // Make the API call
+      const response = await this.client.post(path, requestData);
+      
+      this.logger.debug('Feature added successfully');
       return response;
     } catch (error) {
-      this.logger.error(`Failed to add feature: ${error.message}`, error);
-      throw error;
+      // Enhanced error handling
+      const errorDetails = {
+        message: error.message || 'Unknown error',
+        hasResponse: !!error.response,
+        statusCode: error.response?.status || 'N/A',
+        responseData: error.response?.data || null,
+        stack: error.stack
+      };
+      
+      this.logger.error(`Failed to add feature: ${errorDetails.message}`, errorDetails);
+      
+      // Rethrow with more context
+      const enhancedError = new Error(`Failed to add feature: ${errorDetails.message}`);
+      enhancedError.details = errorDetails;
+      enhancedError.originalError = error;
+      enhancedError.statusCode = errorDetails.statusCode !== 'N/A' ? errorDetails.statusCode : 500;
+      
+      throw enhancedError;
     }
   }
 

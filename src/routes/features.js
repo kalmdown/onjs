@@ -167,6 +167,68 @@ module.exports = function(app, auth) {
     }
   });
 
+  // Remove the existing POST endpoint and replace with one that matches what the client expects
+  router.post('/documents/:documentId/w/:workspaceId/elements/:elementId/features', 
+    isAuthenticated, 
+    async (req, res) => {
+      try {
+        const { documentId, workspaceId, elementId } = req.params;
+        
+        log.debug(`Creating feature in document: ${documentId}, workspace: ${workspaceId}, element: ${elementId}`);
+        
+        // Get Onshape client from request or app
+        const onshapeClient = req.onshapeClient || app.get('onshapeClient');
+        
+        if (!onshapeClient) {
+          log.error('onshapeClient is not available - cannot make API call');
+          return res.status(500).json({ 
+            error: 'Server configuration error',
+            message: 'API client is not properly configured'
+          });
+        }
+        
+        // Create a new instance of the FeaturesApi with the client
+        const featuresApi = new FeaturesApi(onshapeClient);
+        
+        // Construct the WVM object expected by addFeature
+        const wvm = {
+          wvm: 'w',
+          wvmid: workspaceId
+        };
+        
+        log.debug(`Sending feature data to Onshape API: ${JSON.stringify(req.body)}`);
+        
+        // Call the addFeature method from the API endpoints class
+        const response = await featuresApi.addFeature(documentId, wvm, elementId, req.body);
+        
+        log.debug(`Feature created successfully`);
+        res.status(200).json(response);
+      } catch (error) {
+        log.error(`Error creating feature: ${error.message}`);
+        
+        // Add detailed error diagnostics
+        if (error.response) {
+          log.debug(`API Response Status: ${error.response.status}`);
+          log.debug(`API Response Data: ${JSON.stringify(error.response.data || {})}`);
+          
+          const statusCode = error.response.status || 500;
+          const errorData = error.response.data || {};
+          
+          return res.status(statusCode).json({
+            error: 'Onshape API error',
+            message: errorData.message || error.message,
+            details: errorData
+          });
+        }
+        
+        res.status(500).json({ 
+          error: 'Failed to create feature', 
+          message: error.message 
+        });
+      }
+    }
+  );
+
   // Update the debug endpoint to check both locations
   router.get('/debug', (req, res) => {
     const requestClient = req.onshapeClient;
@@ -190,5 +252,51 @@ module.exports = function(app, auth) {
     });
   });
 
+  // Add a debug endpoint to test client functionality in isolation
+  router.get('/test-client', isAuthenticated, async (req, res) => {
+    const onshapeClient = req.onshapeClient || app.get('onshapeClient');
+    
+    if (!onshapeClient) {
+      return res.status(500).json({ error: 'No client available' });
+    }
+    
+    try {
+      // Test a simple GET request
+      const testPath = '/documents';
+      log.debug(`Testing client with GET request to ${testPath}`);
+      const getResult = await onshapeClient.get(testPath);
+      
+      // Test a POST request with minimal data
+      const testPostPath = '/documents';
+      const testData = { name: 'Test Document' };
+      log.debug(`Testing client with POST request to ${testPostPath}`);
+      let postResult;
+      try {
+        postResult = await onshapeClient.post(testPostPath, testData);
+      } catch (postError) {
+        log.error('POST test failed:', postError);
+        postResult = { error: postError.message };
+      }
+      
+      res.json({
+        clientType: onshapeClient.constructor.name,
+        clientMethods: Object.keys(onshapeClient).filter(k => typeof onshapeClient[k] === 'function'),
+        getTestSuccess: !!getResult,
+        getTestResultKeys: getResult ? Object.keys(getResult) : [],
+        postTestResult: postResult
+      });
+    } catch (error) {
+      log.error('Client test failed:', error);
+      res.status(500).json({
+        error: 'Client test failed',
+        message: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // Add this before returning the router
+  router.source = __filename;
+  
   return router;
 };

@@ -1,5 +1,5 @@
 import { apiCall } from '../api.js';
-import { getToken } from '../clientAuth.js';
+import { isAuthenticated } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logSuccess, logError } from '../utils/logging.js';
 
@@ -11,12 +11,13 @@ import { logInfo, logSuccess, logError } from '../utils/logging.js';
  * 2. Creating a second circle sketch on the top face of the cylinder
  * 3. Cutting into the cylinder to create the cup hollow
  */
-export async function runExample3() {
-  if (!getToken()) {
+export async function runExample2() {
+  // Replace token check with more robust authentication check
+  if (!isAuthenticated()) {
     logError('Please authenticate first');
     return;
   }
-  
+
   logInfo('Running Example 3: Create a Cup');
   
   try {

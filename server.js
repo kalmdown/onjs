@@ -385,6 +385,140 @@ app.use((err, req, res, next) => {
 const serverPort = config?.server?.port || parseInt(process.env.PORT, 10) || 3000;
 app.set('port', serverPort);
 
+// Add after all routes are registered, before starting the server
+console.log('\n=== REGISTERED ROUTES ===');
+const getFileInfo = () => {
+  const stack = new Error().stack;
+  const stackLines = stack.split('\n');
+  // Look for the first line that isn't in server.js
+  for (let i = 3; i < stackLines.length; i++) {
+    const line = stackLines[i].trim();
+    if (line.includes('(') && line.includes(')') && !line.includes('server.js')) {
+      const fileInfo = line.substring(line.indexOf('(') + 1, line.indexOf(')'));
+      return fileInfo;
+    }
+  }
+  return 'unknown source';
+};
+
+// Create a map to store route registration sources
+const routeSources = new Map();
+
+// Function to collect route sources
+const collectRouteSources = () => {
+  const routes = [];
+  
+  app._router.stack.forEach(function(middleware){
+    if (middleware.route) {
+      // This is a direct route on the app
+      const path = middleware.route.path;
+      const methods = Object.keys(middleware.route.methods).join(',').toUpperCase();
+      
+      // Fix: Check for source property explicitly and use a string fallback
+      let source = 'server.js';
+      if (middleware.route.source && typeof middleware.route.source === 'string') {
+        source = middleware.route.source;
+      }
+      
+      routes.push(`[APP] ${methods} ${path}`);
+      routeSources.set(`[APP] ${methods} ${path}`, source);
+    } else if (middleware.name === 'router') {
+      // This is a router middleware
+      middleware.handle.stack.forEach(function(handler){
+        if (handler.route) {
+          const path = handler.route.path;
+          const mount = middleware.regexp.toString().replace('/^\\', '').replace('\\/?(?=\\/|$)/i', '');
+          const mountPath = mount === '(?:/(?=\\/|$))?' ? '' : mount.replace(/\\/g, '');
+          const fullPath = `${mountPath}${path}`;
+          const methods = Object.keys(handler.route.methods).join(',').toUpperCase();
+          
+          // Try to determine the source
+          let source = 'unknown';
+          if (middleware.handle.source && typeof middleware.handle.source === 'string') {
+            source = middleware.handle.source;
+          } else if (handler.route.source && typeof handler.route.source === 'string') {
+            source = handler.route.source;
+          } else {
+            // Look at the registration pattern to guess the source
+            const mountPathClean = mountPath.replace(/\//g, '');
+            if (mountPathClean.startsWith('api')) {
+              // Extract the API route name
+              const routeName = mountPathClean.replace('api', '');
+              if (routeName) {
+                source = `src/routes/${routeName}.js`;
+              }
+            }
+          }
+          
+          routes.push(`[ROUTE] ${methods} ${fullPath}`);
+          routeSources.set(`[ROUTE] ${methods} ${fullPath}`, source);
+        }
+      });
+    }
+  });
+  
+  return routes;
+};
+
+// Add after all routes are registered, before the collectRouteSources function
+
+// Define colors for HTTP methods
+const colors = {
+  GET: '\x1b[38;2;97;175;254m',    // #61affe (blue)
+  POST: '\x1b[38;2;73;204;144m',   // #49cc90 (green)
+  DELETE: '\x1b[38;2;249;62;62m',  // #f93e3e (red)
+  reset: '\x1b[0m',                // Reset to default color
+  dim: '\x1b[2m'                   // Dim text (reduce brightness)
+};
+
+// Function to colorize HTTP method
+const colorizeMethod = (method) => {
+  const methodColor = colors[method] || '\x1b[0m';
+  return `${methodColor}${method}${colors.reset}`;
+};
+
+// Function to dim source paths (reduce brightness)
+const dimText = (text) => {
+  return `${colors.dim}${text}${colors.reset}`;
+};
+
+// Only display routes if ROUTE_LOGGING is enabled
+const routeLoggingEnabled = process.env.ROUTE_LOGGING === 'true';
+
+if (routeLoggingEnabled) {
+  console.log('\n=== REGISTERED ROUTES ===');
+  
+  // Collect and display all routes
+  const routes = collectRouteSources();
+  routes.sort().forEach(route => {
+    // Extract method from route string
+    const methodMatch = route.match(/\[(APP|ROUTE)\] ([A-Z,]+) /);
+    if (methodMatch) {
+      const routeType = methodMatch[1];
+      const methods = methodMatch[2].split(',');
+      
+      // Colorize each method
+      const colorizedMethods = methods.map(method => colorizeMethod(method)).join(',');
+      
+      // Replace original methods with colorized ones
+      const colorizedRoute = route.replace(methodMatch[2], colorizedMethods);
+      
+      // Get and dim the source path
+      const source = routeSources.get(route);
+      const dimmedSource = dimText(source);
+      
+      console.log(`${colorizedRoute} - ${dimmedSource}`);
+    } else {
+      // Fallback for routes that don't match the expected pattern
+      const source = routeSources.get(route);
+      console.log(`${route} - ${dimText(source)}`);
+    }
+  });
+  console.log('=========================\n');
+} else {
+  console.log('Route logging disabled. Enable by setting ROUTE_LOGGING=true in .env');
+}
+
 // When starting the server
 app.listen(serverPort, () => {
   logger.info(`[Server] Server running at http://localhost:${serverPort}`);

@@ -285,5 +285,7 @@ module.exports = function(app, auth) {
     res.json(results);
   });
 
+  router.source = __filename;
+  
   return router;
 };

@@ -3,6 +3,7 @@ const passport = require('passport');
 const ApiKeyStrategy = require('passport-headerapikey').HeaderAPIKeyStrategy;
 const OnshapeClient = require('../api/client');
 const logger = require('../utils/logger');
+const config = require('../../config');
 
 // Create scoped logger
 const log = logger.scope('AuthMiddleware');
@@ -10,9 +11,52 @@ const log = logger.scope('AuthMiddleware');
 /**
  * Helper function to create Onshape client from request
  */
-const createClientFromRequest = (req) => {
+function createClientFromRequest(req) {
+    const logger = require('../utils/logger');
+    const log = logger.scope('AuthMiddleware');
+    
+    // Get the app's config
+    const config = require('../../config');
+    
+    // Get auth manager from app (correctly)
     const authManager = req.app.get('authManager');
-    const config = req.app.get('config');
+    
+    if (!authManager) {
+        log.error('Auth manager not available in app context');
+        return null;
+    }
+    
+    // Get auth method from auth manager
+    const authMethod = authManager.getMethod();
+    
+    log.debug(`Using ${authMethod} authentication`);
+    
+    // For API key authentication
+    if (authMethod === 'apikey') {
+        try {
+            // Get API keys from config or auth manager
+            const accessKey = config.onshape.apiKey.accessKey;
+            const secretKey = config.onshape.apiKey.secretKey;
+            
+            if (!accessKey || !secretKey) {
+                log.error('API keys not found in configuration');
+                return null;
+            }
+            
+            // Create OnshapeClient with API keys
+            const OnshapeClient = require('../api/client');
+            return new OnshapeClient({
+                accessKey,
+                secretKey,
+                baseUrl: config.onshape.apiUrl
+            });
+        } catch (error) {
+            log.error(`Error creating client: ${error.message}`, error);
+            return null;
+        }
+    }
+    
+    // Existing OAuth handling
     
     if (!authManager) {
         log.error('No auth manager found in app context');
@@ -70,7 +114,7 @@ const createClientFromRequest = (req) => {
         log.error(`Failed to create Onshape client: ${error.message}`);
         return null;
     }
-};
+}
 
 /**
  * Authentication middleware factory

@@ -101,5 +101,8 @@ module.exports = function(app, auth) {
     }
   });
 
+  // Add this before returning the router
+  router.source = __filename;
+
   return router;
 };
