@@ -4,7 +4,6 @@
 
 import { Selector } from './utils/selector.js';
 import { logInfo, logError, logDebug, logWarn } from './utils/logging.js';
-import { apiCall } from './api.js';
 
 export class PlaneSelector extends Selector {
   constructor() {
@@ -115,9 +114,13 @@ export class PlaneSelector extends Selector {
       
       const featureType = (feature.featureType || '').toLowerCase();
       const name = (feature.name || '').toLowerCase();
+      const typeName = (feature.typeName || '').toLowerCase();
+      
+      // Return true for any feature that looks like a plane
       return featureType.includes('plane') || 
-             featureType === 'cplane' ||
-             name.includes('plane');
+             typeName.includes('plane') ||
+             name.includes('plane') || 
+             featureType === 'cplane';
     });
     
     console.log(`[DEBUG] Found ${planeFeatures.length} potential plane features`);
@@ -131,7 +134,8 @@ export class PlaneSelector extends Selector {
       name: feature.name || 'Unnamed Plane',
       type: 'CUSTOM',
       featureId: feature.featureId,
-      featureType: feature.featureType
+      featureType: feature.featureType,
+      typeName: feature.typeName
     }));
   }
 
@@ -165,8 +169,11 @@ export class PlaneSelector extends Selector {
       // Use 'w' as default workspace if null or undefined
       const wsId = workspaceId || 'w';
       
-      // Create standard planes based on known IDs
-      // Standard planes have permanent IDs in every part studio
+      // Create standard planes based on known Onshape plane IDs
+      // Standard planes have permanent IDs:
+      // "JHD" for Top plane
+      // "JHC" for Front plane
+      // "JHF" for Right plane
       const standardPlanes = [
         { id: "JHD", name: "TOP", type: "STANDARD", transientId: "TOP" },
         { id: "JHC", name: "FRONT", type: "STANDARD", transientId: "FRONT" },
@@ -175,59 +182,32 @@ export class PlaneSelector extends Selector {
       
       console.log(`[DEBUG] Using ${standardPlanes.length} standard planes with known IDs`);
       
-      // Get custom planes from planes endpoint - USE CORRECT ENDPOINT
+      // Get custom planes from features endpoint
+      const featuresUrl = `/api/features?documentId=${documentId}&elementId=${elementId}&workspaceId=${wsId}`;
+      console.log(`[DEBUG] Fetching features for custom planes from: ${featuresUrl}`);
+      
+      let customPlanes = [];
       try {
-        // Use the correct format - use the planes endpoint directly
-        const planesUrl = `planes/${documentId}/w/${wsId}/e/${elementId}`;
-        console.log(`[DEBUG] Fetching planes from: ${planesUrl}`);
+        const featuresResponse = await fetch(featuresUrl);
         
-        const planesResponse = await apiCall(planesUrl);
-        
-        // Process the response to extract planes
-        let customPlanes = [];
-        
-        if (Array.isArray(planesResponse)) {
-          // Direct array of planes
-          customPlanes = planesResponse.filter(plane => plane.type === 'CUSTOM');
-        } else if (planesResponse && planesResponse.length > 0) {
-          // Other format - try to extract planes
-          customPlanes = this.processPlaneData(planesResponse).filter(plane => plane.type === 'CUSTOM');
-        }
-        
-        console.log(`[DEBUG] Retrieved ${customPlanes.length} custom planes`);
-        
-        // Combine standard and custom planes
-        this.planes = [...standardPlanes, ...customPlanes];
-      } catch (planesError) {
-        console.warn('[DEBUG] Planes endpoint failed, falling back to features endpoint');
-        
-        // Try to get planes from features API as a fallback
-        try {
-          // Format URL for features endpoint (different path pattern)
-          const featuresUrl = `features/${documentId}/w/${wsId}/e/${elementId}`;
-          console.log(`[DEBUG] Fetching features from: ${featuresUrl}`);
+        if (featuresResponse.ok) {
+          const featuresData = await featuresResponse.json();
+          console.log(`[DEBUG] Retrieved ${featuresData.features?.length || 0} features`);
           
-          const featuresResponse = await apiCall(featuresUrl);
-          
-          if (featuresResponse && featuresResponse.features) {
-            // Extract custom planes from features
-            const customPlanes = this.extractPlanesFromFeatures(featuresResponse.features);
-            console.log(`[DEBUG] Extracted ${customPlanes.length} custom planes from features`);
-            
-            // Combine with standard planes
-            this.planes = [...standardPlanes, ...customPlanes];
-          } else {
-            console.log('[DEBUG] Features endpoint did not return valid data');
-            this.planes = standardPlanes;
-          }
-        } catch (featuresError) {
-          console.log('[DEBUG] Features endpoint returned error:', featuresError.message);
-          // Fall back to just standard planes
-          this.planes = standardPlanes;
+          // Extract custom planes from features
+          customPlanes = this.extractPlanesFromFeatures(featuresData.features || []);
+          console.log(`[DEBUG] Extracted ${customPlanes.length} custom planes from features`);
+        } else {
+          console.warn(`[DEBUG] Features endpoint returned ${featuresResponse.status}`);
         }
+      } catch (featuresError) {
+        console.error('[DEBUG] Error fetching features:', featuresError);
       }
       
-      console.log(`[DEBUG] Combined ${this.planes.length} total planes (${standardPlanes.length} standard, ${this.planes.length - standardPlanes.length} custom)`);
+      // Combine standard and custom planes
+      this.planes = [...standardPlanes, ...customPlanes];
+      
+      console.log(`[DEBUG] Combined ${this.planes.length} total planes (${standardPlanes.length} standard, ${customPlanes.length} custom)`);
       
       if (this.planes.length) {
         console.log(`[DEBUG] Setting ${this.planes.length} planes in selector`);

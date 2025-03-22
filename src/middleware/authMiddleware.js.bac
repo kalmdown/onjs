@@ -1,8 +1,8 @@
-// src/middleware/authMiddleware.js
-// src/middleware/authMiddleware.js
+// src/middleware/authMiddleware.js.bac
 const passport = require('passport');
-const logger = require('../utils/logger');
+const ApiKeyStrategy = require('passport-headerapikey').HeaderAPIKeyStrategy;
 const OnshapeClient = require('../api/client');
+const logger = require('../utils/logger');
 const config = require('../../config');
 
 // Create scoped logger
@@ -10,42 +10,72 @@ const log = logger.scope('AuthMiddleware');
 
 /**
  * Helper function to create Onshape client from request
- * @param {Object} req - Express request object
- * @returns {Object} - Onshape API client
  */
-const createClientFromRequest = (req) => {
-    try {
-        const authManager = req.app.get('authManager');
-        
-        if (!authManager) {
-            log.error('No auth manager found in app context');
-            throw new Error('Authentication manager not available');
-        }
-
-        // Get baseUrl from config
-        const baseUrl = config.onshape.baseUrl;
-        const apiUrl = config.onshape.apiUrl;
-        
-        if (!baseUrl) {
-            log.error('Base URL not found in config');
-            throw new Error('Base URL is required');
-        }
-        
-        // Create client with explicit options
-        const client = new OnshapeClient({
-            baseUrl: baseUrl,
-            apiUrl: apiUrl,
-            authManager: authManager,
-            debug: process.env.NODE_ENV !== 'production'
-        });
-        
-        log.debug(`Successfully created Onshape client with ${authManager.getMethod()} authentication`);
-        return client;
-    } catch (error) {
-        log.error(`Failed to create Onshape client: ${error.message}`);
-        throw error;
+function createClientFromRequest(req) {
+    const log = logger.scope('AuthMiddleware');
+    
+    // Get auth manager from app
+    const authManager = req.app.get('authManager');
+    
+    if (!authManager) {
+        log.error('Auth manager not available in app context');
+        return null;
     }
-};
+    
+    // Get auth method from auth manager
+    const authMethod = authManager.getMethod();
+    
+    log.debug(`Using ${authMethod} authentication`);
+    
+    try {
+        // For API key authentication
+        if (authMethod === 'apikey') {
+            // Get API keys from config
+            const accessKey = config.onshape.apiKey.accessKey;
+            const secretKey = config.onshape.apiKey.secretKey;
+            const apiUrl = config.onshape.apiUrl;
+            
+            if (!accessKey || !secretKey) {
+                log.error('API keys not found in configuration');
+                return null;
+            }
+            
+            // Create OnshapeClient with API keys
+            return new OnshapeClient({
+                accessKey,
+                secretKey,
+                baseUrl: apiUrl,
+                logger: log
+            });
+        } 
+        // For OAuth authentication
+        else if (authMethod === 'oauth') {
+            // Get baseUrl from config
+            const baseUrl = config.onshape.apiUrl || 'https://cad.onshape.com/api/v6';
+            
+            // Get auth token from session
+            const authToken = req.session?.oauthToken;
+            
+            if (!authToken) {
+                log.error('No OAuth token found in session');
+                return null;
+            }
+            
+            // Create client with OAuth token
+            return new OnshapeClient({
+                authToken,
+                baseUrl,
+                logger: log
+            });
+        }
+        
+        log.error(`Unsupported authentication method: ${authMethod}`);
+        return null;
+    } catch (error) {
+        log.error(`Error creating Onshape client: ${error.message}`, error);
+        return null;
+    }
+}
 
 /**
  * Authentication middleware factory
@@ -81,7 +111,7 @@ module.exports = function(app) {
             }
         } else if (authMethod === 'apikey') {
             // API Key auth is considered pre-authenticated
-            log.debug('Using API key authentication');
+            log.debug('Using apikey authentication');
         } else {
             // No valid auth method
             log.error('No valid authentication method configured');
@@ -90,17 +120,13 @@ module.exports = function(app) {
       
         // Authentication successful, create client for this request
         try {
-            // Create a new client for each request
-            const onshapeClient = createClientFromRequest(req);
-            
-            // Explicitly attach the client to the request object
-            req.onshapeClient = onshapeClient;
+            req.onshapeClient = createClientFromRequest(req);
             
             // Add extra debug info
             log.debug('Client attached to request', {
                 hasClient: !!req.onshapeClient,
-                clientType: req.onshapeClient.constructor.name,
-                hasGetMethod: typeof req.onshapeClient.get === 'function'
+                clientType: req.onshapeClient ? req.onshapeClient.constructor.name : 'None',
+                hasGetMethod: req.onshapeClient ? (typeof req.onshapeClient.get === 'function') : false
             });
             
             if (!req.onshapeClient) {
@@ -110,8 +136,8 @@ module.exports = function(app) {
             
             next();
         } catch (error) {
-            log.error(`Error creating client: ${error.message}`);
-            return res.status(500).json({ error: 'Error initializing API client: ' + error.message });
+            log.error(`Error creating client: ${error.message}`, error);
+            return res.status(500).json({ error: 'Error initializing API client', message: error.message });
         }
     };
 
@@ -119,6 +145,8 @@ module.exports = function(app) {
      * Configure OAuth routes and handlers
      */
     function configureOAuth(authManager) {
+        const config = app.get('config');
+        
         // Login route
         app.get('/oauth/login', (req, res) => {
             if (authManager.getMethod() === 'apikey') {
@@ -171,6 +199,18 @@ module.exports = function(app) {
         });
     }
 
+    // Add this helper method to verify headers are being applied
+    async function testHeaders() {
+        const headers = this.getAuthHeaders('GET', '/documents');
+        log.debug('Generated auth headers:', {
+            hasAuth: !!headers.Authorization,
+            authType: headers.Authorization ? headers.Authorization.split(' ')[0] : 'none',
+            contentType: headers['Content-Type'],
+            accept: headers.Accept
+        });
+        return headers;
+    }
+
     // Add debug endpoint to test client
     app.get('/api/debug/client-test', async (req, res) => {
         try {
@@ -212,6 +252,7 @@ module.exports = function(app) {
     return {
         configureOAuth,
         isAuthenticated,
-        createClientFromRequest
+        createClientFromRequest,
+        testHeaders
     };
 };

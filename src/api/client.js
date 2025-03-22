@@ -1,9 +1,8 @@
-// src\api\client.js
+// src/api/client_1.js
 const axios = require('axios');
 const logger = require('../utils/logger');
-const RestClient = require('./rest-client');
-const DocumentsApi = require('./endpoints/documents');
-const config = require('../../config'); // Fix the config import path
+const { ApiError } = require('../utils/errors');
+const config = require('../../config');
 
 /**
  * Client for making authenticated requests to the Onshape API
@@ -18,39 +17,35 @@ class OnshapeClient {
    * @param {boolean} [options.debug=false] - Enable debug logging
    */
   constructor(options = {}) {
-    // Initialize logger first with correct path
-    this.logger = require('../utils/logger').scope('OnshapeClient');
+    this.baseUrl = options.baseUrl || config.onshape.baseUrl;
+    this.apiUrl = options.apiUrl || config.onshape.apiUrl;
+    this.authManager = options.authManager;
+    this.debug = options.debug || false;
+    this.logger = logger.scope('OnshapeClient');
     
-    // Ensure logger is properly initialized
-    this.logger = options.logger || require('../utils/logger').scope('OnshapeClient');
-    
-    // Store authentication credentials
-    this.accessKey = options.accessKey;
-    this.secretKey = options.secretKey;
-    this.authToken = options.authToken;
-    
-    // Store base URL
-    this.baseUrl = options.baseUrl || process.env.ONSHAPE_API_URL || 'https://cad.onshape.com/api/v10';
-    
-    // Remove trailing slash if present
-    if (this.baseUrl.endsWith('/')) {
-      this.baseUrl = this.baseUrl.slice(0, -1);
+    if (!this.authManager) {
+      throw new Error('AuthManager is required');
     }
     
-    // Create axios instance
-    this.client = axios.create({
-      baseURL: this.baseUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
+    // Remove trailing slash from URLs if present
+    this.baseUrl = this.baseUrl?.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+    this.apiUrl = this.apiUrl?.endsWith('/') ? this.apiUrl.slice(0, -1) : this.apiUrl;
     
-    this.logger.debug('OnshapeClient initialized', { 
-      hasAccessKey: !!this.accessKey,
-      hasSecretKey: !!this.secretKey,
-      hasAuthToken: !!this.authToken,
-      baseUrl: this.baseUrl
+    // Validate configuration
+    if (!this.baseUrl) {
+      throw new Error('Base URL is required');
+    }
+    
+    if (!this.apiUrl) {
+      // Use default API URL based on base URL
+      this.apiUrl = `${this.baseUrl}/api/v5`;
+      this.logger.info(`Using default API URL: ${this.apiUrl}`);
+    }
+    
+    this.logger.debug('Client initialized', {
+      baseUrl: this.baseUrl,
+      apiUrl: this.apiUrl,
+      authMethod: this.authManager.getMethod()
     });
   }
   
@@ -61,50 +56,7 @@ class OnshapeClient {
    * @returns {Promise<Object>} - API response
    */
   async get(path, options = {}) {
-    // Safely access logger
-    if (this.logger && this.logger.debug) {
-      this.logger.debug(`GET ${path}`);
-    }
-    
-    try {
-      // Support direct header pass-through for compatibility with curl commands
-      const useDirectHeaders = options.headers && options.headers.Authorization;
-      
-      // Create config for axios
-      const config = {
-        method: 'get',
-        url: this._buildUrl(path),
-        params: options.params || {},
-        paramsSerializer: this._serializeParams,
-        ...options
-      };
-      
-      // Only set headers from auth manager if not using direct headers
-      if (!useDirectHeaders) {
-        config.headers = {
-          ...await this.authManager.getAuthHeaders(),
-          ...(options.headers || {})
-        };
-      }
-      
-      if (this.debug) {
-        logger.debug(`Making GET request to: ${config.url}`);
-        logger.debug(`With params: ${JSON.stringify(config.params || {})}`);
-        
-        // Mask the auth token for logging
-        const sanitizedHeaders = { ...config.headers };
-        if (sanitizedHeaders.Authorization) {
-          sanitizedHeaders.Authorization = sanitizedHeaders.Authorization.split(' ')[0] + ' ***';
-        }
-        logger.debug(`With headers: ${JSON.stringify(sanitizedHeaders || {})}`);
-      }
-      
-      const response = await axios(config);
-      return response.data;
-    } catch (error) {
-      this._handleError(error);
-      throw error;
-    }
+    return this.request('GET', path, null, options);
   }
   
   /**
@@ -112,32 +64,10 @@ class OnshapeClient {
    * @param {string} path - API path
    * @param {Object} data - Request body data
    * @param {Object} [options={}] - Request options
-   * @param {Object} [options.params={}] - URL query parameters
    * @returns {Promise<Object>} Response data
    */
-  async post(path, data, config = {}) {
-    // Safely access logger
-    if (this.logger && this.logger.debug) {
-      this.logger.debug(`POST ${path}`);
-    }
-    
-    // Safe logger access
-    const logger = this.logger || console;
-    const logMethod = logger.debug ? 'debug' : 'log';
-    
-    // Log request (safely)
-    try {
-      logger[logMethod](`POST ${path}`, {
-        dataSize: data ? JSON.stringify(data).length : 0,
-        hasConfig: !!config
-      });
-    } catch (logError) {
-      // Fallback if logger fails
-      console.log(`POST ${path} - Logger error: ${logError.message}`);
-    }
-    
-    // Continue with existing request code
-    return this.request('post', path, data, config);
+  async post(path, data, options = {}) {
+    return this.request('POST', path, data, options);
   }
   
   /**
@@ -145,38 +75,22 @@ class OnshapeClient {
    * @param {string} path - API path
    * @param {Object} data - Request body data
    * @param {Object} [options={}] - Request options
-   * @param {Object} [options.params={}] - URL query parameters
    * @returns {Promise<Object>} Response data
    */
   async put(path, data, options = {}) {
-    return this.request('PUT', path, data, options.params || {});
+    return this.request('PUT', path, data, options);
   }
   
   /**
    * Make a DELETE request
    * @param {string} path - API path
    * @param {Object} [options={}] - Request options
-   * @param {Object} [options.params={}] - URL query parameters
    * @returns {Promise<Object>} Response data
    */
   async delete(path, options = {}) {
-    return this.request('DELETE', path, null, options.params || {});
+    return this.request('DELETE', path, null, options);
   }
   
-  /**
-   * Make a PATCH request
-   * @param {string} path - API path
-   * @param {Object} data - Request body data
-   * @param {Object} [options={}] - Request options
-   * @param {Object} [options.params={}] - URL query parameters
-   * @returns {Promise<Object>} Response data
-   */
-  async patch(path, data, options = {}) {
-    return this.request('PATCH', path, data, options.params || {});
-  }
-  
-  // Update the request method to use the API version from config
-
   /**
    * Make a request to the Onshape API
    * @param {string} method - HTTP method
@@ -186,74 +100,112 @@ class OnshapeClient {
    * @returns {Promise<Object>} Response data
    */
   async request(method, path, data = null, options = {}) {
-    // Safe logger access
-    const log = this.logger || console;
-    const logDebug = log.debug || console.log;
-    const logError = log.error || console.error;
-    
-    // Merge provided config with defaults
-    const requestConfig = {
-      ...options,
-      method,
-      url: path
-    };
-    
-    if (data) {
-      requestConfig.data = data;
-    }
-    
-    // Apply authentication
-    if (!requestConfig.headers) {
-      requestConfig.headers = {};
-    }
-    
     try {
-      // Apply API key authentication if available
-      if (this.accessKey && this.secretKey) {
-        // Log authentication method for debugging
-        logDebug('Using API key authentication for request');
-        
-        const authHeaders = this.getApiKeyHeaders(method, path, data);
-        requestConfig.headers = {
-          ...requestConfig.headers,
-          ...authHeaders
-        };
-      } 
-      // Apply OAuth token if available
-      else if (this.authToken) {
-        logDebug('Using OAuth token authentication for request');
-        requestConfig.headers.Authorization = `Bearer ${this.authToken}`;
-      } 
-      else {
-        logError('No authentication credentials available for request');
+      // Make sure path has a leading slash
+      const pathWithSlash = path.startsWith('/') ? path : '/' + path;
+      
+      // Extract query parameters from options
+      const queryParams = options.params || {};
+      
+      // Prepare request body
+      let bodyString = '';
+      if (data !== null && data !== undefined) {
+        bodyString = typeof data === 'string' ? data : JSON.stringify(data);
+      }
+      
+      // Get authentication headers
+      const headers = this.authManager.getAuthHeaders(
+        method,
+        pathWithSlash,
+        queryParams,
+        bodyString
+      );
+      
+      // Add standard headers
+      headers['Content-Type'] = 'application/json';
+      headers['Accept'] = 'application/json';
+      
+      // Use the API base URL from configuration
+      let fullUrl;
+      
+      // Handle different path formats
+      if (path.includes('/api/')) {
+        // Path already includes /api/, assume it's relative to baseUrl
+        fullUrl = `${this.baseUrl}${pathWithSlash}`;
+      } else if (path.startsWith('/partstudios/') || 
+                 path.startsWith('/documents/') ||
+                 path.startsWith('/assemblies/') ||
+                 path.startsWith('/users/')) {
+        // Path looks like an API path that just needs the /api prefix
+        fullUrl = `${this.baseUrl}/api${pathWithSlash}`;
+      } else {
+        // Regular path, use apiUrl
+        fullUrl = `${this.apiUrl}${pathWithSlash}`;
+      }
+      
+      if (this.debug) {
+        this.logger.debug(`API request: ${method} ${fullUrl}`, {
+          headers: this._sanitizeHeadersForLogging(headers),
+          queryParams,
+          dataLength: bodyString ? bodyString.length : 0
+        });
       }
       
       // Make the request
-      const response = await this.client.request(requestConfig);
-      return response.data;
-    } catch (error) {
-      logError(`Request failed: ${error.message}`, {
-        path,
+      const response = await axios({
         method,
-        hasResponse: !!error.response,
-        status: error.response?.status
+        url: fullUrl,
+        headers,
+        data: data,
+        params: queryParams,
+        timeout: 30000 // 30 second timeout
       });
       
-      // Enhanced error handling
-      if (error.response) {
-        const statusCode = error.response.status;
-        const errorMessage = error.response.data?.message || error.response.data?.error || error.message;
-        
-        logError(`API error (${statusCode}): ${errorMessage}`);
-        
-        // Enhance error with response details
-        const enhancedError = new Error(`API error (${statusCode}): ${errorMessage}`);
-        enhancedError.statusCode = statusCode;
-        enhancedError.response = error.response;
-        throw enhancedError;
+      if (this.debug) {
+        this.logger.debug(`API response: ${response.status} from ${method} ${fullUrl}`, {
+          dataType: typeof response.data,
+          isArray: Array.isArray(response.data)
+        });
       }
       
-      throw error;
+      return response.data;
+    } catch (error) {
+      this._handleError(error, method, path);
+      
+      throw new ApiError(
+        error.message || 'API request failed',
+        error.response?.status || 500,
+        error
+      );
+    }
+  }
+  
+  /**
+   * Handle API errors
+   * @param {Error} error - Error object from Axios
+   * @param {string} method - HTTP method of the request
+   * @param {string} path - API path of the request
+   * @private
+   */
+  _handleError(error, method, path) {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // outside the range of 2xx
+      const statusCode = error.response.status;
+      const statusText = error.response.statusText;
+      const data = error.response.data;
+      
+      this.logger.error(`API Response Error: ${statusCode} for ${method} ${path}`, {
+        statusCode,
+        statusText,
+        data
+      });
+    } else if (error.request) {
+      // The request was made but no response was received
+      this.logger.error(`API Request Error: No response received for ${method} ${path}`);
+    } else {
+      // Something happened in setting up the request
+      this.logger.error(`API Error: ${error.message}`);
     }
   }
   
@@ -278,112 +230,6 @@ class OnshapeClient {
       }
     }
     return result;
-  }
-
-  /**
-   * Handle API errors - implementation was missing causing client tests to fail
-   * @param {Error} error - Error object from Axios
-   * @private
-   */
-  _handleError(error) {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // outside the range of 2xx
-      const statusCode = error.response.status;
-      const statusText = error.response.statusText;
-      const data = error.response.data;
-      
-      logger.error(`API Response Error: ${statusCode} for ${error.config?.method?.toUpperCase() || 'unknown'} ${error.config?.url || 'unknown'}`, {
-        statusCode,
-        statusText,
-        data
-      });
-    } else if (error.request) {
-      // The request was made but no response was received
-      logger.error(`API Request Error: No response received for ${error.config?.method?.toUpperCase() || 'unknown'} ${error.config?.url || 'unknown'}`);
-    } else {
-      // Something happened in setting up the request
-      logger.error(`API Error: ${error.message}`);
-    }
-  }
-
-  /**
-   * Build a complete URL from the API URL and path
-   * @param {string} path - API path
-   * @returns {string} - Complete URL
-   * @private
-   */
-  _buildUrl(path) {
-    // Ensure path has leading slash
-    const formattedPath = path.startsWith('/') ? path : '/' + path;
-    
-    // If path already contains /api/, assume it's a full path relative to baseUrl
-    if (formattedPath.includes('/api/')) {
-      return `${this.baseUrl}${formattedPath}`;
-    }
-    
-    // Otherwise, use the apiUrl and append the path
-    return `${this.apiUrl}${formattedPath}`;
-  }
-
-  /**
-   * Serialize parameters for URL
-   * @param {Object} params - Parameters to serialize
-   * @returns {string} - Serialized parameters
-   * @private
-   */
-  _serializeParams(params) {
-    if (!params || Object.keys(params).length === 0) {
-      return '';
-    }
-    
-    return Object.entries(params)
-      .map(([key, value]) => {
-        if (value === undefined || value === null) {
-          return null;
-        }
-        return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-      })
-      .filter(Boolean)
-      .join('&');
-  }
-
-  /**
-   * Add API key authentication helper
-   * @param {string} method - HTTP method
-   * @param {string} path - API path
-   * @param {Object|null} data - Request body data
-   * @returns {Object} - Authentication headers
-   * @private
-   */
-  getApiKeyHeaders(method, path, data) {
-    if (!this.accessKey || !this.secretKey) {
-      throw new Error('API key and secret are required for API key authentication');
-    }
-    
-    // Get current date in required format
-    const date = new Date().toUTCString();
-    
-    // Build the string to sign
-    const method_upper = method.toUpperCase();
-    const content_type = 'application/json';
-    const content_md5 = data ? crypto.createHash('md5').update(JSON.stringify(data)).digest('base64') : '';
-    const path_with_query = path.includes('?') ? path : path;
-    
-    const stringToSign = [method_upper, content_md5, content_type, date, path_with_query].join('\n').toLowerCase();
-    
-    // Create signature
-    const signature = crypto.createHmac('sha256', this.secretKey)
-      .update(stringToSign)
-      .digest('base64');
-    
-    // Return headers
-    return {
-      'Date': date,
-      'Content-Type': content_type,
-      'Content-MD5': content_md5,
-      'Authorization': `On ${this.accessKey}:${signature}`
-    };
   }
 }
 

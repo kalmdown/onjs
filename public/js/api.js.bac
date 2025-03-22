@@ -2,7 +2,8 @@
 
 // Import the functions that return auth information
 import { getToken, getAuthMethod } from './clientAuth.js';
-import { logError, logSuccess, logInfo, logDebug, logWarn } from './utils/logging.js';
+import { logError, logSuccess, logInfo, logDebug } from './utils/logging.js';
+import { createApiHeaders } from './utils/api-headers.js'; // Add this import
 
 // State
 let documents = [];
@@ -14,43 +15,42 @@ let requestLog = [];
 /**
  * Make an authenticated API call with enhanced logging
  * @param {string} endpoint - API endpoint path
- * @param {string} [method='GET'] - HTTP method
- * @param {object} [data=null] - Request body data
- * @param {object} [options={}] - Additional options
+ * @param {string} method - HTTP method
+ * @param {object} data - Request payload
+ * @param {object} customOptions - Custom fetch options
  * @returns {Promise<any>} API response
  */
-export async function apiCall(endpoint, method = 'GET', data = null, options = {}) {
+export async function apiCall(endpoint, method = 'GET', data = null, customOptions = {}) {
+  // Get headers from the centralized utility
+  const headers = createApiHeaders();
+  
   const defaultOptions = {
     method: method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
+    headers: headers
   };
 
-  // Add request body if provided
-  if (data) {
+  // Add body for non-GET requests that have data
+  if (method !== 'GET' && data !== null) {
     defaultOptions.body = JSON.stringify(data);
   }
 
-  const requestOptions = { ...defaultOptions, ...options };
-  const url = endpoint.startsWith('/') ? `/api${endpoint}` : `/api/${endpoint}`;
+  const requestOptions = { ...defaultOptions, ...customOptions };
+  
+  // Handle different endpoint formats to ensure proper URL construction
+  // If it starts with http, it's a full URL
+  // If it starts with /, it's a path from the root
+  // Otherwise, it's a relative path that needs /api/ prefix
+  let url;
+  if (endpoint.startsWith('http')) {
+    url = endpoint;
+  } else if (endpoint.startsWith('/')) {
+    url = `/api${endpoint}`;
+  } else {
+    url = `/api/${endpoint}`;
+  }
   
   // Generate a unique ID for this request to correlate logs
   const requestId = Math.random().toString(36).substring(2, 8);
-  
-  // Track request for debugging
-  lastRequest = {
-    url,
-    method: requestOptions.method,
-    headers: requestOptions.headers,
-    body: data,
-    timestamp: new Date().toISOString()
-  };
-  
-  requestLog.push({
-    request: lastRequest
-  });
   
   logDebug(`[${requestId}] API Request: ${requestOptions.method} ${url}`);
   
@@ -58,40 +58,20 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
     const startTime = Date.now();
     const response = await fetch(url, requestOptions);
     const endTime = Date.now();
-    const duration = endTime - startTime;
     
-    // Track response for debugging
-    lastResponse = {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries([...response.headers.entries()]),
-      duration,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Update the most recent request log with response info
-    if (requestLog.length > 0) {
-      requestLog[requestLog.length - 1].response = lastResponse;
-    }
-    
-    logDebug(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
+    logDebug(`[${requestId}] API Response: ${response.status} (${endTime - startTime}ms)`);
     
     if (!response.ok) {
-      let errorText;
-      try {
-        errorText = await response.text();
-      } catch (e) {
-        errorText = "Could not read error response";
-      }
-      
+      const errorText = await response.text();
       let errorData;
+      
       try {
         errorData = JSON.parse(errorText);
       } catch (e) {
         errorData = { message: errorText };
       }
       
-      logError(`[${requestId}] API Error: ${response.status} ${response.statusText}`, errorData);
+      logError(`[${requestId}] API Error: ${response.status} ${response.statusText} for ${url}`, errorData);
       
       throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.message || errorText}`);
     }
@@ -101,19 +81,6 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
     if (contentType && contentType.includes('application/json')) {
       const data = await response.json();
       logDebug(`[${requestId}] API Success: ${typeof data === 'object' ? 'Object/Array returned' : 'Non-object returned'}`);
-      
-      // Track API call for export
-      apiCalls.push({
-        url,
-        method: requestOptions.method,
-        headers: requestOptions.headers,
-        body: data,
-        response: {
-          status: response.status,
-          data
-        }
-      });
-      
       return data;
     } else {
       const text = await response.text();
@@ -121,7 +88,7 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
       return text;
     }
   } catch (error) {
-    logError(`[${requestId}] API Exception: ${error.message}`);
+    logError(`[${requestId}] API Exception: ${error.message} for ${url}`);
     throw error;
   }
 }
@@ -159,15 +126,8 @@ export async function fetchDocuments(showLoadingIndicator = true) {
   logInfo(`Fetching documents using ${authMethod} authentication...`);
   
   try {
-    // Call the API to get documents
+    // Call the real Onshape API through your server
     const response = await apiCall('documents');
-    
-    // Check for proper response format
-    if (!response || (!response.items && !Array.isArray(response))) {
-      throw new Error('Invalid response format from documents API');
-    }
-    
-    // Store documents in the correct format
     documents = response.items || response;
     
     // Update select dropdown
@@ -246,59 +206,37 @@ export async function getWorkspaces(documentId) {
 }
 
 /**
- * Fetch all elements for a document with improved error handling
- * 
- * @param {string} documentId Document ID
- * @returns {Promise<Array>} Array of elements
+ * Fetch all elements in a document
+ * @param {string} documentId - The document ID
+ * @returns {Promise<Array>} - The elements in the document
  */
 export async function fetchElementsForDocument(documentId) {
+  logDebug(`API call: fetchElementsForDocument(${documentId})`);
+  
   if (!documentId) {
+    logError('Missing documentId in fetchElementsForDocument');
     throw new Error('Document ID is required');
   }
   
   try {
-    logDebug(`Fetching elements for document ${documentId}`);
-    
-    // Try to get workspaces first
-    let workspaces;
-    try {
-      workspaces = await getWorkspaces(documentId);
-    } catch (wsError) {
-      logError(`Failed to fetch workspaces: ${wsError.message}`);
-      // Generate a default workspace as fallback
-      workspaces = [{ id: 'default', isDefault: true }];
-    }
-    
-    const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
-    
-    if (!defaultWorkspace) {
-      throw new Error('No workspace found for document');
-    }
-    
-    // Now get elements
-    try {
-      const response = await apiCall(`documents/${documentId}/w/${defaultWorkspace.id}/elements`);
-      const elements = response.elements || response;
-      logDebug(`Retrieved ${elements.length} elements for document ${documentId}`);
-      return elements;
-    } catch (elemError) {
-      logError(`Failed to fetch elements: ${elemError.message}`);
-      throw elemError;
-    }
+    // Use the apiCall helper for consistency with other API calls
+    const data = await apiCall(`documents/${documentId}/elements`);
+    logDebug(`fetchElementsForDocument returned ${data?.length || 0} elements`);
+    return data;
   } catch (error) {
-    logError(`Failed to fetch elements for document ${documentId}: ${error.message}`);
-    return [];
+    logError(`Error in fetchElementsForDocument: ${error.message}`);
+    throw error;
   }
 }
 
 /**
- * Fetch planes for a part studio with improved error handling
- * 
- * @param {string} documentId Document ID
- * @param {string} workspaceId Workspace ID
- * @param {string} elementId Element ID (part studio)
- * @param {Object} options Additional options
- * @returns {Promise<Array>} Array of planes
+ * Fetches planes for a part studio
+ * @param {string} documentId - Document ID
+ * @param {string} workspaceId - Workspace ID (optional, will fetch default if not provided)
+ * @param {string} elementId - Element ID (part studio)
+ * @param {Object} [options] - Additional options
+ * @param {boolean} [options.includeCustomPlanes=true] - Whether to include custom planes
+ * @returns {Promise<Array>} List of planes
  */
 export async function fetchPlanesForPartStudio(documentId, workspaceId, elementId, options = {}) {
   // Parameter validation
@@ -344,39 +282,20 @@ export async function fetchPlanesForPartStudio(documentId, workspaceId, elementI
     queryParams.append('includeCustomPlanes', String(includeCustomPlanes));
     
     const fullEndpoint = `${endpoint}?${queryParams.toString()}`;
-    console.log(`[DEBUG] Constructed planes endpoint: ${fullEndpoint}`);
+    logDebug(`Constructed planes endpoint: ${fullEndpoint}`);
     
-    try {
-      const response = await apiCall(fullEndpoint);
-      
-      if (Array.isArray(response)) {
-        const standardCount = response.filter(p => p.type === 'STANDARD').length;
-        const customCount = response.filter(p => p.type === 'CUSTOM').length;
-        logDebug(`Received ${response.length} planes (${standardCount} standard, ${customCount} custom)`);
-      }
-      
-      return response;
-    } catch (apiError) {
-      logError(`API call to planes endpoint failed: ${apiError.message}`);
-      
-      // If the server is unreachable, use fallback planes
-      if (apiError.message && (apiError.message.includes('Network Error') || 
-          apiError.message.includes('CONNECTION_REFUSED'))) {
-        logWarn('Server connection issue, using fallback planes');
-        
-        // Return standard planes as fallback
-        const fallbackPlanes = [
-          { id: `${elementId}_JHD`, name: "TOP", type: "STANDARD", transientId: "TOP" },
-          { id: `${elementId}_JFD`, name: "FRONT", type: "STANDARD", transientId: "FRONT" },
-          { id: `${elementId}_JGD`, name: "RIGHT", type: "STANDARD", transientId: "RIGHT" }
-        ];
-        
-        return fallbackPlanes;
-      }
-      
-      throw apiError;
+    // Make the API call and return the result directly - no fallback
+    const response = await apiCall(fullEndpoint);
+    
+    if (Array.isArray(response)) {
+      const standardCount = response.filter(p => p.type === 'STANDARD').length;
+      const customCount = response.filter(p => p.type === 'CUSTOM').length;
+      logDebug(`Received ${response.length} planes (${standardCount} standard, ${customCount} custom)`);
     }
+    
+    return response;
   } catch (error) {
+    // No fallback - propagate the error so it can be properly handled
     logError(`API error fetching planes: ${error.message}`);
     throw error;
   }
