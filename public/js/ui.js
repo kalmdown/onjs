@@ -1,8 +1,8 @@
 import { fetchDocuments, getDocumentById, getNetworkLogs } from './api.js';
 import { logInfo, logError } from './utils/logging.js';
 import { runExample1 } from './examples/cylinder.js';
-import { runExample2 } from './examples/lamp.js';
-import { runExample3 } from './examples/cup.js';
+import { runExample2 } from './examples/cup.js';
+import { runExample3 } from './examples/lamp.js';
 import { convertSvg } from './svg-converter.js';
 import { authenticate, getToken, debugAuthState } from './clientAuth.js';
 import { exportApiCalls } from './api.js';

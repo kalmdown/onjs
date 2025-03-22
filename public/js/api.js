@@ -3,6 +3,7 @@
 // Import the functions that return auth information
 import { getToken, getAuthMethod } from './clientAuth.js';
 import { logError, logSuccess, logInfo, logDebug } from './utils/logging.js';
+import { createApiHeaders } from './utils/api-headers.js'; // Add this import
 
 // State
 let documents = [];
@@ -14,19 +15,39 @@ let requestLog = [];
 /**
  * Make an authenticated API call with enhanced logging
  * @param {string} endpoint - API endpoint path
- * @param {object} options - Fetch options
+ * @param {string} method - HTTP method
+ * @param {object} data - Request payload
+ * @param {object} customOptions - Custom fetch options
  * @returns {Promise<any>} API response
  */
-export async function apiCall(endpoint, options = {}) {
+export async function apiCall(endpoint, method = 'GET', data = null, customOptions = {}) {
+  // Get headers from the centralized utility
+  const headers = createApiHeaders();
+  
   const defaultOptions = {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    }
+    method: method,
+    headers: headers
   };
 
-  const requestOptions = { ...defaultOptions, ...options };
-  const url = endpoint.startsWith('/') ? `/api${endpoint}` : `/api/${endpoint}`;
+  // Add body for non-GET requests that have data
+  if (method !== 'GET' && data !== null) {
+    defaultOptions.body = JSON.stringify(data);
+  }
+
+  const requestOptions = { ...defaultOptions, ...customOptions };
+  
+  // Handle different endpoint formats to ensure proper URL construction
+  // If it starts with http, it's a full URL
+  // If it starts with /, it's a path from the root
+  // Otherwise, it's a relative path that needs /api/ prefix
+  let url;
+  if (endpoint.startsWith('http')) {
+    url = endpoint;
+  } else if (endpoint.startsWith('/')) {
+    url = `/api${endpoint}`;
+  } else {
+    url = `/api/${endpoint}`;
+  }
   
   // Generate a unique ID for this request to correlate logs
   const requestId = Math.random().toString(36).substring(2, 8);
@@ -50,7 +71,7 @@ export async function apiCall(endpoint, options = {}) {
         errorData = { message: errorText };
       }
       
-      logError(`[${requestId}] API Error: ${response.status} ${response.statusText}`, errorData);
+      logError(`[${requestId}] API Error: ${response.status} ${response.statusText} for ${url}`, errorData);
       
       throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.message || errorText}`);
     }
@@ -67,7 +88,7 @@ export async function apiCall(endpoint, options = {}) {
       return text;
     }
   } catch (error) {
-    logError(`[${requestId}] API Exception: ${error.message}`);
+    logError(`[${requestId}] API Exception: ${error.message} for ${url}`);
     throw error;
   }
 }

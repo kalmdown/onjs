@@ -260,5 +260,7 @@ module.exports = function(app, auth) {
     }
   });
 
+  router.source = __filename;
+  
   return router;
 };

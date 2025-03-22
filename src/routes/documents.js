@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const DocumentsApi = require('../api/endpoints/documents');
 const ElementsApi = require('../api/endpoints/elements');
 const { getOnshapeHeaders } = require('../utils/api-headers');
+const FeaturesApi = require('../api/endpoints/features');
 
 // Create a scoped logger
 const log = logger.scope('DocumentRoutes');
@@ -20,7 +21,7 @@ module.exports = function(app, auth) {
    * @description Get all documents
    * @access Private
    */
-  router.get('/', isAuthenticated, async (req, res, next) => {
+  router.get('/', isAuthenticated, async (req, res) => {
     const log = logger.scope('DocumentRoutes');
     const options = {
       limit: parseInt(req.query.limit) || 20,
@@ -32,28 +33,44 @@ module.exports = function(app, auth) {
     log.info(`Fetching documents: limit=${options.limit}, offset=${options.offset}, sort=${options.sortColumn}:${options.sortOrder}`);
     
     try {
+      // Check if client exists and add more detailed logging
       if (!req.onshapeClient) {
         log.error('No Onshape client available');
         return res.status(500).json({ error: 'API client not available' });
       }
       
-      // Debug client capabilities
+      // Log more detailed debugging information about the client
       log.debug('Client info:', {
         type: req.onshapeClient.constructor.name,
-        hasGetMethod: typeof req.onshapeClient.get === 'function',
-        methods: Object.keys(req.onshapeClient).filter(k => typeof req.onshapeClient[k] === 'function')
+        hasAccessKey: !!req.onshapeClient.accessKey,
+        hasSecretKey: !!req.onshapeClient.secretKey,
+        hasAuthToken: !!req.onshapeClient.authToken,
+        hasGetMethod: typeof req.onshapeClient.get === 'function'
       });
       
-      // Initialize API endpoint
+      // Create the DocumentsApi instance
       const documentsApi = new DocumentsApi(req.onshapeClient);
       
-      const documents = await documentsApi.getDocuments(options);
-      log.debug(`Retrieved ${documents.items?.length || 0} documents`);
-      
-      res.json(documents);
+      // Make the API call with better error handling
+      try {
+        const documents = await documentsApi.getDocuments(options);
+        log.info(`Retrieved ${documents.length} documents`);
+        res.json(documents);
+      } catch (apiError) {
+        log.error(`API error when fetching documents: ${apiError.message}`, apiError);
+        const status = apiError.statusCode || 500;
+        res.status(status).json({
+          error: 'Failed to retrieve documents from Onshape API',
+          message: apiError.message,
+          details: apiError.details || {}
+        });
+      }
     } catch (error) {
-      log.error(`Error fetching documents: ${error.message}`, error);
-      next(error);
+      log.error(`Error in documents route handler: ${error.message}`, error);
+      res.status(500).json({ 
+        error: 'Failed to get documents', 
+        message: error.message 
+      });
     }
   });
 
@@ -407,5 +424,86 @@ module.exports = function(app, auth) {
     }
   });
 
+  // Update feature creation route
+  router.post('/:documentId/w/:workspaceId/elements/:elementId/features', 
+    isAuthenticated, 
+    async (req, res) => {
+      try {
+        const { documentId, workspaceId, elementId } = req.params;
+        
+        log.debug(`Creating feature in document: ${documentId}, workspace: ${workspaceId}, element: ${elementId}`);
+        
+        // Get Onshape client from request or app
+        const onshapeClient = req.onshapeClient || app.get('onshapeClient');
+        
+        if (!onshapeClient) {
+          log.error('onshapeClient is not available - cannot make API call');
+          return res.status(500).json({ 
+            error: 'Server configuration error',
+            message: 'API client is not properly configured'
+          });
+        }
+        
+        // Create a new instance of the FeaturesApi with the client
+        const featuresApi = new FeaturesApi(onshapeClient);
+        
+        // Construct the WVM object expected by addFeature
+        const wvm = {
+          wvm: 'w',
+          wvmid: workspaceId
+        };
+        
+        // Validate request body
+        if (!req.body || Object.keys(req.body).length === 0) {
+          log.error('Invalid or empty feature data provided');
+          return res.status(400).json({
+            error: 'Invalid request',
+            message: 'Feature data is required'
+          });
+        }
+        
+        log.debug(`Sending feature data to Onshape API: ${JSON.stringify(req.body)}`);
+        
+        try {
+          // Call the addFeature method from the API endpoints class
+          const response = await featuresApi.addFeature(documentId, wvm, elementId, req.body);
+          
+          log.debug(`Feature created successfully`);
+          res.status(200).json(response);
+        } catch (apiError) {
+          // Handle API-specific errors
+          log.error(`API error when creating feature: ${apiError.message}`, apiError);
+          
+          // Check for response structure to avoid "undefined" errors
+          if (apiError.response) {
+            const statusCode = apiError.response.status || 500;
+            const errorData = apiError.response.data || {};
+            
+            return res.status(statusCode).json({
+              error: 'Onshape API error',
+              message: errorData.message || apiError.message,
+              details: errorData
+            });
+          } else {
+            // Handle non-response errors (network, etc.)
+            return res.status(500).json({
+              error: 'API communication error',
+              message: apiError.message
+            });
+          }
+        }
+      } catch (error) {
+        // Handle all other errors
+        log.error(`Error creating feature: ${error.message}`);
+        res.status(500).json({ 
+          error: 'Failed to create feature', 
+          message: error.message 
+        });
+      }
+    }
+  );
+
+  router.source = __filename;
+  
   return router;
 };

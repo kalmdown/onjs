@@ -51,25 +51,32 @@ class DocumentsApi {
         throw new Error('Client does not have get method');
       }
       
-      // Set up request options with query parameters
-      const requestOptions = {
-        params: {
-          limit: options.limit || 20,
-          offset: options.offset || 0,
-          sortColumn: options.sortColumn || 'modifiedAt',
-          sortOrder: options.sortOrder || 'desc'
-        }
+      // Change how params are passed to match the client's expected format
+      const requestParams = {
+        limit: options.limit || 20,
+        offset: options.offset || 0,
+        sortColumn: options.sortColumn || 'modifiedAt',
+        sortOrder: options.sortOrder || 'desc'
       };
       
-      // Make the request
-      this.logger.debug('Making request to /documents endpoint', requestOptions);
-      const response = await this.client.get('/documents', requestOptions);
+      // Make the request - fixed to pass params directly instead of in an options object
+      this.logger.debug('Making request to /documents endpoint with params:', requestParams);
+      const response = await this.client.get('/documents', requestParams);
       
       this.logger.debug(`Retrieved ${response.items ? response.items.length : 0} documents`);
       return response;
     } catch (error) {
-      this.logger.error(`Failed to get documents: ${error.message}`, error);
-      throw error;
+      this.logger.error(`Failed to get documents: ${error.message}`, {
+        error: error.message,
+        stack: error.stack,
+        statusCode: error.statusCode || 'unknown'
+      });
+      
+      // Enhance error with more context
+      const enhancedError = new Error(`Failed to get documents: ${error.message}`);
+      enhancedError.originalError = error;
+      enhancedError.statusCode = error.statusCode || 500;
+      throw enhancedError;
     }
   }
 
@@ -201,7 +208,7 @@ class DocumentsApi {
         limit: options.limit || 20
       };
 
-      // Change this.api.get to this.client.get
+      // Change how params are passed to match other methods
       const response = await this.client.get('/documents', queryParams);
 
       this.logger.debug(`Found ${response.items?.length || 0} public documents for query: ${query}`);

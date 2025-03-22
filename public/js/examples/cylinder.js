@@ -1,5 +1,5 @@
 import { apiCall } from '../api.js';
-import { getToken } from '../clientAuth.js';
+import { isAuthenticated } from '../clientAuth.js'; // Add isAuthenticated import
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logSuccess, logError } from '../utils/logging.js';
 
@@ -9,7 +9,8 @@ import { logInfo, logSuccess, logError } from '../utils/logging.js';
  * This example creates a circle sketch and extrudes it to create a cylinder.
  */
 export async function runExample1() {
-  if (!getToken()) {
+  // Replace token check with more robust authentication check
+  if (!isAuthenticated()) {
     logError('Please authenticate first');
     return;
   }
