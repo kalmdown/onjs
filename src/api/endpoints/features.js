@@ -1,4 +1,4 @@
-// src\api\endpoints\features.js
+// src/api/endpoints/features.js
 const logger = require('../../utils/logger');
 const { NotFoundError, ValidationError } = require('../../utils/errors');
 
@@ -18,7 +18,7 @@ class FeaturesApi {
     this.client = client;
     
     // Ensure logger is available
-    this.logger = require('../../utils/logger').scope('FeaturesApi');
+    this.logger = require('../../utils/logger').scope('Features');
     
     this.logger.debug('FeaturesApi initialized', {
       clientType: this.client.constructor.name,

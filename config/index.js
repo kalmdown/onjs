@@ -125,7 +125,7 @@ const config = {
     webhookCallbackRoot: process.env.WEBHOOK_CALLBACK_ROOT_URL
   },
   logging: {
-    enabled: process.env.LOG_SERVER !== 'false'
+    enabled: process.env.GLOBAL_LOGGING !== 'false'
   }
 };
 

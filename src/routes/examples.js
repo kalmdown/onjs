@@ -1,4 +1,4 @@
-// src\routes\examples.js
+// src/routes/examples.js
 // src/routes/examples.js
 const express = require('express');
 const router = express.Router();
@@ -6,7 +6,7 @@ const logger = require('../utils/logger');
 const { OnshapeClient } = require('../api/client');
 
 // Create a scoped logger
-const log = logger.scope('ExampleRoutes');
+const log = logger.scope('Examples');
 
 module.exports = function(app, auth) {
   const { isAuthenticated, createClientFromRequest } = auth;

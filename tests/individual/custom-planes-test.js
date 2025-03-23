@@ -61,7 +61,7 @@ if (require.cache[envLoaderPath]) {
 
 const AuthManager = require('../../src/auth/auth-manager');
 const OnshapeClient = require('../../src/api/client');
-const logger = require('../../src/utils/logger').scope('planes-test');
+const logger = require('../../src/utils/logger').scope('Planes');
 
 // Document information from the URL (we'll use the one in the .env if available)
 const documentId = process.env.ONSHAPE_TEST_DOCUMENT_ID || 'cb1e9acdd17540e4f4a4d45b';

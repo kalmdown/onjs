@@ -6,7 +6,7 @@ const OnshapeClient = require('../api/client');
 const config = require('../../config');
 
 // Create scoped logger
-const log = logger.scope('AuthMiddleware');
+const log = logger.scope('Auth');
 
 /**
  * Helper function to create Onshape client from request

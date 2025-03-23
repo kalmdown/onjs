@@ -1,7 +1,8 @@
+// public/js/examples/lamp.js
 import { apiCall } from '../api.js';
 import { isAuthenticated } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
-import { logInfo, logSuccess, logError } from '../utils/logging.js';
+import { logInfo, logError } from '../utils/logging.js';
 
 /**
  * Example 2: Create a Lamp
@@ -28,7 +29,7 @@ export async function runExample3() {
     } else {
       const newName = getDocumentName() || 'Lamp Example';
       onshapeDocument = await apiCall('documents', 'POST', { name: newName });
-      logSuccess(`Created new document: ${newName}`);
+      logInfo(`Created new document: ${newName}`);
     }
     
     // Step 2: Get workspaces
@@ -421,7 +422,7 @@ export async function runExample3() {
       { feature: revolveFeature }
     );
     
-    logSuccess('Successfully created lamp in Onshape!');
+    logInfo('Successfully created lamp in Onshape!');
     
     const onshapeLink = `https://cad.onshape.com/documents/${onshapeDocument.id}`;
     const linkDiv = document.createElement('div');

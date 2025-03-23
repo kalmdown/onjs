@@ -1,3 +1,4 @@
+// public/js/partStudioSelector.js
 /**
  * Part studio selector component for selecting a part studio in a document
  */
@@ -8,13 +9,13 @@ import { fetchElementsForDocument } from './api.js';
 
 // Add immediate self-executing code to verify the script is loading and running
 (function() {
-  console.log('[DEBUG] partStudioSelector.js module immediate execution');
+  logDebug('[PartStudioSelector] Module immediate execution');
   
   // Add direct DOM verification
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('[DEBUG] DOM loaded, checking for part studio container');
+    logDebug('[PartStudioSelector] DOM loaded, checking for part studio container');
     const container = document.getElementById('partStudioContainer');
-    console.log('[DEBUG] partStudioContainer exists:', !!container);
+    logDebug('[PartStudioSelector] partStudioContainer exists:', !!container);
   });
 })();
 
@@ -29,8 +30,8 @@ export class PartStudioSelector extends Selector {
     this.isLoading = false;
     
     // Add construction logging
-    console.log('[DEBUG] PartStudioSelector constructor called');
-    console.log('[DEBUG] PartStudioSelector containerId:', this.containerId);
+    logDebug('[PartStudioSelector] Constructor called');
+    logDebug('[PartStudioSelector] ContainerId:', this.containerId);
     
     // Add method call tracking
     this._addMethodCallTracker();
@@ -49,8 +50,9 @@ export class PartStudioSelector extends Selector {
     methodNames.forEach(methodName => {
       const originalMethod = this[methodName];
       this[methodName] = function(...args) {
-        console.log(`[DEBUG] PartStudioSelector.${methodName} called with args:`, 
-          args.map(arg => typeof arg === 'object' ? '[object]' : arg).join(', '));
+        logDebug(`[PartStudioSelector] ${methodName} called with args: ${
+          args.map(arg => typeof arg === 'object' ? '[object]' : arg).join(', ')
+        }`);
         return originalMethod.apply(this, args);
       };
     });
@@ -91,12 +93,11 @@ export class PartStudioSelector extends Selector {
    * @returns {Promise<Array>} The loaded part studios
    */
   async loadPartStudios(documentId) {
-    // Direct console logs for debugging
-    console.log(`[DEBUG] loadPartStudios called with documentId: ${documentId}`);
+    // Direct logging for debugging
+    logDebug(`[PartStudioSelector] loadPartStudios called with documentId: ${documentId}`);
     
     if (!documentId) {
-      logError('Document ID is required to load part studios');
-      console.error('Document ID is required to load part studios');
+      logError('[PartStudioSelector] Document ID is required to load part studios');
       return [];
     }
     
@@ -109,30 +110,30 @@ export class PartStudioSelector extends Selector {
       
       // Verify the API call function exists and is callable
       if (typeof fetchElementsForDocument !== 'function') {
-        console.error('[DEBUG] fetchElementsForDocument is not a function!');
+        logError('[PartStudioSelector] fetchElementsForDocument is not a function!');
         throw new Error('API function not available');
       }
       
-      console.log(`[DEBUG] About to call fetchElementsForDocument with ${documentId}`);
+      logDebug(`[PartStudioSelector] About to call fetchElementsForDocument with ${documentId}`);
       
       // Load elements from the API with more robust error handling
       let elements;
       try {
         elements = await fetchElementsForDocument(documentId);
-        console.log(`[DEBUG] API returned ${elements ? elements.length : 0} elements`);
+        logDebug(`[PartStudioSelector] API returned ${elements ? elements.length : 0} elements`);
         
         // Dump first few elements for inspection
         if (elements && elements.length > 0) {
-          console.log(`[DEBUG] First element:`, JSON.stringify(elements[0]).substring(0, 500));
+          logDebug(`[PartStudioSelector] First element: ${JSON.stringify(elements[0]).substring(0, 500)}`);
         }
       } catch (apiError) {
-        console.error(`[DEBUG] API call failed:`, apiError);
+        logError(`[PartStudioSelector] API call failed:`, apiError);
         throw apiError;
       }
       
       // Check if elements is empty or undefined
       if (!elements || elements.length === 0) {
-        console.warn(`[DEBUG] No elements returned for document ${documentId}`);
+        logWarn(`[PartStudioSelector] No elements returned for document ${documentId}`);
         this.setItems([]);
         return [];
       }
@@ -146,7 +147,7 @@ export class PartStudioSelector extends Selector {
         const type = (elem.elementType || elem.type || elem.nodeType || 'unknown').toString();
         typeCounter[type] = (typeCounter[type] || 0) + 1;
       });
-      console.log(`[DEBUG] Element types found:`, typeCounter);
+      logDebug(`[PartStudioSelector] Element types found:`, typeCounter);
       
       // Filter for part studios with even more permissive matching
       const partStudios = elements.filter(element => {
@@ -157,7 +158,7 @@ export class PartStudioSelector extends Selector {
           const value = element[key];
           if (value && typeof value === 'string' && 
               value.toString().toUpperCase().includes('PARTSTUDIO')) {
-            console.log(`[DEBUG] Found part studio by property ${key}:`, element);
+            logDebug(`[PartStudioSelector] Found part studio by property ${key}:`, element);
             return true;
           }
         }
@@ -167,7 +168,7 @@ export class PartStudioSelector extends Selector {
         if (elementType) {
           const typeStr = elementType.toString().toUpperCase();
           if (typeStr.includes('PARTSTUDIO') || typeStr === 'PS') {
-            console.log(`[DEBUG] Found part studio by type:`, element);
+            logDebug(`[PartStudioSelector] Found part studio by type:`, element);
             return true;
           }
         }
@@ -175,13 +176,13 @@ export class PartStudioSelector extends Selector {
         return false;
       });
       
-      console.log(`[DEBUG] Found ${partStudios.length} part studios after filtering`);
+      logDebug(`[PartStudioSelector] Found ${partStudios.length} part studios after filtering`);
       
       if (partStudios.length) {
         // Transform data for selector
         const items = partStudios.map(ps => {
           const name = ps.name || ps.elementName || ps.elementId || ps.id || 'Unnamed Part Studio';
-          console.log(`[DEBUG] Processing part studio: ${name} (${ps.id})`);
+          logDebug(`[PartStudioSelector] Processing part studio: ${name} (${ps.id})`);
           
           return {
             id: ps.id,
@@ -191,25 +192,25 @@ export class PartStudioSelector extends Selector {
           };
         });
         
-        console.log(`[DEBUG] Setting ${items.length} items in selector`);
+        logDebug(`[PartStudioSelector] Setting ${items.length} items in selector`);
         
         // Set items in the UI
         this.setItems(items);
         
         // Select the first item if available
         if (items.length > 0) {
-          console.log(`[DEBUG] Auto-selecting first part studio: ${items[0].name}`);
+          logDebug(`[PartStudioSelector] Auto-selecting first part studio: ${items[0].name}`);
           this.selectItem(items[0]);
         }
         
         return items;
       } else {
-        console.warn(`[DEBUG] No part studios found in document ${documentId}`);
+        logWarn(`[PartStudioSelector] No part studios found in document ${documentId}`);
         this.setItems([]);
         return [];
       }
     } catch (error) {
-      console.error(`[DEBUG] loadPartStudios error:`, error);
+      logError(`[PartStudioSelector] loadPartStudios error:`, error);
       
       // Reset items
       this.setItems([]);
@@ -217,7 +218,7 @@ export class PartStudioSelector extends Selector {
     } finally {
       this.isLoading = false;
       this.updateUI(); // Now this should work
-      console.log(`[DEBUG] loadPartStudios finished, isLoading set to ${this.isLoading}`);
+      logDebug(`[PartStudioSelector] loadPartStudios finished, isLoading set to ${this.isLoading}`);
     }
   }
   
@@ -242,11 +243,11 @@ export class PartStudioSelector extends Selector {
 
 // Create singleton instance
 const partStudioSelector = new PartStudioSelector();
-console.log('[DEBUG] partStudioSelector singleton instance created');
+logDebug('[PartStudioSelector] Singleton instance created');
 
 // Add global access for debugging
 window.partStudioSelector = partStudioSelector;
-console.log('[DEBUG] partStudioSelector exposed as window.partStudioSelector for debugging');
+logDebug('[PartStudioSelector] Exposed as window.partStudioSelector for debugging');
 
 // Force exposure to window for debugging
 window.__debugModules = window.__debugModules || {};

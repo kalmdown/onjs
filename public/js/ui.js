@@ -1,10 +1,11 @@
+// public/js/ui.js
 import { fetchDocuments, getDocumentById, getNetworkLogs } from './api.js';
-import { logInfo, logError } from './utils/logging.js';
+import { logInfo, logError, logDebug, logWarn } from './utils/logging.js';
 import { runExample1 } from './examples/cylinder.js';
 import { runExample2 } from './examples/cup.js';
 import { runExample3 } from './examples/lamp.js';
 import { convertSvg } from './svg-converter.js';
-import { authenticate, getToken, debugAuthState } from './clientAuth.js';
+import { authenticate, getToken, isAuthenticated, debugAuthState } from './clientAuth.js';
 import { exportApiCalls } from './api.js';
 import partStudioSelector from './partStudioSelector.js';
 import planeSelector from './planeSelector.js';
@@ -38,23 +39,64 @@ export function setupUI() {
   // Add debug button
   addDebugButton();
   
-  console.log('[DEBUG] UI.js loaded, partStudioSelector instance:', partStudioSelector);
+  logDebug('[UI] UI.js loaded, partStudioSelector instance:', partStudioSelector);
 }
 
 export function registerEventHandlers() {
   // Set up event listeners
-  btnAuthenticate.addEventListener('click', authenticate);
-  btnRefreshDocuments.addEventListener('click', fetchDocuments);
-  documentSelect.addEventListener('change', onDocumentSelectChange);
-  btnExample1.addEventListener('click', runExample1);
-  btnExample2.addEventListener('click', runExample2);
-  btnExample3.addEventListener('click', runExample3);
-  btnConvertSvg.addEventListener('click', convertSvg);
-  svgFile.addEventListener('change', onSvgFileChange);
-  btnExportApiCalls.addEventListener('click', exportApiCalls);
+  if (btnAuthenticate) {
+    btnAuthenticate.addEventListener('click', authenticate);
+  }
+  
+  if (btnRefreshDocuments) {
+    btnRefreshDocuments.addEventListener('click', refreshDocuments);
+  }
+  
+  if (btnExample1) {
+    btnExample1.addEventListener('click', runExample1);
+  }
+  
+  if (btnExample2) {
+    btnExample2.addEventListener('click', runExample2);
+  }
+  
+  if (btnExample3) {
+    btnExample3.addEventListener('click', runExample3);
+  }
+  
+  if (btnConvertSvg) {
+    btnConvertSvg.addEventListener('click', convertSvg);
+  }
+  
+  if (btnExportApiCalls) {
+    btnExportApiCalls.addEventListener('click', exportApiCalls);
+  }
+  
+  // Add document select change handler
+  if (documentSelect) {
+    documentSelect.addEventListener('change', onDocumentSelectChange);
+  }
+  
+  // Add SVG file input change listener
+  if (svgFile) {
+    svgFile.addEventListener('change', onSvgFileChange);
+  }
   
   // Register studio and plane change handlers
   partStudioSelector.onSelect(onPartStudioSelect);
+  planeSelector.onSelect(onPlaneSelect); // Add this line
+  
+  // Initial UI update
+  updateConvertButton();
+  updateExampleButtons(); // Add this line
+}
+
+// Make sure to update the button state on init
+export function updateUI() {
+  // Other UI update code...
+  
+  // Update convert button state
+  updateConvertButton();
 }
 
 /**
@@ -172,7 +214,7 @@ function showDebugPanel() {
       }
     })
     .catch(err => {
-      console.error('Error fetching auth debug:', err);
+      logError('Error fetching auth debug:', err);
       const serverAuthDebug = document.getElementById('serverAuthDebug');
       if (serverAuthDebug) {
         serverAuthDebug.textContent = `Error fetching server auth data: ${err.message}`;
@@ -240,7 +282,7 @@ function updateDebugInfo() {
       }
     })
     .catch(err => {
-      console.error('Error refreshing auth debug:', err);
+      logError('Error refreshing auth debug:', err);
       // Don't update if there's an error to preserve existing data
     });
 }
@@ -338,7 +380,7 @@ function testAuthEndpoint() {
 function onDocumentSelectChange() {
   const selectedId = documentSelect.value;
   
-  console.log('[DEBUG] Document selection changed to:', selectedId);
+  logDebug('[UI] Document selection changed to:', selectedId);
   
   try {
     if (selectedId) {
@@ -354,42 +396,44 @@ function onDocumentSelectChange() {
       logInfo(`Selected document: ${selectedDocument.name}`);
       
       // Debug the part studio selector instance
-      console.log('[DEBUG] About to load part studios, selector:', partStudioSelector);
+      logDebug('[UI] About to load part studios, selector:', partStudioSelector);
       
       // Check if the method exists
       if (typeof partStudioSelector.loadPartStudios !== 'function') {
-        console.error('[DEBUG] loadPartStudios is not a function on the partStudioSelector instance!');
+        logError('[UI] loadPartStudios is not a function on the partStudioSelector instance!');
       } else {
         // Load part studios for this document
         try {
-          console.log('[DEBUG] Calling partStudioSelector.loadPartStudios with:', selectedId);
+          logDebug('[UI] Calling partStudioSelector.loadPartStudios with:', selectedId);
           partStudioSelector.loadPartStudios(selectedId)
             .then(partStudios => {
-              console.log('[DEBUG] Part studios loaded:', partStudios);
+              logDebug('[UI] Part studios loaded:', partStudios);
             })
             .catch(err => {
               logError(`Error loading part studios: ${err.message}`);
-              console.error('[DEBUG] Error loading part studios:', err);
+              logError('[UI] Error loading part studios:', err);
             });
         } catch (partStudioError) {
           logError(`Error initializing part studio load: ${partStudioError.message}`);
-          console.error('[DEBUG] Part studio loading error:', partStudioError);
+          logError('[UI] Part studio loading error:', partStudioError);
         }
       }
     } else {
       selectedDocument = null;
       documentName.disabled = false;
       // Reset selectors
-      console.log('[DEBUG] Resetting part studio selector');
+      logDebug('[UI] Resetting part studio selector');
       partStudioSelector.reset();
       planeSelector.reset();
+      // Update example buttons when resetting
+      updateExampleButtons();
       logInfo('Creating a new document');
     }
     
     updateConvertButton();
   } catch (error) {
     logError(`Error handling document selection: ${error.message}`);
-    console.error('[DEBUG] Document selection error:', error);
+    logError('[UI] Document selection error:', error);
   }
 }
 
@@ -404,6 +448,10 @@ function onPartStudioSelect(partStudio) {
       // Load planes for this part studio
       try {
         planeSelector.loadPlanes(partStudio.documentId, partStudio.id)
+          .then(() => {
+            // Update example buttons after planes are loaded
+            updateExampleButtons();
+          })
           .catch(err => {
             logError(`Error loading planes: ${err.message}`);
             // Don't throw here - we want to continue even if planes fail to load
@@ -414,10 +462,14 @@ function onPartStudioSelect(partStudio) {
     } else {
       logInfo('No part studio selected or invalid selection');
       planeSelector.reset();
+      // Make sure to update example buttons when resetting
+      updateExampleButtons();
     }
   } catch (error) {
     logError(`Error handling part studio selection: ${error.message}`);
     planeSelector.reset();
+    // Make sure to update example buttons when resetting
+    updateExampleButtons();
   }
 }
 
@@ -429,7 +481,7 @@ function onSvgFileChange(event) {
   if (!file) {
     svgPreview.innerHTML = '<p class="text-muted">SVG preview will appear here</p>';
     currentSvg = null;
-    updateConvertButton();
+    updateConvertButton(); // Ensure this is called
     return;
   }
   
@@ -439,7 +491,7 @@ function onSvgFileChange(event) {
     svgPreview.innerHTML = svgContent;
     currentSvg = svgContent;
     logInfo(`SVG file loaded: ${file.name}`);
-    updateConvertButton();
+    updateConvertButton(); // Ensure this is called
   };
   reader.readAsText(file);
 }
@@ -448,7 +500,62 @@ function onSvgFileChange(event) {
  * Update the state of the Convert button
  */
 function updateConvertButton() {
-  btnConvertSvg.disabled = !getToken() || !currentSvg;
+  if (!btnConvertSvg) return;
+  
+  const isAuthed = isAuthenticated();
+  const hasSvg = !!currentSvg || (svgFile && svgFile.files && svgFile.files.length > 0);
+  
+  // Apply visual styling based on state
+  if (!isAuthed || !hasSvg) {
+    btnConvertSvg.classList.add('disabled');
+    btnConvertSvg.style.pointerEvents = 'none';
+    btnConvertSvg.style.opacity = '0.65';
+    
+    // Add helpful tooltips explaining why the button is disabled
+    if (!isAuthed && !hasSvg) {
+      btnConvertSvg.title = 'Please authenticate and select an SVG file';
+    } else if (!isAuthed) {
+      btnConvertSvg.title = 'Please authenticate with Onshape first';
+    } else if (!hasSvg) {
+      btnConvertSvg.title = 'Please select an SVG file';
+    }
+  } else {
+    btnConvertSvg.classList.remove('disabled');
+    btnConvertSvg.style.pointerEvents = 'auto';
+    btnConvertSvg.style.opacity = '1';
+    btnConvertSvg.style.transition = 'background-color 0.2s ease';
+    btnConvertSvg.title = 'Convert SVG to Onshape model';
+  }
+}
+
+// Add this function after the existing updateConvertButton function
+/**
+ * Update the state of the example buttons based on plane selection
+ */
+function updateExampleButtons() {
+  if (!btnExample1 || !btnExample2 || !btnExample3) return;
+  
+  // Enable buttons only if a plane is selected
+  const selectedPlane = planeSelector.getSelectedItem();
+  const hasPlane = !!selectedPlane;
+  
+  // Update all example buttons
+  [btnExample1, btnExample2, btnExample3].forEach(btn => {
+    btn.disabled = !hasPlane;
+    
+    // Apply visual styling based on state
+    if (!hasPlane) {
+      btn.classList.add('disabled');
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.65';
+      btn.title = 'Please select a plane first';
+    } else {
+      btn.classList.remove('disabled');
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = '1';
+      btn.title = '';
+    }
+  });
 }
 
 /**
@@ -484,4 +591,71 @@ export function getSelectedPartStudio() {
  */
 export function getSelectedPlane() {
   return planeSelector.getSelectedItem();
+}
+
+/**
+ * Refresh documents from Onshape API
+ */
+async function refreshDocuments() {
+  try {
+    logInfo('Refreshing document list...');
+    
+    // Clear current document selection
+    if (documentSelect) {
+      documentSelect.innerHTML = '<option value="">Create new document</option>';
+    }
+    
+    // Fetch latest documents
+    const documents = await fetchDocuments();
+    
+    if (!documents || documents.length === 0) {
+      logInfo('No documents found');
+      return;
+    }
+    
+    // Add documents to dropdown
+    documents.forEach(doc => {
+      const option = document.createElement('option');
+      option.value = doc.id;
+      option.textContent = doc.name;
+      documentSelect.appendChild(option);
+    });
+    
+    logInfo(`Loaded ${documents.length} documents`);
+    
+    // Reset selectors
+    selectedDocument = null;
+    partStudioSelector.reset();
+    planeSelector.reset();
+    
+    // Re-enable document name input
+    if (documentName) {
+      documentName.disabled = false;
+    }
+    
+    // Update convert button state and example buttons
+    updateConvertButton();
+    updateExampleButtons();
+  } catch (error) {
+    logError(`[UI] Failed to refresh documents: ${error.message}`);
+    logDebug('[UI] Document refresh error:', error);
+  }
+}
+
+// Add this function to handle plane selection
+/**
+ * Handle plane selection change
+ */
+function onPlaneSelect(plane) {
+  try {
+    if (plane && plane.id) {
+      logInfo(`Selected plane: ${plane.name}`);
+      // Update example buttons when plane is selected
+      updateExampleButtons();
+    } else {
+      logInfo('No plane selected or invalid selection');
+    }
+  } catch (error) {
+    logError(`Error handling plane selection: ${error.message}`);
+  }
 }

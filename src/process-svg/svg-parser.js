@@ -1,6 +1,6 @@
 // src/process-svg/svg-parser.js
 const { DOMParser } = require('xmldom');
-const logger = require('../logger');
+const logger = require('../utils/logger');
 const log = logger.scope('SVGParser');
 
 /**

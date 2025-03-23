@@ -1,261 +1,214 @@
+// public/js/svg-converter.js
 import { apiCall } from './api.js';
-import { getToken, isAuthenticated } from './clientAuth.js'; // Added isAuthenticated
-import { getSelectedDocument, getDocumentName, getCurrentSvg } from './ui.js';
-import { logInfo, logSuccess, logError } from './utils/logging.js';
+import { isAuthenticated } from './clientAuth.js';
+import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from './ui.js';
+import { logInfo, logError, logWarn } from './utils/logging.js';
 
 /**
- * Handles SVG file conversion to Onshape format
+ * Handles SVG file conversion to Onshape features
  */
 export async function convertSvg() {
-  const fileInput = document.getElementById('svg-file-input');
-  const file = fileInput?.files[0];
-  
-  if (!file) {
-    logInfo('No SVG file selected');
-    return;
-  }
-  
-  logInfo(`SVG file loaded: ${file.name}`);
+  console.log('[DEBUG] Convert SVG function called');
   
   // Check authentication before proceeding
-  if (!isAuthenticated()) { // Using isAuthenticated instead of getToken
-    logError('Please authenticate first');
-    showAuthRequiredMessage();
+  if (!isAuthenticated()) {
+    console.log('[DEBUG] Authentication check failed');
+    logError('Please authenticate with Onshape first');
     return;
   }
-  
-  // Proceed with conversion since user is authenticated
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const svgContent = e.target.result;
-    try {
-      const result = await sendSvgForConversion(svgContent);
-      handleConversionSuccess(result);
-    } catch (error) {
-      logError(`Error converting SVG: ${error.message}`);
-    }
-  };
-  
-  reader.readAsText(file);
-}
 
-/**
- * Shows authentication required message to the user
- */
-function showAuthRequiredMessage() {
-  const messageContainer = document.getElementById('auth-message-container') || createAuthMessageContainer();
-  messageContainer.innerHTML = '<div class="auth-message">Authentication required to convert SVG files.</div>';
-  
-  // Add sign-in button if not already present
-  if (!document.getElementById('auth-sign-in-button')) {
-    const authButton = document.createElement('button');
-    authButton.id = 'auth-sign-in-button';
-    authButton.className = 'btn btn-primary auth-button';
-    authButton.textContent = 'Sign in with Onshape';
-    authButton.addEventListener('click', initiateLogin);
-    messageContainer.appendChild(authButton);
+  // Get the file input element
+  const svgFile = document.getElementById('svgFile');
+  if (!svgFile || !svgFile.files || svgFile.files.length === 0) {
+    logError('Please select an SVG file first');
+    return;
   }
-}
 
-/**
- * Initiates the login process
- */
-function initiateLogin() {
-  // Redirect to login page
-  const redirectUri = encodeURIComponent(window.location.origin + '/oauthRedirect');
-  const scopes = encodeURIComponent('OAuth2ReadPII OAuth2Read OAuth2Write OAuth2Delete');
+  const file = svgFile.files[0];
+  logInfo(`Processing SVG file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
   
-  window.location.href = `/api/oauth/login?redirectUri=${redirectUri}&scope=${scopes}`;
-}
-
-/**
- * Creates container for auth messages if it doesn't exist
- */
-function createAuthMessageContainer() {
-  const container = document.createElement('div');
-  container.id = 'auth-message-container';
-  container.className = 'auth-message-container';
-  
-  const convertButton = document.getElementById('convert-svg-button');
-  if (convertButton) {
-    convertButton.parentNode.insertBefore(container, convertButton.nextSibling);
-  } else {
-    document.querySelector('.svg-converter').appendChild(container);
-  }
-  
-  return container;
-}
-
-/**
- * Sends SVG content to the server for conversion
- */
-async function sendSvgForConversion(svgContent) {
   try {
-    // Step 1: Get or create a document
-    let onshapeDocument;
-    const selectedDocument = getSelectedDocument();
-    if (selectedDocument) {
-      onshapeDocument = selectedDocument;
-      logInfo(`Using existing document: ${onshapeDocument.name}`);
+    // Get document info
+    let documentId;
+    const selectedDoc = getSelectedDocument();
+    if (selectedDoc) {
+      documentId = selectedDoc.id;
+      logInfo(`Using existing document: ${selectedDoc.name}`);
     } else {
-      const newName = getDocumentName() || 'SVG Conversion';
-      onshapeDocument = await apiCall('documents', 'POST', { name: newName });
-      logSuccess(`Created new document: ${newName}`);
+      // Create new document if none selected
+      const docName = getDocumentName() || `SVG Conversion - ${file.name}`;
+      const newDoc = await apiCall('documents', 'POST', { name: docName });
+      documentId = newDoc.id;
+      logInfo(`Created new document: ${docName}`);
+    }
+
+    // Get part studio and plane information
+    const partStudio = getSelectedPartStudio();
+    const plane = getSelectedPlane();
+    
+    logInfo('Uploading SVG for conversion...');
+    logInfo(`Converting SVG file to Onshape features`);
+    
+    // Create FormData to send the file
+    const formData = new FormData();
+    formData.append('svgFile', file);
+    formData.append('documentId', documentId);
+    
+    // Add part studio if selected
+    if (partStudio) {
+      formData.append('elementId', partStudio.id);
+      logInfo(`Using part studio: ${partStudio.name}`);
     }
     
-    // Step 2: Get workspaces
-    logInfo('Accessing workspaces...');
-    const workspaces = await apiCall(`documents/${onshapeDocument.id}/workspaces`);
+    // Add plane if selected
+    if (plane) {
+      formData.append('planeId', plane.id);
+      logInfo(`Using sketch plane: ${plane.name}`);
+    }
+    
+    // Add conversion options
+    formData.append('scale', 1.0);
+    formData.append('units', 'mm');
+    formData.append('create3D', 'true');
+    formData.append('extrudeDepth', 10);
+    
+    // Custom fetch call for the file upload
+    const response = await fetch('/api/svg/convert', {
+      method: 'POST',
+      body: formData
+    });
+    
+    // Replace the current error handling with this:
+    if (!response.ok) {
+      const errorStatus = response.status;
+      try {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || `Server error (${errorStatus})`);
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          // If JSON parsing failed, try text instead
+          const errorText = await response.text();
+          throw new Error(errorText || `Server error (${errorStatus})`);
+        }
+        // Re-throw if it was already a handled error
+        throw e;
+      }
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      logInfo('SVG conversion successful!');
+      
+      // Ask if user wants to create features in Onshape
+      if (confirm('SVG converted successfully. Would you like to create the features in Onshape?')) {
+        return createFeaturesInOnshape(result.result.data, documentId, partStudio?.id);
+      } else {
+        showConversionResults(result.result);
+        showOnshapeLink(documentId);
+      }
+    } else {
+      logError(`Conversion failed: ${result.error || 'Unknown error'}`);
+    }
+  } catch (error) {
+    logError(`Error processing SVG: ${error.message}`);
+    console.error('SVG conversion error:', error);
+  }
+}
+
+/**
+ * Create Onshape features from conversion results
+ * @param {Object} features - Features to create
+ * @param {string} documentId - Document ID
+ * @param {string} [elementId] - Element ID (part studio)
+ */
+async function createFeaturesInOnshape(features, documentId, elementId) {
+  try {
+    logInfo('Creating features in Onshape document...');
+    
+    // If no element ID is provided, we need to get or create one
+    if (!elementId) {
+      // Try to get the default workspace first
+      const workspaces = await apiCall(`documents/${documentId}/workspaces`);
+      const workspaceId = workspaces[0].id;
+      
+      // Create a new part studio
+      logInfo('Creating a new part studio...');
+      const newElement = await apiCall(
+        `documents/${documentId}/w/${workspaceId}/elements`, 
+        'POST', 
+        { 
+          name: 'SVG Conversion', 
+          elementType: 'PARTSTUDIO' 
+        }
+      );
+      elementId = newElement.id;
+    }
+    
+    // Get workspace ID
+    const workspaces = await apiCall(`documents/${documentId}/workspaces`);
     const workspaceId = workspaces[0].id;
     
-    // Step 3: Create a new part studio
-    logInfo('Creating part studio...');
-    const elements = await apiCall(`documents/${onshapeDocument.id}/workspaces/${workspaceId}/elements`, 'POST', {
-      elementType: 'partstudio',
-      name: 'SVG Conversion',
-      isPublic: true
-    });
-    const elementId = elements.id;
-    
-    // Step 4: Create a sketch based on the SVG
-    logInfo('Processing SVG data...');
-    const svgData = parseSvgContent(svgContent);
-    
-    // Create a sketch for the SVG paths
-    const sketch = await apiCall(`documents/${onshapeDocument.id}/workspaces/${workspaceId}/elements/${elementId}/sketches`, 'POST', {
-      entities: createSketchEntitiesFromSvg(svgData),
-      version: 0
-    });
-    
-    // Step 5: Extrude the sketch
-    logInfo('Extruding SVG profile...');
-    await apiCall(`documents/${onshapeDocument.id}/workspaces/${workspaceId}/elements/${elementId}/features`, 'POST', {
-      feature: {
-        type: 'extrude',
-        name: 'SVG Extrusion',
-        parameters: {
-          entities: [{ type: 'sketch', id: sketch.id }],
-          direction: { type: 'normal', flipped: false },
-          endBound: { type: 'blind', value: 0.25 } // Default extrusion depth
-        }
-      },
-      version: 1
-    });
-    
-    return {
-      success: true,
-      documentId: onshapeDocument.id,
-      workspaceId: workspaceId,
-      elementId: elementId
-    };
-    
-  } catch (error) {
-    logError(`Error in SVG conversion: ${error.message}`);
-    throw error;
-  }
-}
-
-/**
- * Parse SVG content into usable data
- * This is a simplified version - a real implementation would use a proper SVG parser
- */
-function parseSvgContent(svgContent) {
-  // This is a placeholder for actual SVG parsing logic
-  // In a real implementation, you would use a library like svg-parser to parse the SVG
-  
-  // For demonstration, we'll return a simple rectangle
-  return {
-    paths: [
+    // Send the features to the server
+    const createResult = await apiCall(
+      'svg/createFeatures',
+      'POST',
       {
-        type: 'rect',
-        x: 0,
-        y: 0,
-        width: 50,
-        height: 30
+        documentId,
+        workspaceId,
+        elementId,
+        features
       }
-    ]
-  };
-}
-
-/**
- * Convert SVG data to Onshape sketch entities
- */
-function createSketchEntitiesFromSvg(svgData) {
-  // This is a simplified conversion - a real implementation would handle all SVG element types
-  
-  const entities = {
-    lines: []
-  };
-  
-  // Process each path in the SVG
-  svgData.paths.forEach(path => {
-    if (path.type === 'rect') {
-      // Create a rectangle using lines
-      const x = path.x;
-      const y = path.y;
-      const width = path.width;
-      const height = path.height;
-      
-      // Bottom line
-      entities.lines.push({
-        type: 'line',
-        parameters: {
-          start: [x, y],
-          end: [x + width, y]
-        }
-      });
-      
-      // Right line
-      entities.lines.push({
-        type: 'line',
-        parameters: {
-          start: [x + width, y],
-          end: [x + width, y + height]
-        }
-      });
-      
-      // Top line
-      entities.lines.push({
-        type: 'line',
-        parameters: {
-          start: [x + width, y + height],
-          end: [x, y + height]
-        }
-      });
-      
-      // Left line
-      entities.lines.push({
-        type: 'line',
-        parameters: {
-          start: [x, y + height],
-          end: [x, y]
-        }
-      });
+    );
+    
+    if (createResult.success) {
+      logInfo(`Created ${createResult.features.length} features in Onshape!`);
+      showOnshapeLink(documentId, workspaceId, elementId);
+    } else {
+      throw new Error(createResult.message || 'Failed to create features');
     }
-    // Additional path types would be handled here
-  });
-  
-  return entities;
+  } catch (error) {
+    logError(`Error creating features: ${error.message}`);
+    showOnshapeLink(documentId);
+  }
 }
 
 /**
- * Handles successful conversion of SVG
+ * Show a link to the Onshape document
  */
-function handleConversionSuccess(result) {
-  logSuccess('SVG conversion successful');
-  // Display the result or download link based on your application's requirements
-  if (result.documentId) {
-    const onshapeLink = `https://cad.onshape.com/documents/${result.documentId}`;
-    const linkDiv = document.createElement('div');
-    linkDiv.innerHTML = `<a href="${onshapeLink}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Open in Onshape</a>`;
-    document.getElementById('logOutput').appendChild(linkDiv);
+function showOnshapeLink(documentId, workspaceId, elementId) {
+  let url = `https://cad.onshape.com/documents/${documentId}`;
+  
+  if (workspaceId) {
+    url += `/w/${workspaceId}`;
+    
+    if (elementId) {
+      url += `/e/${elementId}`;
+    }
   }
+  
+  const linkDiv = document.createElement('div');
+  linkDiv.innerHTML = `<a href="${url}" target="_blank" class="btn btn-sm btn-primary mt-2">Open in Onshape</a>`;
+  document.getElementById('logOutput').appendChild(linkDiv);
 }
 
-// Make sure the event listener is attached
-document.addEventListener('DOMContentLoaded', () => {
-  const convertSvgButton = document.getElementById('convert-svg-button');
-  if (convertSvgButton) {
-    convertSvgButton.addEventListener('click', convertSvg);
-  }
-});
+/**
+ * Show conversion results in the UI
+ */
+function showConversionResults(result) {
+  // Log statistics about the conversion
+  logInfo(`Processed ${result.svgInfo?.elements.paths || 0} paths, ${result.svgInfo?.elements.circles || 0} circles, etc.`);
+  logInfo(`Created ${result.features?.sketches || 0} sketches and ${result.features?.features3D || 0} 3D features`);
+  
+  // You could add more detailed visualization of the conversion results here
+}
+
+// Remove this event listener as it's already handled in ui.js
+// document.addEventListener('DOMContentLoaded', () => {
+//   const btnConvertSvg = document.getElementById('btnConvertSvg');
+//   if (btnConvertSvg) {
+//     btnConvertSvg.addEventListener('click', convertSvg);
+//   } else {
+//     console.error("Convert SVG button not found in DOM");
+//   }
+// });

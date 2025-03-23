@@ -1,6 +1,6 @@
 // src/process-svg/feature-builder.js
-const logger = require('../logger');
-const log = logger.scope('FeatureBuilder');
+const logger = require('../utils/logger');
+const log = logger.scope('Features');
 
 /**
  * FeatureBuilder module that converts processed SVG data into Onshape features

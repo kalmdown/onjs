@@ -7,7 +7,7 @@ const config = require('../../config');
 const { createFallbackAuthRoutes } = require('../middleware/fix-auth');
 
 // Create a scoped logger
-const log = logger.scope('AuthRoutes');
+const log = logger.scope('Auth');
 
 /**
  * @route GET /oauth/login

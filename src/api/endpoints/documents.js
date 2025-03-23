@@ -16,7 +16,7 @@ class DocumentsApi {
       throw new Error('Onshape client is required');
     }
     this.client = client;
-    this.logger = logger.scope('DocumentsApi');
+    this.logger = logger.scope('Documents');
     
     // Log client capabilities for debugging
     this.logger.debug('DocumentsApi initialized', {

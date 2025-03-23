@@ -2,7 +2,7 @@
 import { apiCall } from '../api.js';
 import { getToken } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
-import { logInfo, logSuccess, logError } from '../utils/logging.js';
+import { logInfo, logError } from '../utils/logging.js';
 
 /**
  * Example 1: Create a Cylinder
@@ -27,7 +27,7 @@ export async function runExample1() {
     } else {
       const newName = getDocumentName() || 'Cylinder Example';
       onshapeDocument = await apiCall('documents', 'POST', { name: newName });
-      logSuccess(`Created new document: ${newName}`);
+      logInfo(`Created new document: ${newName}`);
     }
     
     // Step 2: Get workspaces
@@ -171,7 +171,7 @@ export async function runExample1() {
       extrudeFeature
     );
     
-    logSuccess('Successfully created cylinder in Onshape!');
+    logInfo('Successfully created cylinder in Onshape!');
     
     const onshapeLink = `https://cad.onshape.com/documents/${onshapeDocument.id}`;
     const linkDiv = document.createElement('div');

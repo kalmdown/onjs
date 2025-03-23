@@ -6,7 +6,7 @@ const DocumentsApi = require('../api/endpoints/documents');
 const ElementsApi = require('../api/endpoints/elements');
 
 // Create a scoped logger
-const log = logger.scope('DocumentRoutes');
+const log = logger.scope('Documents');
 
 // Export router configuration function
 module.exports = function(app, auth) {
@@ -18,7 +18,7 @@ module.exports = function(app, auth) {
    * @access Private
    */
   router.get('/', isAuthenticated, async (req, res, next) => {
-    const log = logger.scope('DocumentRoutes');
+    const log = logger.scope('Documents');
     const options = {
       limit: parseInt(req.query.limit) || 20,
       offset: parseInt(req.query.offset) || 0,
