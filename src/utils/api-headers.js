@@ -1,10 +1,11 @@
+// src/utils/api-headers.js
 /**
  * Utility to provide consistent API headers across the application (Server-side)
  */
 const config = require('../../config');
 const logger = require('./logger');
 
-const log = logger.scope('ApiHeaders');
+const log = logger.scope('Apis');
 
 /**
  * Generate consistent Onshape API headers

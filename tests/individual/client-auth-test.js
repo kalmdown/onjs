@@ -48,7 +48,7 @@ if (require.cache[envLoaderPath]) {
 // Import required modules
 const AuthManager = require('../../src/auth/auth-manager');
 const OnshapeClient = require('../../src/api/client');
-const logger = require('../../src/utils/logger').scope('auth-test');
+const logger = require('../../src/utils/logger').scope('Auth');
 const { inspect } = require('util');
 
 // Document information

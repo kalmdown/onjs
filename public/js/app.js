@@ -1,3 +1,4 @@
+// public/js/app.js
 /**
  * SVG to Onshape Converter - Client-side application
  * Main entry point
@@ -29,7 +30,7 @@ async function initializeApp(dependencies) {
     
     // If authenticated, fetch documents
     if (isAuthenticated) {
-      dependencies.logInfo('Authentication successful, fetching documents...');
+      dependencies.logInfo('Authentication successful, fetching documents...', "Documents");
       await dependencies.fetchDocuments();
     } else {
       dependencies.logInfo('Not authenticated. Please click "Authenticate with Onshape" to begin.');

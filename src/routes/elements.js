@@ -1,9 +1,10 @@
+// src/routes/elements.js
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
 const ElementsApi = require('../api/endpoints/elements');
 
-const log = logger.scope('ElementRoutes');
+const log = logger.scope('Elements');
 
 module.exports = function(app, auth) {
   const { isAuthenticated } = auth;

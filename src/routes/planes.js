@@ -3,13 +3,16 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
 
-const log = logger.scope('PlanesRoutes');
+const log = logger.scope('Planes');
 
 module.exports = function(app, auth) {
   const { isAuthenticated } = auth;
   
-  log.info('Initializing planes API routes');
-
+   // Delay logging until after configuration is loaded
+   process.nextTick(() => {
+    log.info('Initializing planes API routes');
+  });
+  
   /**
    * Helper function to extract plane information from feature
    * @param {Object} feature - Feature object

@@ -1,16 +1,19 @@
 // public/js/clientAuth.js
+// Import the logging utilities
+import { logInfo, logError, logDebug, logWarn } from './utils/logging.js';
+
 // Store token values
 let _authToken = null;
 let _refreshToken = null;
 let _isAuthenticated = false;
-let _authMethod = 'none'; // Add this line near the other state variables
+let _authMethod = 'none';
 
 /**
  * Initialize authentication
  * @returns {Promise<boolean>} Promise resolving to whether authentication was successful
  */
 async function init() {
-  console.log("Initializing auth module");
+  logInfo("[Auth] Initializing auth module");
   
   try {
     // Check URL parameters for tokens and auth type
@@ -20,18 +23,18 @@ async function init() {
     const error = urlParams.get('error');
     const apiKeyAuth = urlParams.get('auth') === 'apikey';
     
-    console.log("Checking authentication state");
+    logInfo("[Auth] Checking authentication state");
     
     // Handle authentication errors
     if (error) {
-      console.error("Authentication error:", error);
+      logError(`[Auth] Authentication error: ${error}`);
       handleAuthError(error);
       return false;
     }
     
     // Check for API key auth success response from redirect
     if (apiKeyAuth) {
-      console.log("API key authentication detected");
+      logInfo("[Auth] API key authentication detected");
       _isAuthenticated = true;
       _authMethod = 'apikey';
       updateAuthUI(true, 'apikey');
@@ -40,7 +43,7 @@ async function init() {
     
     // Handle OAuth tokens in URL
     if (token) {
-      console.log("Token received in URL params");
+      logInfo("[Auth] Token received in URL params");
       _authToken = token;
       _refreshToken = refreshToken || null;
       _isAuthenticated = true;
@@ -53,7 +56,7 @@ async function init() {
           localStorage.setItem('refreshToken', refreshToken);
         }
       } catch (e) {
-        console.warn("Could not save token to localStorage:", e);
+        logWarn(`[Auth] Could not save token to localStorage: ${e.message}`);
       }
       
       // Clean URL
@@ -67,7 +70,7 @@ async function init() {
     const storedRefresh = localStorage.getItem('refreshToken');
     
     if (storedToken) {
-      console.log("Using stored authentication token");
+      logInfo("[Auth] Using stored authentication token");
       _authToken = storedToken;
       _refreshToken = storedRefresh;
       _isAuthenticated = true;
@@ -79,7 +82,7 @@ async function init() {
     // If no tokens found, check server auth method
     const method = await checkServerAuthMethod();
     if (method === 'apikey') {
-      console.log("Server is using API key authentication");
+      logInfo("[Auth] Server is using API key authentication");
       _isAuthenticated = true;
       _authMethod = 'apikey';
       updateAuthUI(true, 'apikey');
@@ -87,12 +90,12 @@ async function init() {
     }
     
     // No valid authentication found
-    console.warn("No valid authentication found");
+    logWarn("[Auth] No valid authentication found");
     updateAuthUI(false);
     return false;
     
   } catch (error) {
-    console.error("Error during auth initialization:", error);
+    logError(`[Auth] Error during auth initialization: ${error.message}`);
     handleAuthError(error.message);
     updateAuthUI(false);
     return false;
@@ -112,12 +115,12 @@ function checkServerAuthMethod() {
       return response.json();
     })
     .then(data => {
-      console.log("Server auth method:", data.method);
-      console.log("Auth configuration:", data.isConfigured ? "Configured" : "Not configured");
+      logInfo(`Server auth method: ${data.method}`, "Auth");
+      logInfo(`Auth configuration: ${data.isConfigured ? "Configured" : "Not configured"}`, "Auth");
       return data.method;
     })
     .catch(error => {
-      console.error("Error checking server auth method:", error);
+      logError("[Auth] Error checking server auth method:", error);
       // Return 'none' as the default if the request fails
       return 'none';
     });
@@ -150,7 +153,7 @@ function checkAuthStatus() {
       return data;
     })
     .catch(error => {
-      console.error("Error checking auth status:", error);
+      logError("[Auth] Error checking auth status:", error);
       return {
         error: error.message,
         isAuthenticated: _isAuthenticated,
@@ -212,7 +215,7 @@ function getAuthToken() {
  * This redirects to the Onshape OAuth page
  */
 function authenticate() {
-  console.log("%c[AUTH] User clicked Authenticate button", "color: #FF8C00; font-weight: bold;");
+  logInfo("[Auth] User clicked Authenticate button");
   
   // Display a logging message in the UI
   const logOutput = document.getElementById('logOutput');
@@ -293,7 +296,7 @@ function authenticate() {
             }
           })
           .catch(error => {
-            console.error('API key test failed:', error);
+            logError('API key test failed:', error);
             if (logOutput) {
               const entry = document.createElement('div');
               entry.className = 'log-error';
@@ -316,7 +319,7 @@ function authenticate() {
       }
     })
     .catch(error => {
-      console.error('Error checking auth method:', error);
+      logError('Error checking auth method:', error);
       if (logOutput) {
         const entry = document.createElement('div');
         entry.className = 'log-error';
@@ -407,7 +410,7 @@ function updateAuthUI(isAuthenticated, authMethod) {
  * @param {string} error - Error message
  */
 function handleAuthError(error) {
-  console.error("Authentication error:", error);
+  logError("[Auth] Authentication error:", error);
   
   // Try to show in dedicated auth-error element if it exists
   const errorContainer = document.getElementById('auth-error');
@@ -432,7 +435,7 @@ function handleAuthError(error) {
  * Logs state to console and performs test API call
  */
 function debugAuthState() {
-  console.log("%c[AUTH DEBUG] Current auth state:", "color: #9c27b0; font-weight: bold", {
+  logDebug("[Auth] Current auth state:", {
     isAuthenticated: _isAuthenticated,
     hasAuthToken: !!_authToken,
     authTokenLength: _authToken ? _authToken.length : 0,
@@ -455,7 +458,7 @@ function debugAuthState() {
   // Use the comprehensive debug endpoint
   checkAuthStatus()
     .then(data => {
-      console.log("%c[AUTH DEBUG] Server auth state:", "color: #9c27b0", data);
+      logDebug("[Auth] Server auth state:", data);
       
       // Add to UI log if available
       if (logOutput) {
@@ -477,14 +480,14 @@ function debugAuthState() {
       // Test authentication with a simple API call
       return fetch('/api/auth/test')
         .then(response => {
-          console.log("%c[AUTH DEBUG] Auth test response status:", "color: #9c27b0", response.status);
+          logDebug("[Auth] Auth test response status:", response.status);
           if (!response.ok) {
             throw new Error(`Test endpoint returned ${response.status}`);
           }
           return response.json();
         })
         .then(testData => {
-          console.log("%c[AUTH DEBUG] Auth test result:", "color: #9c27b0", testData);
+          logDebug("[Auth] Auth test result:", testData);
           
           // Add to UI log if available
           if (logOutput) {
@@ -497,7 +500,7 @@ function debugAuthState() {
           }
         })
         .catch(error => {
-          console.error("%c[AUTH DEBUG] Auth test failed:", "color: #f44336", error);
+          logError("[Auth] Auth test failed:", error);
           
           // Add to UI log if available
           if (logOutput) {
@@ -512,9 +515,9 @@ function debugAuthState() {
     });
 }
 
-// Modify the existing DOMContentLoaded listener
+// Replace the DOMContentLoaded event handler
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("DOM loaded, initializing auth");
+  logInfo("[Auth] DOM loaded, initializing auth");
   init();
   
   // Debug auth state after init with slight delay to allow other processes to complete
@@ -523,14 +526,14 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add direct event listener for authentication button
   const btnAuthenticate = document.getElementById('btnAuthenticate');
   if (btnAuthenticate) {
-    console.log("Directly attaching event to auth button");
+    logDebug("[Auth] Directly attaching event to auth button");
     btnAuthenticate.addEventListener('click', function(e) {
-      console.log("Auth button clicked (direct listener)");
+      logDebug("[Auth] Auth button clicked (direct listener)");
       e.preventDefault(); // Prevent default form submission
       authenticate();
     });
   } else {
-    console.error("Auth button not found in DOMContentLoaded");
+    logError("[Auth] Auth button not found in DOMContentLoaded");
   }
   
   // Add a debug button to the UI next to auth status

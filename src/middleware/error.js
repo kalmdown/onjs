@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 const { OnshapeError, AuthenticationError } = require('../utils/errors');
 
 // Create a scoped logger
-const log = logger.scope('ErrorMiddleware');
+const log = logger.scope('Middleware');
 
 /**
  * Global error handling middleware

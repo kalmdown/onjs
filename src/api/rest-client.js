@@ -1,4 +1,4 @@
-// src\api\rest-client.js
+// src/api/rest-client.js
 const axios = require('axios');
 const logger = require('../utils/logger');
 const { ApiError } = require('../utils/errors');

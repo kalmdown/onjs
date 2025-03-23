@@ -19,7 +19,7 @@ export class PlaneSelector extends Selector {
     this.isLoading = false;
     
     // Add construction logging
-    console.log('[DEBUG] PlaneSelector constructor called');
+    logDebug('[Planes] Constructor called');
   }
   
   /**
@@ -145,11 +145,10 @@ export class PlaneSelector extends Selector {
    * @returns {Promise<Object>} - The loaded planes
    */
   async loadPlanes(documentId, elementId, workspaceId = null) {
-    console.log(`[DEBUG] PlaneSelector.loadPlanes called with documentId=${documentId}, elementId=${elementId}, workspaceId=${workspaceId}`);
+    logDebug(`[Planes] loadPlanes called with documentId=${documentId}, elementId=${elementId}, workspaceId=${workspaceId}`);
     
     if (!documentId || !elementId) {
-      console.error('[DEBUG] Document ID and Element ID are required to load planes');
-      logError('Document ID and Element ID are required to load planes');
+      logError('[Planes] Document ID and Element ID are required to load planes');
       return { defaultPlanes: [], customPlanes: [] };
     }
     
@@ -157,7 +156,7 @@ export class PlaneSelector extends Selector {
       this.isLoading = true;
       this.updateUI();
       
-      console.log(`[DEBUG] Loading planes for document ${documentId}, element ${elementId}`);
+      logDebug(`[Planes] Loading planes for document ${documentId}, element ${elementId}`);
       
       // Store parameters for potential retry
       this.documentId = documentId;
@@ -170,7 +169,7 @@ export class PlaneSelector extends Selector {
       // Fetch planes from the updated API endpoint
       try {
         const planesUrl = `planes/${documentId}/w/${wsId}/e/${elementId}`;
-        console.log(`[DEBUG] Fetching planes from: ${planesUrl}`);
+        logDebug(`[Planes] Fetching planes from: ${planesUrl}`);
         
         const response = await fetch(`/api/${planesUrl}`);
         
@@ -201,7 +200,7 @@ export class PlaneSelector extends Selector {
           this.planes = planesData;
         }
         
-        console.log(`[DEBUG] Received planes data: ${JSON.stringify(this.planes)}`);
+        logDebug(`[Planes] Received planes data: ${JSON.stringify(this.planes)}`);
         
         // Update UI
         this.renderItems();
@@ -213,8 +212,7 @@ export class PlaneSelector extends Selector {
         
         return this.planes;
       } catch (error) {
-        console.error(`[DEBUG] Error fetching planes: ${error.message}`);
-        logError(`Failed to fetch planes: ${error.message}`);
+        logError(`[Planes] Error fetching planes: ${error.message}`);
         
         // Return empty arrays as fallback
         this.planes = {
@@ -225,8 +223,7 @@ export class PlaneSelector extends Selector {
         return this.planes;
       }
     } catch (error) {
-      console.error(`[DEBUG] Failed to load planes: ${error.message}`);
-      logError(`Failed to load planes: ${error.message}`);
+      logError(`[Planes] Failed to load planes: ${error.message}`);
       
       // Return empty arrays on error
       return { defaultPlanes: [], customPlanes: [] };
@@ -241,16 +238,14 @@ export class PlaneSelector extends Selector {
    */
   retryLoadPlanes() {
     if (this.documentId && this.elementId) {
-      logInfo('Retrying plane load...');
-      console.log('[DEBUG] Retrying plane load...');
+      logInfo('[Planes] Retrying plane load...');
       return this.loadPlanes(
         this.documentId,
         this.elementId,
         this.workspaceId
       );
     } else {
-      logError('Cannot retry - no previous load parameters');
-      console.error('[DEBUG] Cannot retry - no previous load parameters');
+      logError('[Planes] Cannot retry - no previous load parameters');
       return Promise.reject(new Error('No previous load parameters'));
     }
   }
@@ -282,11 +277,11 @@ export class PlaneSelector extends Selector {
 
 // Create singleton instance
 const planeSelector = new PlaneSelector();
-console.log('[DEBUG] planeSelector singleton instance created');
+logDebug('[Planes] Singleton instance created');
 
 // Add global access for debugging
 window.planeSelector = planeSelector;
-console.log('[DEBUG] planeSelector exposed as window.planeSelector for debugging');
+logDebug('[Planes] Exposed as window.planeSelector for debugging');
 
 // Add some CSS for the plane selector
 const style = document.createElement('style');

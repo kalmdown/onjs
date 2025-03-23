@@ -1,7 +1,8 @@
+// public/js/examples/cup.js
 import { apiCall } from '../api.js';
 import { isAuthenticated } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
-import { logInfo, logSuccess, logError } from '../utils/logging.js';
+import { logInfo, logError } from '../utils/logging.js';
 
 /**
  * Example 3: Create a Cup
@@ -30,7 +31,7 @@ export async function runExample2() {
     } else {
       const newName = getDocumentName() || 'Cup Example';
       onshapeDocument = await apiCall('documents', 'POST', { name: newName });
-      logSuccess(`Created new document: ${newName}`);
+      logInfo(`Created new document: ${newName}`);
     }
     
     // Step 2: Get workspaces
@@ -364,7 +365,7 @@ export async function runExample2() {
       { feature: cutExtrudeFeature }
     );
     
-    logSuccess('Successfully created cup in Onshape!');
+    logInfo('Successfully created cup in Onshape!');
     
     const onshapeLink = `https://cad.onshape.com/documents/${onshapeDocument.id}`;
     const linkDiv = document.createElement('div');

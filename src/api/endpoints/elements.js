@@ -1,4 +1,4 @@
-// src\api\endpoints\elements.js
+// src/api/endpoints/elements.js
 const logger = require('../../utils/logger');
 const { NotFoundError, ValidationError } = require('../../utils/errors');
 const { getOnshapeHeaders } = require('../../utils/api-headers');
@@ -16,7 +16,7 @@ class ElementsApi {
       throw new Error('Onshape client is required');
     }
     this.client = client;
-    this.logger = logger.scope('ElementsApi');
+    this.logger = logger.scope('Elements');
     
     // Log client capabilities for debugging
     this.logger.debug('ElementsApi initialized', {

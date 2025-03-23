@@ -3,12 +3,15 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
 
-const log = logger.scope('FeaturesRoutes');
+const log = logger.scope('Features');
 
 module.exports = function(app, auth) {
   const { isAuthenticated } = auth;
   
-  log.info('Initializing features API routes');
+   // Delay logging until after configuration is loaded
+   process.nextTick(() => {
+    log.info('Initializing features API routes');
+  });
 
   /**
    * @route GET /api/features

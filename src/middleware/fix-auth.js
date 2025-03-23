@@ -2,7 +2,7 @@
 const express = require('express');
 const logger = require('../utils/logger');
 
-const log = logger.scope('FixAuth');
+const log = logger.scope('Auth');
 
 function createFallbackAuthRoutes() {
   const router = express.Router();

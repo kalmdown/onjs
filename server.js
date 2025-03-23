@@ -37,6 +37,7 @@ const elementRoutes = require('./src/routes/elements');
 const featureRoutes = require('./src/routes/features');
 const exampleRoutes = require('./src/routes/examples');
 const planesRoutes = require('./src/routes/planes');
+const svgConverterRoutes = require('./src/routes/svg-converter');
 
 // Configure logger based on environment
 if (process.env.NODE_ENV === 'production') {
@@ -111,6 +112,61 @@ app.use((req, res, next) => {
 
 // Configure middleware
 app.use(bodyParser.json());
+
+// Add this BEFORE your express.static middleware (around line 124)
+// Dynamically generate client-side config based on server environment
+
+// Generate dynamic config.js with logging configuration from environment
+app.get('/js/config.js', (req, res) => {
+  try {
+    // Get logging configuration from environment
+    const loggingConfig = {
+      globalLevel: loadEnv.getScopeLogLevel('GLOBAL'),
+      scopeLevels: {}
+    };
+    
+    // Add scope levels for client components
+    [
+      'Auth', 
+      'Features', 
+      'Planes', 
+      'UI', 
+      'Documents', 
+      'OnshapeClient',
+      'SvgConverter'
+    ].forEach(scope => {
+      loggingConfig.scopeLevels[scope] = loadEnv.getScopeLogLevel(scope);
+    });
+    
+    // Set content type to JavaScript
+    res.setHeader('Content-Type', 'application/javascript');
+    
+    // Return configuration as global variables
+    res.send(`
+// Dynamically generated configuration - DO NOT EDIT
+window.GLOBAL_LOGGING = ${JSON.stringify(loggingConfig, null, 2)};
+
+// Other client-side configuration can be added here
+window.API_BASE_URL = '/api';
+    `);
+  } catch (error) {
+    // Provide fallback configuration in case of error
+    console.error('Error generating client config:', error);
+    res.setHeader('Content-Type', 'application/javascript');
+    res.send(`
+// Fallback configuration - Error occurred when generating config
+window.GLOBAL_LOGGING = {
+  globalLevel: "error",
+  scopeLevels: {
+    "Auth": "error",
+    "Documents": "error"
+  }
+};
+    `);
+  }
+});
+
+// This route must be defined BEFORE the static file middleware
 app.use(express.static(path.join(__dirname, 'public')));
 // In server.js, update session configuration
 app.use(session({
@@ -139,7 +195,7 @@ auth.configureOAuth(authManager);
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
     if (req.path.includes('/api/')) {
-      const log = require('./src/utils/logger').scope('RouteDebug');
+      const log = require('./src/utils/logger').scope('Routes');
       log.debug(`${req.method} ${req.path}`, {
         params: req.params,
         query: req.query,
@@ -168,7 +224,7 @@ app.use((req, res, next) => {
 // Debug middleware for plane requests
 app.use((req, res, next) => {
   if (req.path.includes('/planes')) {
-    const log = require('./src/utils/logger').scope('PlanesDebug');
+    const log = require('./src/utils/logger').scope('Planes');
     log.debug(`Planes request: ${req.method} ${req.path}`, {
       params: req.params,
       query: req.query,
@@ -182,6 +238,44 @@ app.use((req, res, next) => {
   next();
 });
 
+// After middleware setup and before route registration
+
+// Add logging configuration to app locals for client-side use
+app.use((req, res, next) => {
+  try {
+    // Get logging configuration from environment
+    const loggingConfig = {
+      globalLevel: loadEnv.getScopeLogLevel('GLOBAL'),
+      scopeLevels: {}
+    };
+    
+    // Add scope levels for client components
+    [
+      'Auth', 
+      'Features', 
+      'Planes', 
+      'UI', 
+      'Documents', 
+      'OnshapeClient',
+      'SvgConverter'
+    ].forEach(scope => {
+      loggingConfig.scopeLevels[scope] = loadEnv.getScopeLogLevel(scope);
+    });
+    
+    // Make logging config available to all views
+    res.locals.loggingConfig = JSON.stringify(loggingConfig);
+  } catch (error) {
+    // Fail safely if there's an issue with logging configuration
+    console.error('Error setting up logging configuration:', error);
+    res.locals.loggingConfig = JSON.stringify({
+      globalLevel: 'error',
+      scopeLevels: {}
+    });
+  }
+  next();
+});
+
+// Continue with route registration
 // Mount routes with auth middleware
 app.use('/oauth', authRoutes);
 app.use('/api/auth', require('./src/routes/apiAuthRoutes')(app, auth));
@@ -190,6 +284,7 @@ app.use('/api/elements', elementRoutes(app, auth));
 app.use('/api/features', featureRoutes(app, auth));
 app.use('/api/examples', exampleRoutes(app, auth));
 app.use('/api/planes', planesRoutes(app, auth));
+app.use('/api/svg', svgConverterRoutes(app, auth));
 
 // Endpoint to receive client-side logs
 app.post('/api/logs', (req, res) => {
@@ -227,7 +322,7 @@ app.post('/api/webhooks', (req, res) => {
 // Authentication debug endpoint to help diagnose auth issues
 app.get('/api/debug/auth', (req, res) => {
   const authManager = req.app.get('authManager');
-  const log = logger.scope('AuthDebug');
+  const log = logger.scope('Auth');
   
   log.info('Auth debug endpoint accessed');
   
@@ -356,7 +451,7 @@ app.use(errorMiddleware);
 // More detailed error handler
 app.use((err, req, res, next) => {
   const logger = require('./src/utils/logger');
-  const log = logger.scope('ErrorMiddleware');
+  const log = logger.scope('Middleware');
   
   // Log error details
   log.error(`API Error: ${err.message}`, {
@@ -387,7 +482,6 @@ const serverPort = config?.server?.port || parseInt(process.env.PORT, 10) || 300
 app.set('port', serverPort);
 
 // Add after all routes are registered, before starting the server
-console.log('\n=== REGISTERED ROUTES ===');
 const getFileInfo = () => {
   const stack = new Error().stack;
   const stackLines = stack.split('\n');
@@ -487,7 +581,6 @@ const dimText = (text) => {
 const routeLoggingEnabled = process.env.ROUTE_LOGGING === 'true';
 
 if (routeLoggingEnabled) {
-  console.log('\n=== REGISTERED ROUTES ===');
   
   // Collect and display all routes
   const routes = collectRouteSources();
@@ -516,12 +609,11 @@ if (routeLoggingEnabled) {
     }
   });
   console.log('=========================\n');
-} else {
-  console.log('Route logging disabled. Enable by setting ROUTE_LOGGING=true in .env');
 }
 
 // When starting the server
 app.listen(serverPort, () => {
-  logger.info(`[Server] Server running at http://localhost:${serverPort}`);
+  const log = logger.scope('Server');
+  log.info(`Server running at http://localhost:${serverPort}`);
   // Other startup logs...
 });

@@ -2,7 +2,7 @@
 
 // Import the functions that return auth information
 import { getToken, getAuthMethod } from './clientAuth.js';
-import { logError, logSuccess, logInfo, logDebug, logWarn } from './utils/logging.js';
+import { logError, logInfo, logDebug, logWarn } from './utils/logging.js';
 
 // State
 let documents = [];
@@ -10,6 +10,7 @@ let apiCalls = []; // Array to store API calls
 let lastRequest = null;
 let lastResponse = null;
 let requestLog = [];
+let isDocumentFetchInProgress = false; // Add a flag to track document fetching to avoid duplicates
 
 /**
  * Make an authenticated API call with enhanced logging
@@ -132,6 +133,14 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
  * @returns {Promise<Array>} Array of documents
  */
 export async function fetchDocuments(showLoadingIndicator = true) {
+  // Prevent duplicate fetches
+  if (isDocumentFetchInProgress) {
+    logDebug("Document fetch already in progress, skipping duplicate request", "Documents");
+    return documents;
+  }
+  
+  isDocumentFetchInProgress = true;
+  
   // Check for authentication using the proper method instead of just token
   const authMethod = getAuthMethod();
   const isAuth = authMethod === 'apikey' || !!getToken();
@@ -156,7 +165,7 @@ export async function fetchDocuments(showLoadingIndicator = true) {
     }
   }
   
-  logInfo(`Fetching documents using ${authMethod} authentication...`);
+  logInfo(`Fetching documents using ${authMethod} authentication...`, "Documents");
   
   try {
     // Call the API to get documents
@@ -190,7 +199,7 @@ export async function fetchDocuments(showLoadingIndicator = true) {
       btnRefreshDocuments.textContent = 'Refresh';
     }
     
-    logSuccess(`Found ${documents.length} documents`);
+    logInfo(`Found ${documents.length} documents`, "Documents");
     
     // Update document info in UI
     const docCountElement = document.getElementById('documentCount');
@@ -200,7 +209,7 @@ export async function fetchDocuments(showLoadingIndicator = true) {
     
     return documents;
   } catch (error) {
-    logError(`Error fetching documents: ${error.message}`);
+    logError(`Error fetching documents: ${error.message}`, "Documents");
     
     // Reset UI in case of error
     const documentSelect = document.getElementById('documentSelect');
@@ -216,6 +225,9 @@ export async function fetchDocuments(showLoadingIndicator = true) {
     }
     
     return [];
+  } finally {
+    // Reset the flag when done
+    isDocumentFetchInProgress = false;
   }
 }
 
@@ -344,7 +356,7 @@ export async function fetchPlanesForPartStudio(documentId, workspaceId, elementI
     queryParams.append('includeCustomPlanes', String(includeCustomPlanes));
     
     const fullEndpoint = `${endpoint}?${queryParams.toString()}`;
-    console.log(`[DEBUG] Constructed planes endpoint: ${fullEndpoint}`);
+    logDebug(`Constructed planes endpoint: ${fullEndpoint}`);
     
     try {
       const response = await apiCall(fullEndpoint);
@@ -449,6 +461,9 @@ export function getNetworkLogs() {
  * Initialize API module - adds auto-fetch of documents when authenticated
  */
 export function initApi() {
+  // Flag to track if we've already auto-fetched
+  let didAutoFetch = false;
+  
   // Listen for authentication state changes
   document.addEventListener('DOMContentLoaded', () => {
     // Wait a short time to ensure authentication check has completed
@@ -456,11 +471,12 @@ export function initApi() {
       const authMethod = getAuthMethod();
       const isAuth = authMethod === 'apikey' || !!getToken();
       
-      if (isAuth) {
-        logInfo(`Detected ${authMethod} authentication, auto-fetching documents`);
+      if (isAuth && !didAutoFetch) {
+        logInfo(`Detected ${authMethod} authentication, auto-fetching documents`, "Documents");
+        didAutoFetch = true;
         fetchDocuments();
-      } else {
-        logInfo('Not authenticated, skipping auto document fetch');
+      } else if (!isAuth) {
+        logInfo('Not authenticated, skipping auto document fetch', "Documents");
       }
     }, 500);
   });

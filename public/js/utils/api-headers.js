@@ -1,3 +1,4 @@
+// public/js/utils/api-headers.js
 /**
  * Client-side utility to create API headers
  */

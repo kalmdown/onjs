@@ -31,7 +31,7 @@ class AuthManager {
     this.currentMethod = null;
     
     // Logger
-    this.logger = logger.scope('AuthManager');
+    this.logger = logger.scope('Auth');
     
     // Initialize method if credentials are available
     this._initMethod();
@@ -59,10 +59,11 @@ class AuthManager {
 
       // Validate API key format if present
       if (this.accessKey && this.secretKey) {
+        const log = logger.scope('Auth');
         if (typeof this.accessKey !== 'string' || typeof this.secretKey !== 'string') {
-          this.logger.warn('API key credentials are not strings');
+          log.error('API key credentials are not strings');
         } else if (this.accessKey.length < 20 || this.secretKey.length < 20) {
-          this.logger.warn('API key credentials appear to be too short', {
+          log.error('API key credentials appear to be too short', {
             accessKeyLength: this.accessKey.length,
             secretKeyLength: this.secretKey.length
           });
@@ -70,7 +71,8 @@ class AuthManager {
         
         // Check for common issues like whitespace
         if (this.accessKey.trim() !== this.accessKey || this.secretKey.trim() !== this.secretKey) {
-          this.logger.warn('API key credentials contain leading/trailing whitespace');
+          const log = logger.scope('Auth');
+          log.warn('API key credentials contain leading/trailing whitespace');
           // Auto-fix whitespace issues
           this.accessKey = this.accessKey.trim();
           this.secretKey = this.secretKey.trim();
@@ -81,7 +83,8 @@ class AuthManager {
       if ((preferredMethod === 'apikey' || preferredMethod === 'api_key') && 
           this.accessKey && this.secretKey) {
         this.setMethod('apikey');
-        this.logger.info('Using API key authentication (explicit setting)');
+        const log = logger.scope('Auth');
+        log.info('Using API key authentication (explicit setting)');
         return;
       }
       
