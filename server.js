@@ -33,7 +33,7 @@ if (!envValidation.isValid) {
 // Import route modules
 const authRoutes = require('./src/routes/authRoutes');
 const documentRoutes = require('./src/routes/documents');
-const elementRoutes = require('./src/routes/elements');
+const partStudioRoutes = require('./src/routes/partstudios');
 const featureRoutes = require('./src/routes/features');
 const exampleRoutes = require('./src/routes/examples');
 const planesRoutes = require('./src/routes/planes');
@@ -280,6 +280,7 @@ app.use((req, res, next) => {
 // Mount routes with auth middleware
 app.use('/oauth', authRoutes);
 app.use('/api/auth', require('./src/routes/apiAuthRoutes')(app, auth));
+app.use('/api/partstudios', partStudioRoutes(app, auth));
 app.use('/api/documents', documentRoutes(app, auth));
 app.use('/api/elements', elementRoutes(app, auth));
 app.use('/api/features', featureRoutes(app, auth));
