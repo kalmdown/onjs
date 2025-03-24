@@ -1,0 +1,31 @@
+POST https://cad.onshape.com/api/v10/partstudios/d/22a4ca6c2b102c623532518f/w/992a6405eb0158ab98211854/e/f12dfcee25423d93046294d1/features
+PAYLOAD: 
+{
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": []
+  }
+}

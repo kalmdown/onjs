@@ -1,4 +1,4 @@
-// Add to route handler that renders the main page
+// src/routes/index.js
 
 const env = require('../utils/load-env');
 
