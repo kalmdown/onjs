@@ -38,6 +38,7 @@ const featureRoutes = require('./src/routes/features');
 const exampleRoutes = require('./src/routes/examples');
 const planesRoutes = require('./src/routes/planes');
 const svgConverterRoutes = require('./src/routes/svg-converter');
+const svgRoutes = require('./src/routes/svg-routes');
 
 // Configure logger based on environment
 if (process.env.NODE_ENV === 'production') {
@@ -285,6 +286,7 @@ app.use('/api/features', featureRoutes(app, auth));
 app.use('/api/examples', exampleRoutes(app, auth));
 app.use('/api/planes', planesRoutes(app, auth));
 app.use('/api/svg', svgConverterRoutes(app, auth));
+app.use('/api/svg', svgRoutes(app, auth));
 
 // Endpoint to receive client-side logs
 app.post('/api/logs', (req, res) => {

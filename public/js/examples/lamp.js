@@ -108,43 +108,28 @@ export async function runExample3() {
     logInfo('Creating lamp base...');
     
     // Create a sketch for the base using the selected plane
-    let baseSketchFeature;
+    let baseSketchFeature = {
+      feature: {
+        name: 'Base Sketch',
+        featureType: 'newSketch',
+        parameters: [
+          {
+            parameterId: 'sketchPlane',
+            queries: [
+              {
+                queryType: 8,
+                deterministicIds: ["TOP"]
+              }
+            ]
+          }
+        ]
+      }
+    };
 
-    if (sketchPlane.type === "STANDARD") {
-      // For standard planes, use BTMParameterEnum-145 approach
-      baseSketchFeature = {
-        btType: 'BTMSketch-151',
-        featureType: 'newSketch',
-        name: 'Base Sketch',
-        parameters: [{
-          btType: 'BTMParameterEnum-145',
-          value: sketchPlane.name, // "TOP", "FRONT", or "RIGHT"
-          parameterId: 'sketchPlane'
-        }]
-      };
-    } else {
-      // For faces and custom planes, use the query approach
-      baseSketchFeature = {
-        btType: 'BTMSketch-151',
-        featureType: 'newSketch',
-        name: 'Base Sketch',
-        parameters: [{
-          btType: 'BTMParameterQueryList-148',
-          queries: [{
-            btType: 'BTMIndividualQuery-138',
-            queryType: sketchPlane.type === "FACE" ? "FACE" : "PLANE",
-            deterministic: true,
-            deterministicIds: [sketchPlane.id]
-          }],
-          parameterId: 'sketchPlane'
-        }]
-      };
-    }
-    
     const baseSketchResponse = await apiCall(
       `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`,
       'POST',
-      { feature: baseSketchFeature }
+      baseSketchFeature
     );
     
     const baseSketchId = baseSketchResponse.feature.featureId;
@@ -171,46 +156,35 @@ export async function runExample3() {
     
     // Extrude the base
     const baseExtrudeFeature = {
-      btType: 'BTMFeature-134',
-      name: 'Base Extrude',
-      featureType: 'extrude',
-      parameters: [
-        {
-          btType: 'BTMParameterQueryList-148',
-          queries: [{
-            btType: 'BTMIndividualSketchRegionQuery-140',
-            featureId: baseSketchId
-          }],
-          parameterId: 'entities'
-        },
-        {
-          btType: 'BTMParameterEnum-145',
-          namespace: '',
-          enumName: 'ExtendedToolBodyType',
-          value: 'SOLID',
-          parameterId: 'bodyType'
-        },
-        {
-          btType: 'BTMParameterEnum-145',
-          namespace: '',
-          enumName: 'NewBodyOperationType',
-          value: 'NEW',
-          parameterId: 'operationType'
-        },
-        {
-          btType: 'BTMParameterEnum-145',
-          namespace: '',
-          enumName: 'BoundingType',
-          value: 'BLIND',
-          parameterId: 'endBound'
-        },
-        {
-          btType: 'BTMParameterQuantity-147',
-          isInteger: false,
-          expression: '0.5 in',
-          parameterId: 'depth'
-        }
-      ]
+      feature: {
+        name: 'Base Extrude',
+        featureType: 'extrude',
+        parameters: [
+          {
+            parameterId: 'entities',
+            queries: [{
+              featureId: baseSketchId,
+              queryType: 138 // BTMIndividualSketchRegionQuery
+            }]
+          },
+          {
+            parameterId: 'bodyType',
+            value: 'SOLID'
+          },
+          {
+            parameterId: 'operationType',
+            value: 'NEW'
+          },
+          {
+            parameterId: 'endBound',
+            value: 'BLIND'
+          },
+          {
+            parameterId: 'depth',
+            expression: '0.5 in'
+          }
+        ]
+      }
     };
     
     await apiCall(
@@ -224,14 +198,21 @@ export async function runExample3() {
     
     // Create a sketch for the stem
     const stemSketchFeature = {
-      btType: 'BTMSketch-151',
-      featureType: 'newSketch',
-      name: 'Stem Sketch',
-      parameters: [{
-        btType: 'BTMParameterEnum-145',
-        value: sketchPlane.name, // Use same plane as base
-        parameterId: 'sketchPlane'
-      }]
+      feature: {
+        name: 'Stem Sketch',
+        featureType: 'newSketch',
+        parameters: [
+          {
+            parameterId: 'sketchPlane',
+            queries: [
+              {
+                queryType: 8,
+                deterministicIds: ["TOP"]
+              }
+            ]
+          }
+        ]
+      }
     };
     
     const stemSketchResponse = await apiCall(
@@ -322,14 +303,21 @@ export async function runExample3() {
     
     // Create a sketch for the lampshade
     const shadeSketchFeature = {
-      btType: 'BTMSketch-151',
-      featureType: 'newSketch',
-      name: 'Shade Sketch',
-      parameters: [{
-        btType: 'BTMParameterEnum-145',
-        value: sketchPlane.name, // Use same plane as base
-        parameterId: 'sketchPlane'
-      }]
+      feature: {
+        name: 'Shade Sketch',
+        featureType: 'newSketch',
+        parameters: [
+          {
+            parameterId: 'sketchPlane',
+            queries: [
+              {
+                queryType: 8,
+                deterministicIds: ["TOP"]
+              }
+            ]
+          }
+        ]
+      }
     };
     
     const shadeSketchResponse = await apiCall(
