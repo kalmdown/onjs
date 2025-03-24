@@ -1,6 +1,6 @@
 // public/js/examples/cylinder.js
 import { apiCall } from '../api.js';
-import { getToken } from '../clientAuth.js';
+import { isAuthenticated } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
 import { logInfo, logError } from '../utils/logging.js';
 
@@ -10,7 +10,8 @@ import { logInfo, logError } from '../utils/logging.js';
  * This example creates a circle sketch and extrudes it to create a cylinder.
  */
 export async function runExample1() {
-  if (!getToken()) {
+  // Replace token check with more robust authentication check
+  if (!isAuthenticated()) {
     logError('Please authenticate first');
     return;
   }
@@ -58,38 +59,70 @@ export async function runExample1() {
     }
     
     // Step 4: Determine which plane to use
-    let sketchPlane = 'TOP'; // Default
-    const selectedPlane = getSelectedPlane();
+    let sketchPlane = {
+      id: "JHD", // Default to TOP plane
+      name: "TOP",
+      type: "STANDARD"
+    };
     
+    const selectedPlane = getSelectedPlane();
     if (selectedPlane) {
-      sketchPlane = selectedPlane.id;
-      logInfo(`Using selected sketch plane: ${selectedPlane.name}`);
+      // First check if this is a standard plane with a special name format
+      if (selectedPlane.id && selectedPlane.id.includes('_TOP')) {
+        sketchPlane = { id: "JHD", name: "TOP", type: "STANDARD" };
+      } else if (selectedPlane.id && selectedPlane.id.includes('_FRONT')) {
+        sketchPlane = { id: "JFD", name: "FRONT", type: "STANDARD" };
+      } else if (selectedPlane.id && selectedPlane.id.includes('_RIGHT')) {
+        sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
+      }
+      // Then check by name as a fallback
+      else if (selectedPlane.name === "TOP" || selectedPlane.name.toLowerCase().includes("top plane")) {
+        sketchPlane = { id: "JHD", name: "TOP", type: "STANDARD" };
+      } else if (selectedPlane.name === "FRONT" || selectedPlane.name.toLowerCase().includes("front plane")) {
+        sketchPlane = { id: "JFD", name: "FRONT", type: "STANDARD" };
+      } else if (selectedPlane.name === "RIGHT" || selectedPlane.name.toLowerCase().includes("right plane")) {
+        sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
+      } else {
+        // Custom plane
+        sketchPlane = { 
+          id: selectedPlane.id, 
+          name: selectedPlane.name || "Custom Plane", 
+          type: "PLANE" 
+        };
+      }
+      
+      logInfo(`Using selected sketch plane: ${sketchPlane.name} (ID: ${sketchPlane.id}, Type: ${sketchPlane.type})`);
     } else {
       logInfo('Using default TOP plane');
     }
     
     // Step 5: Create a sketch on the selected plane
-    logInfo(`Creating sketch on ${sketchPlane} plane...`);
+    logInfo(`Creating sketch on ${sketchPlane.name} plane...`);
+    
+    // Create a sketch feature with proper format for Onshape API
     const sketchFeature = {
       feature: {
-        btType: 'BTMSketch-151',
-        featureType: 'newSketch',
         name: 'Base Circle',
-        parameters: [{
-          btType: 'BTMParameterEnum-145',
-          value: "TOP", // Use string value for standard plane
-          parameterId: 'sketchPlane'
-        }]
+        featureType: 'newSketch',
+        parameters: [
+          {
+            parameterId: 'sketchPlane',
+            queries: [
+              {
+                queryType: 8,
+                deterministicIds: ["TOP"]
+              }
+            ]
+          }
+        ]
       }
     };
     
-    logInfo(`Sketch feature payload: ${JSON.stringify(sketchFeature)}`);
-    
-    // Use the features endpoint to create a sketch
+    // Use the correct endpoint format for creating features
     const sketchFeatureResponse = await apiCall(
-      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}`,
+      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`, 
       'POST',
-      sketchFeature
+      { feature: sketchFeature }
     );
     
     const sketchId = sketchFeatureResponse.feature.featureId;
@@ -98,20 +131,25 @@ export async function runExample1() {
     // Step 6: Draw a circle in the sketch
     logInfo('Drawing circle with radius 0.5 inches at origin...');
     await apiCall(
-      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/sketches/${sketchId}/entities`,
+      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/sketches/${sketchId}/entities`,
       'POST',
       {
-        type: 'BTMSketchCircle-73',
-        radius: 0.5,
-        xCenter: 0,
-        yCenter: 0
+        entities: [
+          {
+            type: 3, // Circle
+            parameters: {
+              radius: 0.5,
+              center: [0, 0]
+            }
+          }
+        ]
       }
     );
     
     // Step 7: Close the sketch
     logInfo('Finalizing sketch...');
     await apiCall(
-      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/sketches/${sketchId}`,
+      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/sketches/${sketchId}`,
       'POST',
       { action: 'close' }
     );
@@ -120,55 +158,40 @@ export async function runExample1() {
     logInfo('Extruding circle to create cylinder with height 1 inch...');
     const extrudeFeature = {
       feature: {
-        btType: 'BTMFeature-134',
         name: 'Cylinder Extrude',
         featureType: 'extrude',
         parameters: [
           {
-            btType: 'BTMParameterQueryList-148',
+            parameterId: 'entities',
             queries: [{
-              btType: 'BTMIndividualSketchRegionQuery-140',
-              featureId: sketchId
-            }],
-            parameterId: 'entities'
+              featureId: sketchId,
+              queryType: 138 // BTMIndividualSketchRegionQuery
+            }]
           },
           {
-            btType: 'BTMParameterEnum-145',
-            namespace: '',
-            enumName: 'ExtendedToolBodyType',
-            value: 'SOLID',
-            parameterId: 'bodyType'
+            parameterId: 'bodyType',
+            value: 'SOLID'
           },
           {
-            btType: 'BTMParameterEnum-145',
-            namespace: '',
-            enumName: 'NewBodyOperationType',
-            value: 'NEW',
-            parameterId: 'operationType'
+            parameterId: 'operationType',
+            value: 'NEW'
           },
           {
-            btType: 'BTMParameterEnum-145',
-            namespace: '',
-            enumName: 'BoundingType',
-            value: 'BLIND',
-            parameterId: 'endBound'
+            parameterId: 'endBound',
+            value: 'BLIND'
           },
           {
-            btType: 'BTMParameterQuantity-147',
-            isInteger: false,
-            expression: '1 in',
-            parameterId: 'depth'
+            parameterId: 'depth',
+            expression: '1 in'
           }
         ]
       }
     };
     
-    logInfo(`Extrude feature payload: ${JSON.stringify(extrudeFeature)}`);
-    
     await apiCall(
-      `features/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}`,
+      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`,
       'POST',
-      extrudeFeature
+      { feature: extrudeFeature }
     );
     
     logInfo('Successfully created cylinder in Onshape!');
@@ -181,5 +204,5 @@ export async function runExample1() {
   } catch (error) {
     logError(`Error: ${error.message}`);
     console.error('Full error:', error);
-}
   }
+}

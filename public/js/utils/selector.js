@@ -1,3 +1,4 @@
+// public/js/utils/selector.js
 /**
  * Utility component for UI selectors in the application
  */

@@ -11,6 +11,27 @@ const { ValidationError } = require('../utils/errors');
 // Create scoped logger
 const log = logger.scope('SVGConverter');
 
+// Server-side storage for processed SVG data
+const svgProcessedData = new Map();
+
+// Cleanup old processed data every hour
+setInterval(() => {
+  const now = Date.now();
+  let count = 0;
+  
+  svgProcessedData.forEach((data, id) => {
+    // Remove entries older than 1 hour
+    if (now - data.timestamp > 3600000) {
+      svgProcessedData.delete(id);
+      count++;
+    }
+  });
+  
+  if (count > 0) {
+    log.debug(`Cleaned up ${count} expired SVG conversions`);
+  }
+}, 3600000);
+
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -101,9 +122,40 @@ module.exports = function(app, auth) {
       const features = featureBuilder.build(processedPaths);
       log.info(`Built ${features.sketches.length} sketches and ${features.features3D.length} 3D features`);
       
-      // Return the result
+      // Generate a unique conversion ID
+      const conversionId = `svg-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      
+      // Store the processed data in server memory
+      svgProcessedData.set(conversionId, {
+        features,
+        options,
+        timestamp: Date.now(),
+        svgInfo: {
+          viewBox: parsedSvg.viewBox,
+          elements: {
+            paths: parsedSvg.elements.paths?.length || 0,
+            circles: parsedSvg.elements.circles?.length || 0,
+            ellipses: parsedSvg.elements.ellipses?.length || 0,
+            lines: parsedSvg.elements.lines?.length || 0,
+            polylines: parsedSvg.elements.polylines?.length || 0,
+            polygons: parsedSvg.elements.polygons?.length || 0,
+            rects: parsedSvg.elements.rects?.length || 0
+          }
+        },
+        processedPaths: {
+          count: processedPaths.paths.length,
+          closed: processedPaths.paths.filter(p => p.closed).length,
+          open: processedPaths.paths.filter(p => !p.closed).length,
+          construction: processedPaths.paths.filter(p => p.isConstruction).length
+        }
+      });
+      
+      log.debug(`SVG processing complete, stored with ID: ${conversionId}`);
+      
+      // Return the conversion info and ID but not the full feature data
       res.json({
         success: true,
+        conversionId,
         result: {
           svgInfo: {
             viewBox: parsedSvg.viewBox,
@@ -126,8 +178,7 @@ module.exports = function(app, auth) {
           features: {
             sketches: features.sketches.length,
             features3D: features.features3D.length
-          },
-          data: features
+          }
         }
       });
     } catch (error) {
@@ -143,166 +194,198 @@ module.exports = function(app, auth) {
    */
   router.post('/createFeatures', isAuthenticated, async (req, res, next) => {
     try {
-      const { documentId, workspaceId, elementId, features } = req.body;
+      const { documentId, workspaceId, elementId, conversionId } = req.body;
       
-      if (!documentId || !workspaceId || !elementId || !features) {
+      if (!documentId || !workspaceId || !elementId) {
         return res.status(400).json({
           error: 'Missing required parameters',
-          message: 'documentId, workspaceId, elementId, and features are required'
+          message: 'documentId, workspaceId, elementId are required'
+        });
+      }
+
+      // Check if we have a conversionId and if it exists in our store
+      if (!conversionId) {
+        return res.status(400).json({
+          error: 'Missing conversion ID',
+          message: 'conversionId is required'
         });
       }
       
-      log.info(`Creating features in document=${documentId}, workspace=${workspaceId}, element=${elementId}`);
-      log.debug(`Creating ${features.sketches?.length || 0} sketches and ${features.features3D?.length || 0} 3D features`);
+      if (!svgProcessedData.has(conversionId)) {
+        return res.status(404).json({
+          error: 'Conversion not found or expired',
+          message: 'The specified conversion ID was not found or has expired'
+        });
+      }
+      
+      // Retrieve the processed data
+      const { features, options } = svgProcessedData.get(conversionId);
+      
+      log.info(`Creating features in document=${documentId}, workspace=${workspaceId}, element=${elementId} from conversion ${conversionId}`);
+      log.debug(`Creating ${features.sketches?.length || 0} sketches only (no extrusions)`);
       
       const createdFeatures = [];
       
-      // 1. Create sketches first
+      // Create sketches only - no extrusion
       if (features.sketches && features.sketches.length > 0) {
         for (const sketch of features.sketches) {
-          // Get the sketch plane (default to TOP if not specified)
-          const plane = sketch.plane || 'TOP';
-          
-          // Create the sketch feature
-          const sketchFeature = {
-            feature: {
-              name: sketch.name || 'SVG Sketch',
-              featureType: 'newSketch',
-              parameters: [
-                {
-                  parameterId: 'sketchPlane',
-                  queries: [
-                    {
-                      deterministicIds: [plane],
-                      queryType: 8
-                    }
-                  ]
-                }
-              ]
-            }
-          };
-          
-          // Create the sketch
-          const sketchResponse = await req.onshapeClient.post(
-            `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`,
-            sketchFeature
-          );
-          
-          log.debug(`Created sketch: ${sketchResponse.feature.name} (${sketchResponse.feature.featureId})`);
-          
-          // Add sketch entities if available
-          if (sketch.entities && sketch.entities.length > 0) {
-            const sketchId = sketchResponse.feature.featureId;
+          try {
+            // Get the sketch plane (default to TOP if not specified)
+            const plane = sketch.plane || 'TOP';
             
-            // Convert entities to Onshape format
-            const mappedEntities = sketch.entities.map(entity => {
-              switch (entity.type) {
-                case 'line':
-                  return {
-                    type: 1, // Line
-                    parameters: {
-                      start: [entity.startPoint.x, entity.startPoint.y],
-                      end: [entity.endPoint.x, entity.endPoint.y],
-                      isConstruction: entity.isConstruction
-                    }
-                  };
-                case 'circle':
-                  return {
-                    type: 3, // Circle
-                    parameters: {
-                      center: [entity.center.x, entity.center.y],
-                      radius: entity.radius,
-                      isConstruction: entity.isConstruction
-                    }
-                  };
-                // Add other entity types as needed
-                default:
-                  return null;
-              }
-            }).filter(e => e !== null);
-            
-            // Add entities to the sketch
-            if (mappedEntities.length > 0) {
-              const entitiesResponse = await req.onshapeClient.post(
-                `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}/entities`,
-                { entities: mappedEntities }
-              );
-              
-              log.debug(`Added ${mappedEntities.length} entities to sketch ${sketchId}`);
-            }
-            
-            // Close the sketch
-            await req.onshapeClient.post(
-              `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}`,
-              { action: 'close' }
-            );
-            
-            log.debug(`Closed sketch ${sketchId}`);
-          }
-          
-          createdFeatures.push({
-            type: 'sketch',
-            id: sketchResponse.feature.featureId,
-            name: sketchResponse.feature.name
-          });
-        }
-      }
-      
-      // 2. Create 3D features (extrudes, etc.)
-      if (features.features3D && features.features3D.length > 0) {
-        for (const feature3D of features.features3D) {
-          if (feature3D.feature === 'extrude') {
-            // Find the sketch ID by name
-            const sketchName = feature3D.sketchName;
-            const sketchFeature = createdFeatures.find(f => f.type === 'sketch' && f.name === sketchName);
-            
-            if (!sketchFeature) {
-              log.warn(`Could not find sketch "${sketchName}" for extrusion`);
-              continue;
-            }
-            
-            // Create extrude feature
-            const extrudeFeature = {
-              feature: {
-                name: feature3D.name || 'SVG Extrude',
-                featureType: 'extrude',
+            // Create the sketch feature with proper format for Onshape API
+            const sketchFeature = {
+              type: 0,
+              typeName: "BTMFeature",
+              message: {
+                featureType: "newSketch",
+                name: sketch.name || 'SVG Sketch',
                 parameters: [
                   {
-                    parameterId: 'entities',
-                    featureIds: [sketchFeature.id]
-                  },
-                  {
-                    parameterId: 'depth',
-                    value: feature3D.depth || 10
-                  },
-                  {
-                    parameterId: 'endCondition',
-                    value: 'BlindDepth'
-                  },
-                  {
-                    parameterId: 'direction',
-                    value: 'Positive'
+                    type: 0,
+                    typeName: "BTMParameterFeature",
+                    message: {
+                      parameterId: "sketchPlane",
+                      queries: [
+                        {
+                          type: 0,
+                          typeName: "BTMIndividualQuery",
+                          message: {
+                            queryType: 8,
+                            deterministic: true,
+                            featureId: "TOP"
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               }
             };
             
-            // Create the extrusion
-            const extrudeResponse = await req.onshapeClient.post(
+            log.debug(`Creating sketch with payload: ${JSON.stringify(sketchFeature)}`);
+            
+            // Create the sketch using the Onshape client
+            const sketchResponse = await req.onshapeClient.post(
               `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`,
-              extrudeFeature
+              sketchFeature
             );
             
-            log.debug(`Created extrusion: ${extrudeResponse.feature.name} (${extrudeResponse.feature.featureId})`);
+            log.debug(`Created sketch: ${sketchResponse.feature.name} (${sketchResponse.feature.featureId})`);
+            
+            // Add sketch entities if available
+            if (sketch.entities && sketch.entities.length > 0) {
+              const sketchId = sketchResponse.feature.featureId;
+              
+              // Break entities into smaller chunks to avoid payload size issues
+              const chunkSize = 20;
+              const entityChunks = [];
+              
+              for (let i = 0; i < sketch.entities.length; i += chunkSize) {
+                entityChunks.push(sketch.entities.slice(i, i + chunkSize));
+              }
+              
+              log.debug(`Adding ${sketch.entities.length} entities in ${entityChunks.length} chunks`);
+              
+              // Process each chunk of entities
+              for (let chunkIndex = 0; chunkIndex < entityChunks.length; chunkIndex++) {
+                const chunk = entityChunks[chunkIndex];
+                
+                // Convert entities to Onshape format
+                const mappedEntities = chunk.map(entity => {
+                  switch (entity.type) {
+                    case 'line':
+                      return {
+                        type: 1, // Line
+                        parameters: {
+                          start: [entity.startPoint.x, entity.startPoint.y],
+                          end: [entity.endPoint.x, entity.endPoint.y],
+                          isConstruction: !!entity.isConstruction
+                        }
+                      };
+                    case 'circle':
+                      return {
+                        type: 3, // Circle
+                        parameters: {
+                          center: [entity.center.x, entity.center.y],
+                          radius: entity.radius,
+                          isConstruction: !!entity.isConstruction
+                        }
+                      };
+                    case 'arc':
+                      return {
+                        type: 2, // Arc
+                        parameters: {
+                          start: [entity.startPoint.x, entity.startPoint.y],
+                          mid: [entity.midPoint.x, entity.midPoint.y],
+                          end: [entity.endPoint.x, entity.endPoint.y],
+                          isConstruction: !!entity.isConstruction
+                        }
+                      };
+                    case 'spline':
+                      return {
+                        type: 4, // Spline
+                        parameters: {
+                          controlPoints: entity.controlPoints.map(pt => [pt.x, pt.y]),
+                          isConstruction: !!entity.isConstruction
+                        }
+                      };
+                    default:
+                      log.warn(`Unsupported entity type: ${entity.type}`);
+                      return null;
+                  }
+                }).filter(e => e !== null);
+                
+                if (mappedEntities.length === 0) {
+                  continue;
+                }
+                
+                // Add entities to the sketch
+                log.debug(`Adding chunk ${chunkIndex + 1}/${entityChunks.length} with ${mappedEntities.length} entities`);
+                
+                try {
+                  const entitiesPayload = { entities: mappedEntities };
+                  
+                  const entitiesResponse = await req.onshapeClient.post(
+                    `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}/entities`,
+                    entitiesPayload
+                  );
+                  
+                  log.debug(`Added ${mappedEntities.length} entities to sketch ${sketchId}`);
+                } catch (entityError) {
+                  log.error(`Error adding entities to sketch: ${entityError.message}`, entityError);
+                  // Continue with other chunks even if one fails
+                }
+              }
+              
+              // Close the sketch
+              try {
+                await req.onshapeClient.post(
+                  `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/sketches/${sketchId}`,
+                  { action: 'close' }
+                );
+                
+                log.debug(`Closed sketch ${sketchId}`);
+              } catch (closeError) {
+                log.error(`Error closing sketch: ${closeError.message}`, closeError);
+                // Continue with other sketches even if closing one fails
+              }
+            }
             
             createdFeatures.push({
-              type: 'extrude',
-              id: extrudeResponse.feature.featureId,
-              name: extrudeResponse.feature.name
+              type: 'sketch',
+              id: sketchResponse.feature.featureId,
+              name: sketchResponse.feature.name
             });
+          } catch (sketchError) {
+            log.error(`Error creating sketch: ${sketchError.message}`, sketchError);
+            // Continue with other sketches even if one fails
           }
         }
       }
+      
+      // Clean up the stored data
+      svgProcessedData.delete(conversionId);
       
       // Return the created features
       res.json({

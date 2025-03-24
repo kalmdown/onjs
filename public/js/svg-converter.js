@@ -47,7 +47,6 @@ export async function convertSvg() {
     const plane = getSelectedPlane();
     
     logInfo('Uploading SVG for conversion...');
-    logInfo(`Converting SVG file to Onshape features`);
     
     // Create FormData to send the file
     const formData = new FormData();
@@ -78,7 +77,7 @@ export async function convertSvg() {
       body: formData
     });
     
-    // Replace the current error handling with this:
+    // Handle errors
     if (!response.ok) {
       const errorStatus = response.status;
       try {
@@ -98,15 +97,13 @@ export async function convertSvg() {
     const result = await response.json();
     
     if (result.success) {
-      logInfo('SVG conversion successful!');
+      logInfo('SVG conversion successful! Creating sketch in Onshape...');
       
-      // Ask if user wants to create features in Onshape
-      if (confirm('SVG converted successfully. Would you like to create the features in Onshape?')) {
-        return createFeaturesInOnshape(result.result.data, documentId, partStudio?.id);
-      } else {
-        showConversionResults(result.result);
-        showOnshapeLink(documentId);
-      }
+      // Automatically proceed with creating features in Onshape without asking
+      await createFeaturesInOnshape(result.conversionId, documentId, partStudio?.id);
+      
+      // Show conversion results after feature creation attempt
+      showConversionResults(result.result);
     } else {
       logError(`Conversion failed: ${result.error || 'Unknown error'}`);
     }
@@ -118,13 +115,13 @@ export async function convertSvg() {
 
 /**
  * Create Onshape features from conversion results
- * @param {Object} features - Features to create
+ * @param {string} conversionId - The ID of the conversion on the server
  * @param {string} documentId - Document ID
  * @param {string} [elementId] - Element ID (part studio)
  */
-async function createFeaturesInOnshape(features, documentId, elementId) {
+async function createFeaturesInOnshape(conversionId, documentId, elementId) {
   try {
-    logInfo('Creating features in Onshape document...');
+    logInfo('Creating sketches in Onshape document...');
     
     // If no element ID is provided, we need to get or create one
     if (!elementId) {
@@ -149,27 +146,62 @@ async function createFeaturesInOnshape(features, documentId, elementId) {
     const workspaces = await apiCall(`documents/${documentId}/workspaces`);
     const workspaceId = workspaces[0].id;
     
-    // Send the features to the server
-    const createResult = await apiCall(
-      'svg/createFeatures',
-      'POST',
-      {
-        documentId,
-        workspaceId,
-        elementId,
-        features
-      }
-    );
+    logInfo(`Using document: ${documentId}, workspace: ${workspaceId}, element: ${elementId}`);
     
-    if (createResult.success) {
-      logInfo(`Created ${createResult.features.length} features in Onshape!`);
-      showOnshapeLink(documentId, workspaceId, elementId);
-    } else {
-      throw new Error(createResult.message || 'Failed to create features');
+    // Send only the conversionId reference to the server
+    try {
+      const response = await fetch('/api/svg/createFeatures', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          documentId,
+          workspaceId,
+          elementId,
+          conversionId
+        }),
+        credentials: 'same-origin'
+      });
+      
+      // Better error handling for network or server errors
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || errorData.error || `Server error (${response.status})`);
+        } else {
+          const errorText = await response.text();
+          throw new Error(errorText || `Server error (${response.status})`);
+        }
+      }
+      
+      const createResult = await response.json();
+      
+      if (createResult.success) {
+        logInfo(`✅ Success! Created ${createResult.features?.length || 0} sketches in Onshape!`);
+        
+        // If the server provides a link, use it
+        if (createResult.link) {
+          const linkContainer = document.createElement('div');
+          linkContainer.className = 'mt-3';
+          linkContainer.innerHTML = `<a href="${createResult.link}" target="_blank" class="btn btn-primary">Open in Onshape</a>`;
+          document.getElementById('logOutput').appendChild(linkContainer);
+        } else {
+          showOnshapeLink(documentId, workspaceId, elementId);
+        }
+        return true;
+      } else {
+        throw new Error(createResult.message || createResult.error || 'Failed to create sketches');
+      }
+    } catch (apiError) {
+      throw new Error(`API Error: ${apiError.message}`);
     }
   } catch (error) {
-    logError(`Error creating features: ${error.message}`);
+    logError(`❌ Error creating sketches: ${error.message}`);
+    logWarn('Sketch creation in Onshape failed. Opening document link anyway:');
     showOnshapeLink(documentId);
+    return false;
   }
 }
 
@@ -198,7 +230,7 @@ function showOnshapeLink(documentId, workspaceId, elementId) {
 function showConversionResults(result) {
   // Log statistics about the conversion
   logInfo(`Processed ${result.svgInfo?.elements.paths || 0} paths, ${result.svgInfo?.elements.circles || 0} circles, etc.`);
-  logInfo(`Created ${result.features?.sketches || 0} sketches and ${result.features?.features3D || 0} 3D features`);
+  logInfo(`Converted into ${result.features?.sketches || 0} sketches`);
   
   // You could add more detailed visualization of the conversion results here
 }
