@@ -35,24 +35,14 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
   }
 
   const requestOptions = { ...defaultOptions, ...options };
-  
-  // Transform Onshape API patterns to local server patterns
-  let transformedEndpoint = endpoint;
-  if (endpoint.startsWith('partstudios/d/')) {
-    // Convert 'partstudios/d/{docId}/w/{workspaceId}/e/{elementId}' to
-    // 'documents/{docId}/w/{workspaceId}/elements/{elementId}'
-    transformedEndpoint = endpoint
-      .replace('partstudios/d/', 'documents/')
-      .replace('/e/', '/elements/');
-  }
-  
-  const url = transformedEndpoint.startsWith('/') ? 
-    `/api${transformedEndpoint}` : 
-    `/api/${transformedEndpoint}`;
+    
+  const url = endpoint.startsWith('/') ? 
+  `/api${endpoint}` : 
+  `/api/${endpoint}`;
   
   // Generate a unique ID for this request to correlate logs
   const requestId = Math.random().toString(36).substring(2, 8);
-  
+
   // Track request for debugging
   lastRequest = {
     url,
