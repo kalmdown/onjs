@@ -10,6 +10,7 @@ module.exports = function(app, auth) {
   router.use('/auth', require('./apiAuthRoutes')(app, auth));
   
   // Mount document routes with the correct prefix
+  console.log('Mounting document routes at /documents');
   router.use('/documents', require('./documents')(app, auth));
   
   // Mount API-specific routes

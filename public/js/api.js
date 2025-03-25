@@ -337,9 +337,22 @@ export function getDocuments() {
  */
 export async function getWorkspaces(documentId) {
   try {
-    return await apiCall(`documents/d/${documentId}/workspaces`);
+    // Add debug logs to trace the request
+    logInfo(`Fetching workspaces for document ID: ${documentId}`, "Workspaces");
+    
+    // Make sure we're using the correct URL pattern
+    const endpoint = `documents/d/${documentId}/workspaces`;
+    logDebug(`Using endpoint: ${endpoint}`, "Workspaces");
+    
+    // Make the API call
+    const response = await apiCall(endpoint);
+    
+    logInfo(`Successfully fetched ${Array.isArray(response) ? response.length : 
+      (response.items ? response.items.length : 'unknown')} workspaces`, "Workspaces");
+    
+    return response;
   } catch (error) {
-    logError(`Failed to fetch workspaces: ${error.message}`);
+    logError(`Failed to fetch workspaces: ${error.message}`, "Workspaces");
     return [];
   }
 }
