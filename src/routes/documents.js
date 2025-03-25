@@ -36,11 +36,11 @@ module.exports = function(app, auth) {
   });
 
   /**
-   * @route GET /api/documents/d/:documentId
+   * @route GET /api/documents/:documentId
    * @description Get a specific document by ID
    * @access Private
    */
-  router.get('/d/:documentId', isAuthenticated, async (req, res, next) => {
+  router.get('/:documentId', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId } = req.params;
       log.debug(`Fetching document ${documentId}`);
@@ -108,7 +108,26 @@ module.exports = function(app, auth) {
    * @access Private
    */
   router.post('', isAuthenticated, async (req, res, next) => {
-    // Implementation for creating a document...
+    try {
+      const { name, description = "", isPublic = false } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({
+          error: 'Missing required parameter',
+          message: 'Document name is required'
+        });
+      }
+      
+      log.debug(`Creating new document: ${name}`);
+      
+      const data = { name, description, isPublic };
+      const document = await req.onshapeClient.post('/documents', data);
+      
+      res.json(document);
+    } catch (error) {
+      log.error(`Error creating document: ${error.message}`);
+      next(error);
+    }
   });
 
   /**
@@ -134,5 +153,8 @@ module.exports = function(app, auth) {
     }
   });
 
+  // Make source available for debugging
+  router.source = __filename;
+  
   return router;
 };

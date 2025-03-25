@@ -1,5 +1,4 @@
 // src/middleware/authMiddleware.js
-// src/middleware/authMiddleware.js
 const passport = require('passport');
 const logger = require('../utils/logger');
 const OnshapeClient = require('../api/client');
@@ -51,14 +50,6 @@ const createClientFromRequest = (req) => {
  * Authentication middleware factory
  */
 module.exports = function(app) {
-    // Initialize Passport
-    app.use(passport.initialize());
-    app.use(passport.session());
-
-    // Passport session serialization
-    passport.serializeUser((user, done) => done(null, user));
-    passport.deserializeUser((user, done) => done(null, user));
-
     /**
      * Authentication check middleware
      */
@@ -119,91 +110,39 @@ module.exports = function(app) {
      * Configure OAuth routes and handlers
      */
     function configureOAuth(authManager) {
-        // Login route
-        app.get('/oauth/login', (req, res) => {
-            if (authManager.getMethod() === 'apikey') {
-                return res.redirect('/?auth=apikey&status=success');
-            }
-            
-            const authUrl = authManager.getAuthorizationUrl();
-            log.info(`Redirecting to OAuth URL: ${authUrl}`);
-            res.redirect(authUrl);
-        });
-
-        // OAuth callback
-        app.get('/oauth/callback', async (req, res) => {
-            const { code } = req.query;
-            
-            if (!code) {
-                return res.redirect('/?error=no_code_provided');
-            }
-
-            try {
-                const tokenResponse = await authManager.exchangeCodeForToken(code);
-                
-                // Store tokens in session
-                req.session.oauthToken = tokenResponse.accessToken;
-                req.session.refreshToken = tokenResponse.refreshToken || null;
-                
-                // Redirect with tokens
-                res.redirect(`/?token=${encodeURIComponent(tokenResponse.accessToken)}&refresh=${encodeURIComponent(tokenResponse.refreshToken || '')}`);
-            } catch (error) {
-                log.error('OAuth callback failed', error);
-                res.redirect(`/?error=${encodeURIComponent(error.message || 'Authentication failed')}`);
-            }
-        });
+        log.info('Configuring OAuth');
         
-        // Logout route
-        app.get('/oauth/logout', (req, res) => {
-            if (req.session) {
-                delete req.session.oauthToken;
-                delete req.session.refreshToken;
-            }
-            
-            if (req.logout) {
-                req.logout((err) => {
-                    if (err) log.error('Error during logout:', err);
-                    res.redirect("/");
-                });
-            } else {
-                res.redirect("/");
-            }
-        });
+        // OAuth configuration handled in authRoutes.js
     }
 
     // Add debug endpoint to test client
-    app.get('/api/debug/client-test', async (req, res) => {
+    app.get('/api/kd_debug/client-test', async (req, res) => {
         try {
-            const client = createClientFromRequest(req);
-            if (!client) {
-                return res.status(500).json({ error: 'Failed to create client' });
+            const authManager = req.app.get('authManager');
+            
+            if (!authManager) {
+                return res.status(500).json({ error: 'Auth manager not found' });
             }
             
             // Test headers
-            const authManager = req.app.get('authManager');
             const headers = authManager.getAuthHeaders('GET', '/documents');
             
-            // Test client methods
-            const hasGetMethod = typeof client.get === 'function';
-            const hasPostMethod = typeof client.post === 'function';
-            
             res.json({
-                baseUrl: client.baseUrl,
+                baseUrl: config.onshape.baseUrl,
                 authMethod: authManager.getMethod(),
                 headers: {
                     hasAuth: !!headers.Authorization,
                     authType: headers.Authorization ? headers.Authorization.split(' ')[0] : 'none',
                     contentType: headers['Content-Type']
                 },
-                clientMethods: {
-                    hasGet: hasGetMethod,
-                    hasPost: hasPostMethod
+                config: {
+                    env: process.env.NODE_ENV,
+                    port: config.server.port || 3000
                 }
             });
         } catch (error) {
             res.status(500).json({
-                error: error.message,
-                stack: error.stack
+                error: error.message
             });
         }
     });
