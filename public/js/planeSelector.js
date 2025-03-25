@@ -24,7 +24,6 @@ export class PlaneSelector extends Selector {
   
   /**
    * Update the UI to reflect the current state
-   * This method ensures compatibility with selector.js expectations
    */
   updateUI() {
     // Update loading state in UI
@@ -166,67 +165,63 @@ export class PlaneSelector extends Selector {
       // Use 'w' as default workspace if null or undefined
       const wsId = workspaceId || 'w';
       
-      // Fetch planes from the updated API endpoint
-      try {
-        const planesUrl = `planes/${documentId}/w/${wsId}/e/${elementId}`;
-        logDebug(`[Planes] Fetching planes from: ${planesUrl}`);
-        
-        const response = await fetch(`/api/${planesUrl}`);
-        
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-        }
-        
-        const planesData = await response.json();
-        
-        // Check if the response has the expected format
-        if (!planesData.defaultPlanes) {
-          // If response is just an array, convert to expected format
-          if (Array.isArray(planesData)) {
-            // Identify standard planes vs custom planes
-            const standardPlaneIds = ["JHD", "JFC", "JGF"];
-            const defaultPlanes = planesData.filter(p => standardPlaneIds.includes(p.id) || p.type === 'STANDARD');
-            const customPlanes = planesData.filter(p => !standardPlaneIds.includes(p.id) && p.type === 'CUSTOM');
-            
-            this.planes = {
-              defaultPlanes,
-              customPlanes
-            };
-          } else {
-            throw new Error('Unexpected response format from planes API');
-          }
-        } else {
-          // Use the response as is
-          this.planes = planesData;
-        }
-        
-        logDebug(`[Planes] Received planes data: ${JSON.stringify(this.planes)}`);
-        
-        // Update UI
-        this.renderItems();
-        
-        // Auto-select first default plane if available
-        if (this.planes.defaultPlanes && this.planes.defaultPlanes.length > 0) {
-          this.selectItem(this.planes.defaultPlanes[0]);
-        }
-        
-        return this.planes;
-      } catch (error) {
-        logError(`[Planes] Error fetching planes: ${error.message}`);
-        
-        // Return empty arrays as fallback
-        this.planes = {
-          defaultPlanes: [],
-          customPlanes: []
-        };
-        this.renderItems();
-        return this.planes;
-      }
-    } catch (error) {
-      logError(`[Planes] Failed to load planes: ${error.message}`);
+      // FIXED: Use the correct API endpoint pattern that matches server-side routes
+      // The route in server.js is mounted at /api/planes/d/:documentId/w/:workspaceId/e/:elementId
+      const planesUrl = `planes/d/${documentId}/w/${wsId}/e/${elementId}`;
+      logDebug(`[Planes] Fetching planes from: ${planesUrl}`);
       
-      // Return empty arrays on error
-      return { defaultPlanes: [], customPlanes: [] };
+      const response = await fetch(`/api/${planesUrl}`);
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const planesData = await response.json();
+      
+      // Check if the response has the expected format
+      if (!planesData.defaultPlanes && !Array.isArray(planesData)) {
+        logError(`[Planes] Invalid response format from planes API: ${JSON.stringify(planesData)}`);
+        throw new Error('Invalid response format from planes API');
+      }
+      
+      // Store planes in the correct format
+      if (Array.isArray(planesData)) {
+        // If response is just an array, convert to expected format
+        // Identify standard planes vs custom planes
+        const standardPlaneIds = ["JHD", "JFC", "JGF"];
+        const defaultPlanes = planesData.filter(p => standardPlaneIds.includes(p.id) || p.type === 'STANDARD');
+        const customPlanes = planesData.filter(p => !standardPlaneIds.includes(p.id) && p.type === 'CUSTOM');
+        
+        this.planes = {
+          defaultPlanes,
+          customPlanes
+        };
+      } else {
+        // Use the response as is
+        this.planes = planesData;
+      }
+      
+      logDebug(`[Planes] Received planes data: ${JSON.stringify(this.planes)}`);
+      
+      // Update UI
+      this.renderItems();
+      
+      // Auto-select first default plane if available
+      if (this.planes.defaultPlanes && this.planes.defaultPlanes.length > 0) {
+        this.selectItem(this.planes.defaultPlanes[0]);
+      }
+      
+      return this.planes;
+    } catch (error) {
+      logError(`[Planes] Error fetching planes: ${error.message}`);
+      
+      // Return empty arrays as fallback
+      this.planes = {
+        defaultPlanes: [],
+        customPlanes: []
+      };
+      this.renderItems();
+      return this.planes;
     } finally {
       this.isLoading = false;
       this.updateUI();
