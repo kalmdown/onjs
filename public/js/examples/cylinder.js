@@ -33,269 +33,279 @@ export async function runExample1() {
     
     // Step 2: Get workspaces
     logInfo('Accessing part studio...');
-    const workspaces = await apiCall(`documents/${onshapeDocument.id}/workspaces`);
-    const defaultWorkspace = workspaces[0];
-    
-    // Step 3: Get or create a part studio element
-    let partStudioId;
-    const selectedPartStudio = getSelectedPartStudio();
-    
-    if (selectedPartStudio && selectedPartStudio.documentId === onshapeDocument.id) {
-      partStudioId = selectedPartStudio.id;
-      logInfo(`Using selected part studio: ${selectedPartStudio.name}`);
-    } else {
-      const elements = await apiCall(`documents/${onshapeDocument.id}/elements`);
-      partStudioId = elements.find(el => el.type === 'PARTSTUDIO')?.id;
+    try {
+      const workspaces = await apiCall(`documents/${onshapeDocument.id}/workspaces`);
+      const defaultWorkspace = workspaces[0];
       
-      if (!partStudioId) {
-        logInfo('Creating new part studio...');
-        const newElement = await apiCall(
-          `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
-          'POST', 
-          { name: 'Part Studio', elementType: 'PARTSTUDIO' }
-        );
-        partStudioId = newElement.id;
+      if (!defaultWorkspace) {
+        throw new Error('No workspaces found for document');
       }
-    }
-    
-    // Step 4: Determine which plane to use
-    let sketchPlane = {
-      id: "JHD", // Default to TOP plane
-      name: "TOP",
-      type: "STANDARD"
-    };
-    
-    const selectedPlane = getSelectedPlane();
-    if (selectedPlane) {
-      // First check if this is a standard plane with a special name format
-      if (selectedPlane.id && selectedPlane.id.includes('_TOP')) {
-        sketchPlane = { id: "JHD", name: "TOP", type: "STANDARD" };
-      } else if (selectedPlane.id && selectedPlane.id.includes('_FRONT')) {
-        sketchPlane = { id: "JFD", name: "FRONT", type: "STANDARD" };
-      } else if (selectedPlane.id && selectedPlane.id.includes('_RIGHT')) {
-        sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
-      }
-      // Then check by name as a fallback
-      else if (selectedPlane.name === "TOP" || selectedPlane.name.toLowerCase().includes("top plane")) {
-        sketchPlane = { id: "JHD", name: "TOP", type: "STANDARD" };
-      } else if (selectedPlane.name === "FRONT" || selectedPlane.name.toLowerCase().includes("front plane")) {
-        sketchPlane = { id: "JFD", name: "FRONT", type: "STANDARD" };
-      } else if (selectedPlane.name === "RIGHT" || selectedPlane.name.toLowerCase().includes("right plane")) {
-        sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
+      
+      // Step 3: Get or create a part studio element
+      let partStudioId;
+      const selectedPartStudio = getSelectedPartStudio();
+      
+      if (selectedPartStudio && selectedPartStudio.documentId === onshapeDocument.id) {
+        partStudioId = selectedPartStudio.id;
+        logInfo(`Using selected part studio: ${selectedPartStudio.name}`);
       } else {
-        // Custom plane
-        sketchPlane = { 
-          id: selectedPlane.id, 
-          name: selectedPlane.name || "Custom Plane", 
-          type: "PLANE" 
-        };
+        const elements = await apiCall(`documents/${onshapeDocument.id}/elements`);
+        partStudioId = elements.find(el => el.type === 'PARTSTUDIO')?.id;
+        
+        if (!partStudioId) {
+          logInfo('Creating new part studio...');
+          const newElement = await apiCall(
+            `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
+            'POST', 
+            { name: 'Part Studio', elementType: 'PARTSTUDIO' }
+          );
+          partStudioId = newElement.id;
+        }
       }
       
-      logInfo(`Using selected sketch plane: ${sketchPlane.name} (ID: ${sketchPlane.id}, Type: ${sketchPlane.type})`);
-    } else {
-      logInfo('Using default TOP plane');
-    }
-    
-    // Helper function to log Onshape API calls (for debugging only)
-    const logOnshapeApiCall = (endpoint, method, payload) => {
-      const onshapeApiUrl = 'https://cad.onshape.com/api/v10';
-      const fullOnshapeUrl = `${onshapeApiUrl}/${endpoint}`;
-      const localProxyUrl = `/api/${endpoint}`;
+      // Step 4: Determine which plane to use
+      let sketchPlane = {
+        id: "JHD", // Default to TOP plane
+        name: "TOP",
+        type: "STANDARD"
+      };
       
-      logInfo(`------ ONSHAPE API DEBUG INFO ------`);
-      logInfo(`URL: ${method} ${localProxyUrl}`);
-      logInfo(`Equivalent Onshape URL: ${method} ${fullOnshapeUrl}`);
-      if (payload) {
-        logInfo(`Payload: ${JSON.stringify(payload, null, 2)}`);
+      const selectedPlane = getSelectedPlane();
+      if (selectedPlane) {
+        // First check if this is a standard plane with a special name format
+        if (selectedPlane.id && selectedPlane.id.includes('_TOP')) {
+          sketchPlane = { id: "JHD", name: "TOP", type: "STANDARD" };
+        } else if (selectedPlane.id && selectedPlane.id.includes('_FRONT')) {
+          sketchPlane = { id: "JFD", name: "FRONT", type: "STANDARD" };
+        } else if (selectedPlane.id && selectedPlane.id.includes('_RIGHT')) {
+          sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
+        }
+        // Then check by name as a fallback
+        else if (selectedPlane.name === "TOP" || selectedPlane.name.toLowerCase().includes("top plane")) {
+          sketchPlane = { id: "JHD", name: "TOP", type: "STANDARD" };
+        } else if (selectedPlane.name === "FRONT" || selectedPlane.name.toLowerCase().includes("front plane")) {
+          sketchPlane = { id: "JFD", name: "FRONT", type: "STANDARD" };
+        } else if (selectedPlane.name === "RIGHT" || selectedPlane.name.toLowerCase().includes("right plane")) {
+          sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
+        } else {
+          // Custom plane
+          sketchPlane = { 
+            id: selectedPlane.id, 
+            name: selectedPlane.name || "Custom Plane", 
+            type: "PLANE" 
+          };
+        }
+        
+        logInfo(`Using selected sketch plane: ${sketchPlane.name} (ID: ${sketchPlane.id}, Type: ${sketchPlane.type})`);
+      } else {
+        logInfo('Using default TOP plane');
       }
-      logInfo(`-----------------------------------`);
-    };
-    
-    // Step 5: Create a sketch on the selected plane
-    logInfo(`Creating sketch on ${sketchPlane.name} plane...`);
-    
-    // Create a sketch feature with proper format for Onshape API
-    const sketchFeature = {
-      feature: {
-        name: "New Sketch",
-        featureType: "newSketch",
-        suppressed: false,
-        parameters: [
-          {
-            btType: "BTMParameterQueryList-148",
-            queries: [
-              {
-                btType: "BTMIndividualQuery-138",
-                deterministicIds: [
-                  sketchPlane.id
-                ]
-              }
-            ],
-            parameterId: "sketchPlane"
-          },
-          {
-            btType: "BTMParameterBoolean-144",
-            value: true,
-            parameterId: "disableImprinting"
-          }
-        ],
-        btType: "BTMSketch-151",
-        constraints: [],
-        entities: []
-      }
-    };
-    
-    // Use Onshape API endpoint format directly
-    const sketchEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/features`;
-    logOnshapeApiCall(sketchEndpoint, 'POST', sketchFeature);
-    
-    const sketchFeatureResponse = await apiCall(
-      sketchEndpoint, 
-      'POST',
-      sketchFeature
-    );
-    
-    const sketchId = sketchFeatureResponse.feature?.featureId;
-    logInfo(`Created sketch with ID: ${sketchId}`);
-    
-    // Step 6: Draw a circle in the sketch by updating the sketch feature
-    logInfo('Drawing circle with radius 0.5 inches at origin...');
-    
-    // Generate a unique ID for the circle entity
-    const circleEntityId = `circle_${Date.now().toString(36)}`;
-    
-    // Create circle update payload
-    const circleUpdatePayload = {
-      feature: {
-        name: "New Sketch",
-        featureType: "newSketch",
-        suppressed: false,
-        parameters: sketchFeatureResponse.feature.parameters,
-        featureId: sketchId,
-        btType: "BTMSketch-151",
-        constraints: [],
-        entities: [
-          {
-            btType: "BTMSketchCurve-4",
-            entityId: circleEntityId,
-            geometry: {
-              btType: "BTCurveGeometryCircle-115",
-              radius: 0.0127, // 0.5 inches in meters
-              xCenter: 0.0,
-              yCenter: 0.0,
-              xDir: 1,
-              yDir: 0,
-              clockwise: false
+      
+      // Helper function to log Onshape API calls (for debugging only)
+      const logOnshapeApiCall = (endpoint, method, payload) => {
+        const onshapeApiUrl = 'https://cad.onshape.com/api/v10';
+        const fullOnshapeUrl = `${onshapeApiUrl}/${endpoint}`;
+        const localProxyUrl = `/api/${endpoint}`;
+        
+        logInfo(`------ ONSHAPE API DEBUG INFO ------`);
+        logInfo(`URL: ${method} ${localProxyUrl}`);
+        logInfo(`Equivalent Onshape URL: ${method} ${fullOnshapeUrl}`);
+        if (payload) {
+          logInfo(`Payload: ${JSON.stringify(payload, null, 2)}`);
+        }
+        logInfo(`-----------------------------------`);
+      };
+      
+      // Step 5: Create a sketch on the selected plane
+      logInfo(`Creating sketch on ${sketchPlane.name} plane...`);
+      
+      // Create a sketch feature with proper format for Onshape API
+      const sketchFeature = {
+        feature: {
+          name: "New Sketch",
+          featureType: "newSketch",
+          suppressed: false,
+          parameters: [
+            {
+              btType: "BTMParameterQueryList-148",
+              queries: [
+                {
+                  btType: "BTMIndividualQuery-138",
+                  deterministicIds: [
+                    sketchPlane.id
+                  ]
+                }
+              ],
+              parameterId: "sketchPlane"
             },
-            centerId: `${circleEntityId}.center`
-          }
-        ]
-      }
-    };
-    
-    // Use Onshape API endpoint format directly
-    const circleEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/features/featureid/${sketchId}`;
-    logOnshapeApiCall(circleEndpoint, 'POST', circleUpdatePayload);
-    
-    const circleResponse = await apiCall(
-      circleEndpoint, 
-      'POST', 
-      circleUpdatePayload
-    );
-    
-    logInfo(`Circle added to sketch.`);
-    
-    // Optional: Add the FeatureScript query to identify sketch regions
-    const fsQueryPayload = {
-      script: "\n\nfunction(context is Context, queries){\n\n    // Combine all transient ids into one query\n    const transient_ids = ['IF', 'JFB', 'JFD', 'JFH', 'JGB', 'JGC', 'JGD'];\n    var element_queries is array = makeArray(size(transient_ids));\n\n    var idx = 0;\n    for (var tid in transient_ids)\n    {\n        var query = { \"queryType\" : QueryType.TRANSIENT, \"transientId\" : tid } as Query;\n        element_queries[idx] = query;\n        idx += 1;\n    }\n\n    var cumulative_query = qUnion(element_queries);\n\n    // Apply specific query\n    var specific_query = qEntityFilter(cumulative_query, EntityType.FACE);\n    var matching_entities = evaluateQuery(context, specific_query);\n    return transientQueriesToStrings(matching_entities);\n\n}\n\n"
-    };
-    
-    // Use Onshape API endpoint format directly
-    const fsEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/featurescript`;
-    logOnshapeApiCall(fsEndpoint, 'POST', fsQueryPayload);
-    
-    await apiCall(
-      fsEndpoint, 
-      'POST', 
-      fsQueryPayload
-    );
-    
-    // Step 8: Extrude the sketch to create the cylinder
-    logInfo('Extruding circle to create cylinder with height 1 inch...');
-    const extrudeFeature = {
-      feature: {
-        name: "New Extrude",
-        featureType: "extrude",
-        suppressed: false,
-        parameters: [
-          {
-            btType: "BTMParameterEnum-145",
-            parameterId: "bodyType",
-            value: "SOLID",
-            enumName: "ExtendedToolBodyType"
-          },
-          {
-            btType: "BTMParameterEnum-145",
-            value: "NEW",
-            enumName: "NewBodyOperationType",
-            parameterId: "operationType"
-          },
-          {
-            btType: "BTMParameterQueryList-148",
-            queries: [
-              {
-                btType: "BTMIndividualQuery-138",
-                deterministicIds: [
-                  "JGC"
-                ]
-              }
-            ],
-            parameterId: "entities"
-          },
-          {
-            btType: "BTMParameterEnum-145",
-            enumName: "BoundingType",
-            value: "BLIND",
-            parameterId: "endBound"
-          },
-          {
-            btType: "BTMParameterQuantity-147",
-            expression: "1 in",
-            parameterId: "depth"
-          },
-          {
-            btType: "BTMParameterQueryList-148",
-            queries: [
-              {
-                btType: "BTMIndividualQuery-138",
-                deterministicIds: []
-              }
-            ],
-            parameterId: "booleanScope"
-          }
-        ],
-        btType: "BTMFeature-134"
-      }
-    };
-    
-    // Use Onshape API endpoint format directly
-    const extrudeEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/features`;
-    logOnshapeApiCall(extrudeEndpoint, 'POST', extrudeFeature);
-    
-    const extrudeResponse = await apiCall(
-      extrudeEndpoint,
-      'POST',
-      extrudeFeature
-    );
-    
-    logInfo(`Extrude completed.`);
-    
-    logInfo('Successfully created cylinder in Onshape!');
-    
-    const onshapeLink = `https://cad.onshape.com/documents/${onshapeDocument.id}`;
-    const linkDiv = document.createElement('div');
-    linkDiv.innerHTML = `<a href="${onshapeLink}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Open in Onshape</a>`;
-    document.getElementById('logOutput').appendChild(linkDiv);
+            {
+              btType: "BTMParameterBoolean-144",
+              value: true,
+              parameterId: "disableImprinting"
+            }
+          ],
+          btType: "BTMSketch-151",
+          constraints: [],
+          entities: []
+        }
+      };
+      
+      // Use Onshape API endpoint format directly
+      const sketchEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/features`;
+      logOnshapeApiCall(sketchEndpoint, 'POST', sketchFeature);
+      
+      const sketchFeatureResponse = await apiCall(
+        sketchEndpoint, 
+        'POST',
+        sketchFeature
+      );
+      
+      const sketchId = sketchFeatureResponse.feature?.featureId;
+      logInfo(`Created sketch with ID: ${sketchId}`);
+      
+      // Step 6: Draw a circle in the sketch by updating the sketch feature
+      logInfo('Drawing circle with radius 0.5 inches at origin...');
+      
+      // Generate a unique ID for the circle entity
+      const circleEntityId = `circle_${Date.now().toString(36)}`;
+      
+      // Create circle update payload
+      const circleUpdatePayload = {
+        feature: {
+          name: "New Sketch",
+          featureType: "newSketch",
+          suppressed: false,
+          parameters: sketchFeatureResponse.feature.parameters,
+          featureId: sketchId,
+          btType: "BTMSketch-151",
+          constraints: [],
+          entities: [
+            {
+              btType: "BTMSketchCurve-4",
+              entityId: circleEntityId,
+              geometry: {
+                btType: "BTCurveGeometryCircle-115",
+                radius: 0.0127, // 0.5 inches in meters
+                xCenter: 0.0,
+                yCenter: 0.0,
+                xDir: 1,
+                yDir: 0,
+                clockwise: false
+              },
+              centerId: `${circleEntityId}.center`
+            }
+          ]
+        }
+      };
+      
+      // Use Onshape API endpoint format directly
+      const circleEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/features/featureid/${sketchId}`;
+      logOnshapeApiCall(circleEndpoint, 'POST', circleUpdatePayload);
+      
+      const circleResponse = await apiCall(
+        circleEndpoint, 
+        'POST', 
+        circleUpdatePayload
+      );
+      
+      logInfo(`Circle added to sketch.`);
+      
+      // Optional: Add the FeatureScript query to identify sketch regions
+      const fsQueryPayload = {
+        script: "\n\nfunction(context is Context, queries){\n\n    // Combine all transient ids into one query\n    const transient_ids = ['IF', 'JFB', 'JFD', 'JFH', 'JGB', 'JGC', 'JGD'];\n    var element_queries is array = makeArray(size(transient_ids));\n\n    var idx = 0;\n    for (var tid in transient_ids)\n    {\n        var query = { \"queryType\" : QueryType.TRANSIENT, \"transientId\" : tid } as Query;\n        element_queries[idx] = query;\n        idx += 1;\n    }\n\n    var cumulative_query = qUnion(element_queries);\n\n    // Apply specific query\n    var specific_query = qEntityFilter(cumulative_query, EntityType.FACE);\n    var matching_entities = evaluateQuery(context, specific_query);\n    return transientQueriesToStrings(matching_entities);\n\n}\n\n"
+      };
+      
+      // Use Onshape API endpoint format directly
+      const fsEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/featurescript`;
+      logOnshapeApiCall(fsEndpoint, 'POST', fsQueryPayload);
+      
+      await apiCall(
+        fsEndpoint, 
+        'POST', 
+        fsQueryPayload
+      );
+      
+      // Step 8: Extrude the sketch to create the cylinder
+      logInfo('Extruding circle to create cylinder with height 1 inch...');
+      const extrudeFeature = {
+        feature: {
+          name: "New Extrude",
+          featureType: "extrude",
+          suppressed: false,
+          parameters: [
+            {
+              btType: "BTMParameterEnum-145",
+              parameterId: "bodyType",
+              value: "SOLID",
+              enumName: "ExtendedToolBodyType"
+            },
+            {
+              btType: "BTMParameterEnum-145",
+              value: "NEW",
+              enumName: "NewBodyOperationType",
+              parameterId: "operationType"
+            },
+            {
+              btType: "BTMParameterQueryList-148",
+              queries: [
+                {
+                  btType: "BTMIndividualQuery-138",
+                  deterministicIds: [
+                    "JGC"
+                  ]
+                }
+              ],
+              parameterId: "entities"
+            },
+            {
+              btType: "BTMParameterEnum-145",
+              enumName: "BoundingType",
+              value: "BLIND",
+              parameterId: "endBound"
+            },
+            {
+              btType: "BTMParameterQuantity-147",
+              expression: "1 in",
+              parameterId: "depth"
+            },
+            {
+              btType: "BTMParameterQueryList-148",
+              queries: [
+                {
+                  btType: "BTMIndividualQuery-138",
+                  deterministicIds: []
+                }
+              ],
+              parameterId: "booleanScope"
+            }
+          ],
+          btType: "BTMFeature-134"
+        }
+      };
+      
+      // Use Onshape API endpoint format directly
+      const extrudeEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/features`;
+      logOnshapeApiCall(extrudeEndpoint, 'POST', extrudeFeature);
+      
+      const extrudeResponse = await apiCall(
+        extrudeEndpoint,
+        'POST',
+        extrudeFeature
+      );
+      
+      logInfo(`Extrude completed.`);
+      
+      logInfo('Successfully created cylinder in Onshape!');
+      
+      const onshapeLink = `https://cad.onshape.com/documents/${onshapeDocument.id}`;
+      const linkDiv = document.createElement('div');
+      linkDiv.innerHTML = `<a href="${onshapeLink}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Open in Onshape</a>`;
+      document.getElementById('logOutput').appendChild(linkDiv);
+      
+    } catch (error) {
+      logError(`Failed to access Onshape document: ${error.message}`);
+      throw error; // Rethrow to be caught by the main try/catch
+    }
     
   } catch (error) {
     logError(`Error: ${error.message}`);

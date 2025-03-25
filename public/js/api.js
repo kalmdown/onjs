@@ -35,17 +35,26 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
   }
 
   const requestOptions = { ...defaultOptions, ...options };
-    
-  const url = endpoint.startsWith('/') ? 
-  `/api${endpoint}` : 
-  `/api/${endpoint}`;
   
+  // Use Onshape URL patterns directly
+  const url = endpoint.startsWith('/') ? 
+    `/api${endpoint}` : 
+    `/api/${endpoint}`;
+    
   // Generate a unique ID for this request to correlate logs
   const requestId = Math.random().toString(36).substring(2, 8);
 
+  // Log the Onshape equivalent URL for reference
+  const onshapeApiUrl = 'https://cad.onshape.com/api/v10';
+  const onshapeEquivalent = `${onshapeApiUrl}/${endpoint}`;
+  logDebug(`[${requestId}] API Request: ${requestOptions.method} ${url}`);
+  logDebug(`[${requestId}] Onshape Equivalent: ${onshapeEquivalent}`);
+  
   // Track request for debugging
   lastRequest = {
+    endpoint,
     url,
+    onshapeEquivalent,
     method: requestOptions.method,
     headers: requestOptions.headers,
     body: data,
@@ -95,7 +104,13 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
         errorData = { message: errorText };
       }
       
+      // Enhanced error logging with detailed request information
       logError(`[${requestId}] API Error: ${response.status} ${response.statusText}`, errorData);
+      logError(`[${requestId}] Failed Request Details:
+        URL: ${method} ${url}
+        Endpoint: ${endpoint}
+        Onshape Equivalent: ${onshapeEquivalent}
+        Payload: ${JSON.stringify(data, null, 2)}`);
       
       throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.message || errorText}`);
     }
@@ -125,7 +140,14 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
       return text;
     }
   } catch (error) {
+    // Enhanced exception logging with request details
     logError(`[${requestId}] API Exception: ${error.message}`);
+    logError(`[${requestId}] Request That Caused Exception:
+      URL: ${method} ${url}
+      Endpoint: ${endpoint}
+      Onshape Equivalent: ${onshapeEquivalent}
+      Payload: ${data ? JSON.stringify(data, null, 2) : 'none'}`);
+    
     throw error;
   }
 }
@@ -150,6 +172,7 @@ export async function fetchDocuments(showLoadingIndicator = true) {
   
   if (!isAuth) {
     logError('Not authenticated. Please authenticate to view documents.');
+    isDocumentFetchInProgress = false; // Reset flag on error
     return [];
   }
   
@@ -170,28 +193,78 @@ export async function fetchDocuments(showLoadingIndicator = true) {
   
   logInfo(`Fetching documents using ${authMethod} authentication...`, "Documents");
   
+  // Add a timeout for the document fetch to prevent UI from being stuck
+  const fetchTimeout = setTimeout(() => {
+    if (isDocumentFetchInProgress) {
+      logError("Document fetch timed out after 30 seconds", "Documents");
+      isDocumentFetchInProgress = false;
+      
+      // Reset UI in case of timeout
+      const documentSelect = document.getElementById('documentSelect');
+      if (documentSelect) {
+        documentSelect.innerHTML = '<option value="">Fetch timed out - try again</option>';
+        documentSelect.disabled = false;
+      }
+      
+      const btnRefreshDocuments = document.getElementById('btnRefreshDocuments');
+      if (btnRefreshDocuments) {
+        btnRefreshDocuments.disabled = false;
+        btnRefreshDocuments.textContent = 'Retry';
+      }
+    }
+  }, 30000); // 30 second timeout
+  
   try {
-    // Call the API to get documents
-    const response = await apiCall('documents');
+    // Detailed logging of the documents API call
+    logInfo(`Making API call to 'documents' endpoint...`, "Documents");
+    
+    // Call the API to get documents - use direct URL for clarity
+    const documentsEndpoint = 'documents';
+    const onshapeApiUrl = 'https://cad.onshape.com/api/v10';
+    logInfo(`Full API URL: ${onshapeApiUrl}/${documentsEndpoint}`, "Documents");
+    
+    // Make the actual call
+    const response = await apiCall(documentsEndpoint);
+    
+    // Log raw response for debugging
+    logDebug(`Documents API raw response: ${JSON.stringify(response)}`, "Documents");
+    
+    // Clear timeout since we got a response
+    clearTimeout(fetchTimeout);
     
     // Check for proper response format
-    if (!response || (!response.items && !Array.isArray(response))) {
+    if (!response) {
+      throw new Error('Empty response from documents API');
+    }
+    
+    if (!response.items && !Array.isArray(response)) {
+      logError(`Invalid documents response format: ${JSON.stringify(response)}`, "Documents");
       throw new Error('Invalid response format from documents API');
     }
     
     // Store documents in the correct format
     documents = response.items || response;
+    logInfo(`Processed ${documents.length} documents from response`, "Documents");
     
     // Update select dropdown
     const documentSelect = document.getElementById('documentSelect');
     if (documentSelect) {
       documentSelect.innerHTML = '<option value="">Create a new document</option>';
-      documents.forEach(doc => {
-        const option = document.createElement('option');
-        option.value = doc.id;
-        option.textContent = doc.name;
-        documentSelect.appendChild(option);
-      });
+      
+      if (documents.length === 0) {
+        const emptyOption = document.createElement('option');
+        emptyOption.disabled = true;
+        emptyOption.textContent = '-- No documents found --';
+        documentSelect.appendChild(emptyOption);
+      } else {
+        documents.forEach(doc => {
+          const option = document.createElement('option');
+          option.value = doc.id;
+          option.textContent = doc.name;
+          documentSelect.appendChild(option);
+        });
+      }
+      
       documentSelect.disabled = false;
     }
     
@@ -212,12 +285,21 @@ export async function fetchDocuments(showLoadingIndicator = true) {
     
     return documents;
   } catch (error) {
-    logError(`Error fetching documents: ${error.message}`, "Documents");
+    // Clear timeout since we got an error
+    clearTimeout(fetchTimeout);
     
-    // Reset UI in case of error
+    // Enhanced error logging
+    logError(`Error fetching documents: ${error.message}`, "Documents");
+    logError(`Stack trace: ${error.stack}`, "Documents");
+    
+    if (error.response) {
+      logError(`Response error data: ${JSON.stringify(error.response)}`, "Documents");
+    }
+    
+    // Reset UI with more descriptive error
     const documentSelect = document.getElementById('documentSelect');
     if (documentSelect) {
-      documentSelect.innerHTML = '<option value="">Failed to load documents</option>';
+      documentSelect.innerHTML = `<option value="">Error: ${error.message}</option>`;
       documentSelect.disabled = false;
     }
     
@@ -229,7 +311,7 @@ export async function fetchDocuments(showLoadingIndicator = true) {
     
     return [];
   } finally {
-    // Reset the flag when done
+    // Always reset the flag when done
     isDocumentFetchInProgress = false;
   }
 }

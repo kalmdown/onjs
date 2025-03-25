@@ -2,8 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
-const DocumentsApi = require('../api/endpoints/documents');
-const ElementsApi = require('../api/endpoints/elements');
 
 // Create a scoped logger
 const log = logger.scope('Documents');
@@ -61,14 +59,12 @@ module.exports = function(app, auth) {
     }
   });
 
-  /**
-   * @route GET /api/documents/:documentId
-   * @description Get a specific document
-   * @access Private
-   */
+  // Fix document by ID route
   router.get('/:documentId', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId } = req.params;
+      log.debug(`Fetching document ${documentId}`);
+      
       const path = `/documents/${documentId}`;
       const document = await req.onshapeClient.get(path);
       res.json(document);
@@ -86,6 +82,8 @@ module.exports = function(app, auth) {
   router.get('/:documentId/workspaces', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId } = req.params;
+      log.debug(`Fetching workspaces for document ${documentId} (without /d/ format)`);
+      
       const path = `/documents/${documentId}/workspaces`;
       const workspaces = await req.onshapeClient.get(path);
       res.json(workspaces);
@@ -96,11 +94,62 @@ module.exports = function(app, auth) {
   });
 
   /**
-   * @route GET /api/documents/:documentId/w/:workspaceId/elements
+   * @route GET /api/documents/d/:documentId/workspaces
+   * @description Get workspaces for a document
+   * @access Private
+   */
+  router.get('/d/:documentId/workspaces', isAuthenticated, async (req, res, next) => {
+    try {
+      const { documentId } = req.params;
+      const path = `/documents/${documentId}/workspaces`;
+      const workspaces = await req.onshapeClient.get(path);
+      res.json(workspaces);
+    } catch (error) {
+      log.error(`Error fetching workspaces for document ${req.params.documentId}: ${error.message}`);
+      next(error);
+    }
+  });
+
+  /**
+   * @route GET /api/documents/:documentId/elements
+   * @description Get elements in a document (without /d/ format)
+   * @access Private
+   */
+  router.get('/:documentId/elements', isAuthenticated, async (req, res, next) => {
+    try {
+      const { documentId } = req.params;
+      
+      // Get default workspace
+      log.debug(`Fetching workspaces for document ${documentId} to find default workspace`);
+      const workspaces = await req.onshapeClient.get(`/documents/${documentId}/workspaces`);
+      
+      if (!workspaces || workspaces.length === 0) {
+        return res.status(404).json({
+          error: 'No workspaces found',
+          message: `Document ${documentId} has no workspaces`
+        });
+      }
+      
+      const defaultWorkspace = workspaces[0];
+      
+      // Get elements in default workspace
+      log.debug(`Fetching elements for document ${documentId} workspace ${defaultWorkspace.id}`);
+      const path = `/documents/d/${documentId}/w/${defaultWorkspace.id}/elements`;
+      const response = await req.onshapeClient.get(path);
+      
+      res.json(response);
+    } catch (error) {
+      log.error(`Error fetching elements: ${error.message}`);
+      next(error);
+    }
+  });
+
+  /**
+   * @route GET /api/documents/d/:documentId/w/:workspaceId/elements
    * @description Get elements in a specific document and workspace
    * @access Private
    */
-  router.get('/:documentId/w/:workspaceId/elements', isAuthenticated, async (req, res, next) => {
+  router.get('/d/:documentId/w/:workspaceId/elements', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId } = req.params;
       
@@ -115,6 +164,37 @@ module.exports = function(app, auth) {
 
       // Use direct client.get instead of elementsApi
       const path = `/documents/d/${documentId}/w/${workspaceId}/elements`;
+      const response = await req.onshapeClient.get(path);
+      
+      res.json(response);
+    } catch (error) {
+      log.error(`Error fetching elements: ${error.message}`);
+      next(error);
+    }
+  });
+
+  /**
+   * @route GET /api/documents/:documentId/w/:workspaceId/elements
+   * @description Get elements in a specific workspace (without /d/ format)
+   * @access Private
+   */
+  router.get('/:documentId/w/:workspaceId/elements', isAuthenticated, async (req, res, next) => {
+    try {
+      const { documentId, workspaceId } = req.params;
+      
+      if (!documentId || !workspaceId) {
+        return res.status(400).json({ 
+          error: 'Missing required parameters',
+          message: 'documentId and workspaceId are required'
+        });
+      }
+      
+      log.debug(`Fetching elements for document ${documentId} workspace ${workspaceId} (without /d/ format)`);
+
+      // Note: When calling Onshape API, we need to use /d/, but our route omits it
+      const path = `/documents/d/${documentId}/w/${workspaceId}/elements`;
+      log.debug(`Using Onshape path: ${path}`);
+      
       const response = await req.onshapeClient.get(path);
       
       res.json(response);
@@ -170,47 +250,6 @@ module.exports = function(app, auth) {
       });
     } catch (error) {
       log.error(`Error deleting document ${req.params.documentId}: ${error.message}`);
-      next(error);
-    }
-  });
-
-  // src/routes/documents.js - Update with new route
-
-/**
- * @route POST /api/documents/:documentId/w/:workspaceId/elements/:elementId/features
- * @description Create a feature in a part studio
- * @access Private
- */
-router.post('/:documentId/w/:workspaceId/elements/:elementId/features', isAuthenticated, async (req, res, next) => {
-    try {
-      const { documentId, workspaceId, elementId } = req.params;
-      const featureData = req.body;
-      
-      if (!documentId || !workspaceId || !elementId) {
-        return res.status(400).json({ 
-          error: 'Missing required parameters',
-          message: 'documentId, workspaceId, and elementId are required'
-        });
-      }
-      
-      if (!featureData) {
-        return res.status(400).json({
-          error: 'Missing request body',
-          message: 'Feature data is required'
-        });
-      }
-      
-      log.debug(`Creating feature in document=${documentId}, workspace=${workspaceId}, element=${elementId}`);
-      
-      // Format path for part studio features
-      const path = `/partstudios/d/${documentId}/w/${workspaceId}/e/${elementId}/features`;
-      
-      // Send the feature data to the API
-      const response = await req.onshapeClient.post(path, featureData);
-      
-      res.json(response);
-    } catch (error) {
-      log.error(`Error creating feature: ${error.message}`);
       next(error);
     }
   });

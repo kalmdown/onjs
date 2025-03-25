@@ -18,7 +18,7 @@ module.exports = function(app, auth) {
    * @description Get features for a part studio
    * @access Private
    */
-  router.get('/', isAuthenticated, async (req, res, next) => {
+  router.get('/features', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, elementId, workspaceId } = req.query;
       
@@ -49,7 +49,7 @@ module.exports = function(app, auth) {
    * @description Create a feature in a part studio
    * @access Private
    */
-  router.post('/create', isAuthenticated, async (req, res, next) => {
+  router.post('/features/create', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId, feature } = req.body;
       
@@ -80,7 +80,7 @@ module.exports = function(app, auth) {
    * @description Get features for a part studio (path-based)
    * @access Private
    */
-  router.get('/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res, next) => {
+  router.get('/features/d/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId } = req.params;
       
@@ -104,7 +104,7 @@ module.exports = function(app, auth) {
    * @description Create a feature in a part studio (path-based)
    * @access Private
    */
-  router.post('/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res, next) => {
+  router.post('/features/d/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId } = req.params;
       const { feature } = req.body;
@@ -136,7 +136,7 @@ module.exports = function(app, auth) {
    * @description Add an entity to a sketch
    * @access Private
    */
-  router.post('/:documentId/w/:workspaceId/e/:elementId/sketches/:sketchId/entities', isAuthenticated, async (req, res, next) => {
+  router.post('/features/d/:documentId/w/:workspaceId/e/:elementId/sketches/:sketchId/entities', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId, sketchId } = req.params;
       const entityData = req.body;
@@ -161,7 +161,7 @@ module.exports = function(app, auth) {
    * @description Perform an action on a sketch (like close)
    * @access Private
    */
-  router.post('/:documentId/w/:workspaceId/e/:elementId/sketches/:sketchId', isAuthenticated, async (req, res, next) => {
+  router.post('/features/d/:documentId/w/:workspaceId/e/:elementId/sketches/:sketchId', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId, sketchId } = req.params;
       const { action } = req.body;

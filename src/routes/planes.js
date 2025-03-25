@@ -78,7 +78,7 @@ module.exports = function(app, auth) {
    * @description Get planes for a part studio
    * @access Private
    */
-  router.get('/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res, next) => {
+  router.get('/planes/d/:documentId/w/:workspaceId/e/:elementId', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId } = req.params;
       const includeCustomPlanes = req.query.includeCustomPlanes !== 'false';

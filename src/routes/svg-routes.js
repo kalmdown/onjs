@@ -46,7 +46,7 @@ module.exports = function(app, auth) {
     ? auth.authenticate 
     : (req, res, next) => next(); // Fallback middleware if auth not available
 
-  router.post('/process', authMiddleware, upload.single('svgFile'), async (req, res) => {
+  router.post('/svg/process', authMiddleware, upload.single('svgFile'), async (req, res) => {
     try {
       log.debug('Received SVG file upload request');
       
@@ -101,7 +101,7 @@ module.exports = function(app, auth) {
   });
 
   // New endpoint to create features using a conversion ID
-  router.post('/createFeatures', authMiddleware, async (req, res) => {
+  router.post('/svg/createFeatures', authMiddleware, async (req, res) => {
     try {
       const { documentId, workspaceId, elementId, conversionId } = req.body;
       

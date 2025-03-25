@@ -56,7 +56,7 @@ module.exports = function(app, auth) {
    * @description Convert an SVG file to Onshape features
    * @access Private
    */
-  router.post('/convert', isAuthenticated, upload.single('svgFile'), async (req, res, next) => {
+  router.post('/svg/convert', isAuthenticated, upload.single('svgFile'), async (req, res, next) => {
     try {
       let svgContent = '';
       
@@ -192,7 +192,7 @@ module.exports = function(app, auth) {
    * @description Create Onshape features from SVG in a document
    * @access Private
    */
-  router.post('/createFeatures', isAuthenticated, async (req, res, next) => {
+  router.post('/svg/createFeatures', isAuthenticated, async (req, res, next) => {
     try {
       const { documentId, workspaceId, elementId, conversionId } = req.body;
       
