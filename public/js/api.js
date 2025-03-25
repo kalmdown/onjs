@@ -39,6 +39,8 @@ export async function apiCall(endpoint, method = 'GET', data = null, options = {
   // Use Onshape URL patterns directly
   const url = endpoint.startsWith('/') ? 
     `/api${endpoint}` : 
+    endpoint.includes('/api/') ?
+    endpoint :
     `/api/${endpoint}`;
     
   // Generate a unique ID for this request to correlate logs
@@ -335,7 +337,7 @@ export function getDocuments() {
  */
 export async function getWorkspaces(documentId) {
   try {
-    return await apiCall(`documents/${documentId}/workspaces`);
+    return await apiCall(`documents/d/${documentId}/workspaces`);
   } catch (error) {
     logError(`Failed to fetch workspaces: ${error.message}`);
     return [];

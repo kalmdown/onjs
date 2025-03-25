@@ -1,75 +1,88 @@
 // src/app.js
-
 const express = require('express');
-const app = express();
 const path = require('path');
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const passport = require('passport');
-const flash = require('connect-flash');
-const morgan = require('morgan');
-const helmet = require('helmet');
-const compression = require('compression');
-const env = require('./utils/load-env');
-const { initLogging } = require('./utils/logging');
-const { initPassport } = require('./utils/passport');
-const { initRoutes } = require('./routes');
+const logger = require('./utils/logger');
+const AuthManager = require('./auth/auth-manager');
+const config = require('../config');
+const errorMiddleware = require('./middleware/error');
 
-// Initialize logging
-initLogging();
+// Create Express app
+const app = express();
+const log = logger.scope('App');
 
-// Initialize passport
-initPassport(passport);
+// Configure middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '../public')));
 
-// Set up middleware
-app.use(morgan('dev'));
-app.use(helmet());
-app.use(compression());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
+// Session configuration
 app.use(session({
-  secret: env.getSessionSecret(),
+  name: config.session.name,
+  secret: config.session.secret || 'onshape-app-session-secret',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  cookie: {
+    secure: config.session.secure,
+    maxAge: config.session.maxAge
+  }
 }));
+
+// Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(flash());
 
-// Set up static file serving
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Set up view engine
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-// Import route handlers
-const indexRouter = require('./routes/index');
-const authRouter = require('./routes/auth');
-const documentsRouter = require('./routes/documents');
-const partstudiosRouter = require('./routes/partstudios');
-
-// Mount routes
-app.use('/', indexRouter);
-app.use('/auth', authRouter);
-app.use('/api/documents', documentsRouter);
-app.use('/api/partstudios', partstudiosRouter);
-
-// Error handling
-app.use((req, res, next) => {
-  const err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+// Initialize authentication manager
+const authManager = new AuthManager({
+  baseUrl: config.onshape.baseUrl,
+  accessKey: config.onshape.apiKey.accessKey,
+  secretKey: config.onshape.apiKey.secretKey
 });
 
-app.use((err, req, res, next) => {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: app.get('env') === 'development' ? err : {}
+// Make auth manager available to routes
+app.set('authManager', authManager);
+app.set('config', config);
+
+// Create auth middleware
+const auth = require('./middleware/authMiddleware')(app);
+
+// Get API router
+const apiRouter = require('./routes/api')(app, auth);
+
+// Mount OAuth routes at /oauth path
+app.use('/oauth', require('./routes/authRoutes'));
+
+// Mount API routes at /api path
+app.use('/api', apiRouter);
+
+// Debug endpoint
+app.get('/kd_debug', (req, res) => {
+  res.json({
+    auth: {
+      method: authManager.getMethod(),
+      isConfigured: authManager.getMethod() !== null
+    },
+    config: {
+      onshape: {
+        baseUrl: config.onshape.baseUrl,
+        authMethod: config.onshape.authMethod
+      },
+      server: {
+        port: config.server.port,
+        env: config.server.env
+      }
+    }
   });
 });
 
+// Default route for SPA
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public', 'index.html'));
+});
+
+// Add global error handling middleware
+app.use(errorMiddleware);
+
+// Export app for server.js
 module.exports = app;
