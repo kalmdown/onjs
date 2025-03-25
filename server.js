@@ -280,7 +280,7 @@ app.use((req, res, next) => {
 
 // Continue with route registration
 // Mount routes with auth middleware
-app.use('/oauth', authRoutes);
+app.use('/oauth', require('./src/routes/authRoutes'));
 app.use('/api', require('./src/routes/api')(app, auth));
 app.use('/api/auth', require('./src/routes/apiAuthRoutes')(app, auth));
 app.use('/api', partStudioRoutes(app, auth));
@@ -319,6 +319,57 @@ app.post('/api/logs', (req, res) => {
 app.post('/api/webhooks', (req, res) => {
   log.info('Webhook received:', req.body);
   res.status(200).end();
+});
+
+// Add this BEFORE mounting any routes in server.js (before app.use('/api', ...) statements)
+// Enhanced direct route handler with detailed logging
+app.get('/api/documents/d/:documentId/workspaces', async (req, res) => {
+  const { documentId } = req.params;
+  const requestId = crypto.randomBytes(4).toString('hex');
+  
+  console.log(`[${requestId}] DIRECT HANDLER: Document workspaces request for ${documentId}`);
+  
+  // Log headers for debugging
+  console.log(`[${requestId}] Headers:`, {
+    auth: req.headers.authorization ? 'Present (masked)' : 'Missing',
+    accept: req.headers.accept,
+    contentType: req.headers['content-type']
+  });
+  
+  try {
+    const authManager = req.app.get('authManager');
+    if (!authManager) {
+      console.error(`[${requestId}] Auth manager not available`);
+      return res.status(500).json({ error: 'Auth manager not available' });
+    }
+    
+    // Create a client directly with explicit logging
+    console.log(`[${requestId}] Creating Onshape client with method: ${authManager.getMethod()}`);
+    const onshapeClient = auth.createClientFromRequest(req);
+    if (!onshapeClient) {
+      console.error(`[${requestId}] Failed to create Onshape client`);
+      return res.status(500).json({ error: 'Failed to create Onshape client' });
+    }
+    
+    // Use the proper API path format
+    const apiPath = `/documents/d/${documentId}/workspaces`;
+    console.log(`[${requestId}] Making API call to: ${apiPath}`);
+    
+    const workspaces = await onshapeClient.get(apiPath);
+    console.log(`[${requestId}] Success! Fetched ${Array.isArray(workspaces) ? workspaces.length : 
+      (workspaces.items ? workspaces.items.length : 'unknown')} workspaces`);
+    
+    // Process response in a standard format
+    const result = workspaces.items || workspaces;
+    return res.json(result);
+  } catch (error) {
+    console.error(`[${requestId}] ERROR in workspaces handler: ${error.message}`);
+    console.error(error.stack);
+    return res.status(error.statusCode || 500).json({ 
+      error: error.message,
+      statusCode: error.statusCode || 500
+    });
+  }
 });
 
 // Add this debug endpoint after your other API routes

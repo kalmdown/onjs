@@ -60,15 +60,30 @@ module.exports = function(app, auth) {
    * @access Private
    */
   router.get('/d/:documentId/workspaces', isAuthenticated, async (req, res, next) => {
+    const { documentId } = req.params;
+    console.log(`[ROUTER DEBUG] Document workspaces request for ${documentId}`);
+    
     try {
-      const { documentId } = req.params;
       log.debug(`Fetching workspaces for document ${documentId}`);
       
-      const path = `/documents/${documentId}/workspaces`;
-      const workspaces = await req.onshapeClient.get(path);
-      res.json(workspaces);
+      // Get Onshape client - use existing client or create one
+      const onshapeClient = req.onshapeClient || auth.createClientFromRequest(req);
+      if (!onshapeClient) {
+        return res.status(500).json({ error: 'No Onshape client available' });
+      }
+      
+      // Make the API call with proper format
+      const apiPath = `/documents/d/${documentId}/workspaces`;
+      console.log(`[ROUTER DEBUG] Calling Onshape API: ${apiPath}`);
+      
+      const response = await onshapeClient.get(apiPath);
+      console.log(`[ROUTER DEBUG] Workspace response received`);
+      
+      return res.json(response);
     } catch (error) {
-      log.error(`Error fetching workspaces for document ${req.params.documentId}: ${error.message}`);
+      // Log error details for debugging
+      console.error(`[ROUTER DEBUG] Workspace error: ${error.message}`);
+      log.error(`Error fetching workspaces for document ${documentId}: ${error.message}`);
       next(error);
     }
   });
