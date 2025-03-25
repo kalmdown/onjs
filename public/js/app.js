@@ -9,7 +9,6 @@ import { initAuth } from './clientAuth.js';
 import { fetchDocuments } from './api.js';
 import { setupUI, registerEventHandlers } from './ui.js';
 import { initLogger, logInfo, logError } from './utils/logging.js';
-// Import selectors - these need to be loaded even if not used directly
 import './partStudioSelector.js';
 import './planeSelector.js';
 
