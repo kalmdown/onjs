@@ -107,7 +107,9 @@ if (app && envValidation.preferredMethod) {
 
 // Basic request logger with origin information for CORS debugging
 app.use((req, res, next) => {
-  log.debug(`${req.method} ${req.url} - Origin: ${req.headers.origin || 'unknown'}`);
+  const requestId = crypto.randomBytes(4).toString('hex');
+  req.requestId = requestId;
+  log.debug(`[${requestId}] ${req.method} ${req.url} - Origin: ${req.headers.origin || 'unknown'}`);
   next();
 });
 
@@ -279,6 +281,7 @@ app.use((req, res, next) => {
 // Continue with route registration
 // Mount routes with auth middleware
 app.use('/oauth', authRoutes);
+app.use('/api', require('./src/routes/api')(app, auth));
 app.use('/api/auth', require('./src/routes/apiAuthRoutes')(app, auth));
 app.use('/api', partStudioRoutes(app, auth));
 app.use('/api', documentRoutes(app, auth));

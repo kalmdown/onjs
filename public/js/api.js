@@ -376,7 +376,7 @@ export async function fetchElementsForDocument(documentId) {
     
     // Now get elements
     try {
-      const response = await apiCall(`documents/${documentId}/w/${defaultWorkspace.id}/elements`);
+      const response = await apiCall(`documents/d/${documentId}/w/${defaultWorkspace.id}/elements`);
       const elements = response.elements || response;
       logDebug(`Retrieved ${elements.length} elements for document ${documentId}`);
       return elements;
@@ -434,9 +434,10 @@ export async function fetchPlanesForPartStudio(documentId, workspaceId, elementI
     // Explicit debugging of the request
     logDebug(`Fetching planes for document=${documentId}, workspace=${workspaceId}, element=${elementId}`);
     
+    // Use the proper route format for planes
     // IMPORTANT: The router is mounted at /api/planes, so the correct URL format is:
-    // planes/:documentId/w/:workspaceId/e/:elementId
-    const endpoint = `planes/${documentId}/w/${workspaceId}/e/${elementId}`;
+    // planes/d/:documentId/w/:workspaceId/e/:elementId
+    const endpoint = `planes/d/${documentId}/w/${workspaceId}/e/${elementId}`;
     
     // Construct query string separately for better clarity and debugging
     const queryParams = new URLSearchParams();
@@ -448,10 +449,10 @@ export async function fetchPlanesForPartStudio(documentId, workspaceId, elementI
     try {
       const response = await apiCall(fullEndpoint);
       
-      if (Array.isArray(response)) {
-        const standardCount = response.filter(p => p.type === 'STANDARD').length;
-        const customCount = response.filter(p => p.type === 'CUSTOM').length;
-        logDebug(`Received ${response.length} planes (${standardCount} standard, ${customCount} custom)`);
+      if (response.defaultPlanes || Array.isArray(response)) {
+        const result = Array.isArray(response) ? response : response;
+        logDebug(`Received planes data: ${JSON.stringify(result)}`);
+        return result;
       }
       
       return response;
