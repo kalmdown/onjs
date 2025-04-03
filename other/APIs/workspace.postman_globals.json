@@ -1,0 +1,99 @@
+{
+	"id": "556c1356-3ab2-471d-8337-e1801c727796",
+	"values": [
+		{
+			"key": "API_URL",
+			"value": "https://cad.onshape.com",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "OAUTH_URL",
+			"value": "https://oauth.onshape.com",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "OAUTH_CLIENT_ID",
+			"value": "OJUBCP5YOYDXUSTKJ7R7XDAUVAEHYEHUK7YFPHQ=",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "OAUTH_CLIENT_SECRET",
+			"value": "6QUSL6MK4O36CITSN3LVQSTIK4EWMS4EGF2TYZHON3NV5SIYFJGA====",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "SESSION_SECRET",
+			"value": "penny.fartings.mooch.boo.skyler.at.midnight.51",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "OAUTH_SCOPES",
+			"value": "OAuth2ReadPII OAuth2Read OAuth2Write",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "BASE_API_URL",
+			"value": "https://cad.onshape.com/api",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "SVG2OnS_D",
+			"value": "cb1e9acdd17540e4f4a4d45b",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "SVG2OnS_W",
+			"value": "425a72a0620d341664869beb",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "SVG2Ons_E",
+			"value": "8255c992de6d59bebf749591",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "basicAuthUsername",
+			"value": "p6NsmI3ZiqQe1foaBuYlqPN5",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "basicAuthPassword",
+			"value": "lcIzrT49dM5f76wLZk1GiTJuEDM0WWltySdogRIJXAuTEXkb",
+			"type": "secret",
+			"enabled": true
+		},
+		{
+			"key": "CYL_EX_D",
+			"value": "398a82c2e197a5efee277cf7",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "CYL_EX_W",
+			"value": "a71572336b87355a5929aba6",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "CYL_EX_E",
+			"value": "f0c841cca00dfe25a0308421",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"name": "Globals",
+	"_postman_variable_scope": "globals",
+	"_postman_exported_at": "2025-04-01T01:36:41.202Z",
+	"_postman_exported_using": "Postman/11.39.0"
+}

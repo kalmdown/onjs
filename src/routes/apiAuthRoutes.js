@@ -1,11 +1,15 @@
 // src/routes/apiAuthRoutes.js
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
+const config = require('../../config/index');
 const logger = require('../utils/logger');
 
 const log = logger.scope('Auth');
 
 module.exports = function(app, auth) {
+  log.info('Initializing API auth routes');
+
   // Get the authentication method
   router.get('/method', (req, res) => {
     const authManager = req.app.get('authManager');
@@ -36,7 +40,7 @@ module.exports = function(app, auth) {
   router.get('/status', (req, res) => {
     const authManager = req.app.get('authManager');
     const isAuthenticated = req.isAuthenticated && req.isAuthenticated() || 
-                           (authManager && authManager.getMethod() === 'apikey');
+                          (authManager && authManager.getMethod() === 'apikey');
     
     res.json({
       authenticated: isAuthenticated,
@@ -92,6 +96,7 @@ module.exports = function(app, auth) {
    * @access Public
    */
   router.get('/test-api-key', (req, res) => {
+    log.info('Test API key endpoint called');
     const authManager = req.app.get('authManager');
     
     if (!authManager) {
@@ -144,7 +149,7 @@ module.exports = function(app, auth) {
    * @access Public
    */
   router.get('/test-direct-call', async (req, res) => {
-    const axios = require('axios');
+    log.info('Test direct call endpoint called');
     const authManager = req.app.get('authManager');
     
     if (!authManager) {
@@ -167,7 +172,6 @@ module.exports = function(app, auth) {
     }
     
     // Get the base URL from config
-    const config = req.app.get('config');
     const baseUrl = config?.onshape?.baseUrl || 'https://cad.onshape.com';
     
     // Test endpoint path
@@ -285,6 +289,57 @@ module.exports = function(app, auth) {
     res.json(results);
   });
 
+  /**
+   * @route GET /api/auth/test-document/:documentId
+   * @description Test access to a specific document
+   * @access Public
+   */
+  router.get('/test-document/:documentId', async (req, res) => {
+    log.info('Test document endpoint called');
+    const authManager = req.app.get('authManager');
+    const documentId = req.params.documentId;
+    
+    if (!authManager) {
+      log.error('Auth manager not available');
+      return res.status(500).json({
+        success: false,
+        message: 'Auth manager not available'
+      });
+    }
+    
+    try {
+      // Get headers for document request
+      const headers = authManager.getAuthHeaders('GET', `/api/v6/documents/${documentId}`);
+      log.debug('Generated headers:', headers);
+      
+      // Make test call to get document info
+      const response = await axios({
+        method: 'GET',
+        url: `${config.onshape.baseUrl}/api/v6/documents/${documentId}`,
+        headers: headers
+      });
+      
+      res.json({
+        success: true,
+        method: authManager.getMethod(),
+        document: {
+          name: response.data.name,
+          id: response.data.id,
+          owner: response.data.owner,
+          public: response.data.public
+        }
+      });
+    } catch (error) {
+      log.error('Document access test failed:', error.response?.data || error.message);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+        response: error.response?.data
+      });
+    }
+  });
+
+  log.info('API auth routes initialized');
   router.source = __filename;
   
   return router;

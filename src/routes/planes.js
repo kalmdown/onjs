@@ -29,7 +29,7 @@ module.exports = function(app, auth) {
         try {
           // Fetch workspaces to get the default workspace ID
           log.debug(`Fetching workspaces for document ${documentId} to get actual workspace ID`);
-          const workspacesPath = `/documents/${documentId}/workspaces`;
+          const workspacesPath = `/documents/d/${documentId}/workspaces`;
           const workspaces = await req.onshapeClient.get(workspacesPath);
           
           if (workspaces && workspaces.length > 0) {
@@ -37,18 +37,19 @@ module.exports = function(app, auth) {
             const defaultWorkspace = workspaces.find(w => w.isDefault) || workspaces[0];
             actualWorkspaceId = defaultWorkspace.id;
             log.debug(`Using actual workspace ID: ${actualWorkspaceId}`);
-          } else {
-            log.warn(`No workspaces found for document ${documentId}`);
           }
         } catch (wsError) {
           log.error(`Failed to get workspaces: ${wsError.message}`);
-          // Continue with default 'w' - will likely fail but we'll return standard planes
         }
       }
       
-      log.debug(`Fetching planes for document=${documentId}, workspace=${actualWorkspaceId}, element=${elementId}`, {
-        includeCustomPlanes
-      });
+      // Clean the workspace ID to remove any path prefix to avoid duplication
+      const cleanWorkspaceId = actualWorkspaceId.replace(/^w\/|^\/w\//, '');
+      
+      // Use the proper API path format
+      const path = `/partstudios/d/${documentId}/w/${cleanWorkspaceId}/e/${elementId}/features`;
+      
+      log.debug(`Making API request to: ${path}`);
       
       if (!req.onshapeClient) {
         return res.status(500).json({ error: 'API client not available' });
@@ -63,7 +64,7 @@ module.exports = function(app, auth) {
       
       try {
         // Use actual workspace ID in the API path
-        const path = `/partstudios/d/${documentId}/w/${actualWorkspaceId}/e/${elementId}/features`;
+        const path = `/partstudios/d/${documentId}/w/${cleanWorkspaceId}/e/${elementId}/features`;
         
         log.debug(`Making API request to: ${path}`);
         const featuresResponse = await req.onshapeClient.get(path);

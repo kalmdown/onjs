@@ -38,7 +38,7 @@ class OnshapeClient {
     
     if (!this.apiUrl) {
       // Use default API URL based on base URL
-      this.apiUrl = `${this.baseUrl}/api/v5`;
+      this.apiUrl = `${this.baseUrl}/api/v10`;
       this.logger.info(`Using default API URL: ${this.apiUrl}`);
     }
     
@@ -164,8 +164,14 @@ class OnshapeClient {
       if (this.debug) {
         this.logger.debug(`API response: ${response.status} from ${method} ${fullUrl}`, {
           dataType: typeof response.data,
-          isArray: Array.isArray(response.data)
+          isArray: Array.isArray(response.data),
+          data: response.data
         });
+      }
+      
+      // Check if response.data has a 'data' property
+      if (response.data && response.data.data) {
+        return response.data.data;
       }
       
       return response.data;

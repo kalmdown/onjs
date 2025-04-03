@@ -47,14 +47,8 @@ app.set('config', config);
 // Create auth middleware
 const auth = require('./middleware/authMiddleware')(app);
 
-// Get API router
-const apiRouter = require('./routes/api')(app, auth);
-
 // Mount OAuth routes at /oauth path
 app.use('/oauth', require('./routes/authRoutes'));
-
-// Mount API routes at /api path
-app.use('/api', apiRouter);
 
 // Debug endpoint
 app.get('/kd_debug', (req, res) => {
@@ -84,5 +78,8 @@ app.get('/', (req, res) => {
 // Add global error handling middleware
 app.use(errorMiddleware);
 
-// Export app for server.js
+// Make auth middleware available for server.js to use
+app.auth = auth;
+
+// Export app for server.js to use
 module.exports = app;

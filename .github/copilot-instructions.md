@@ -1,7 +1,6 @@
 Use camelCase for js variables and kebab-case for css classes
 Make sure each code suggestion indicates which file it should be applied to
 When providing options mention options before providing code
-Always evaluate .vscode/project-files.md file for the most up-to-date project structure before suggesting file creation or modifications
 Before making changes understand the purpose and dependencies of the code you're modifying
 Maintain existing functionality when adding new features
 Follow the existing code style in the project

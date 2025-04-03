@@ -2,7 +2,8 @@
 import { apiCall } from '../api.js';
 import { isAuthenticated } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
-import { logInfo, logError } from '../utils/logging.js';
+import { logInfo, logError, logDebug, logToTerminal } from '../utils/logging.js';
+import { getWorkspaces, fetchElementsForDocument } from '../api.js';
 
 /**
  * Example 2: Create a Lamp
@@ -11,15 +12,26 @@ import { logInfo, logError } from '../utils/logging.js';
  * sketch, extrude, loft, and boolean operations.
  */
 export async function runExample3() {
+  // Add detailed debug logging when example is clicked
+  logDebug('Lamp example clicked - starting execution');
+  logToTerminal('lamp.js', 'Example 3: Create a Lamp - execution started', 'info');
+  
+  // Additional log data for API tracking
+  const requestId = Math.random().toString(36).substring(2, 8);
+  
   // Replace token check with more robust authentication check
   if (!isAuthenticated()) {
     logError('Please authenticate first');
+    logToTerminal('lamp.js', 'Authentication check failed - user not authenticated', 'error');
     return;
   }
 
   logInfo('Running Example 2: Create a Lamp');
   
   try {
+    // Log the beginning of document selection/creation
+    logToTerminal('lamp.js', `Starting document selection/creation (requestId: ${requestId})`, 'debug');
+    
     // Step 1: Get or create a document
     let onshapeDocument;
     const selectedDocument = getSelectedDocument();
@@ -34,29 +46,43 @@ export async function runExample3() {
     
     // Step 2: Get workspaces
     logInfo('Accessing part studio...');
-    const workspaces = await apiCall(`documents/${onshapeDocument.id}/workspaces`);
-    const defaultWorkspace = workspaces[0];
-    
-    // Step 3: Get or create a part studio element
-    let partStudioId;
-    const selectedPartStudio = getSelectedPartStudio();
-    
-    if (selectedPartStudio && selectedPartStudio.documentId === onshapeDocument.id) {
-      partStudioId = selectedPartStudio.id;
-      logInfo(`Using selected part studio: ${selectedPartStudio.name}`);
-    } else {
-      const elements = await apiCall(`documents/${onshapeDocument.id}/elements`);
-      partStudioId = elements.find(el => el.type === 'PARTSTUDIO')?.id;
+    try {
+      const workspaces = await getWorkspaces(onshapeDocument.id);
+      const defaultWorkspace = workspaces[0];
       
-      if (!partStudioId) {
-        logInfo('Creating new part studio...');
-        const newElement = await apiCall(
-          `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
-          'POST', 
-          { name: 'Lamp', elementType: 'PARTSTUDIO' }
-        );
-        partStudioId = newElement.id;
+      if (!defaultWorkspace) {
+        throw new Error('No workspaces found for document');
       }
+      
+      // Step 3: Get or create a part studio element
+      let partStudioId;
+      const selectedPartStudio = getSelectedPartStudio();
+      
+      if (selectedPartStudio && selectedPartStudio.documentId === onshapeDocument.id) {
+        partStudioId = selectedPartStudio.id;
+        logInfo(`Using selected part studio: ${selectedPartStudio.name}`);
+      } else {
+        const elements = await fetchElementsForDocument(onshapeDocument.id);
+        partStudioId = elements.find(el => el.type === 'PARTSTUDIO')?.id;
+        
+        if (!partStudioId) {
+          logInfo('Creating new part studio...');
+          const newElement = await apiCall(
+            `documents/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
+            'POST', 
+            { name: 'Part Studio', elementType: 'PARTSTUDIO' }
+          );
+          partStudioId = newElement.id;
+        }
+      }
+    } catch (error) {
+      logError(`Error: ${error.message}`);
+      logToTerminal('lamp.js', `Error in part studio access: ${error.message}`, 'error', { 
+        stack: error.stack,
+        requestId
+      });
+      console.error('Full error:', error);
+      return;
     }
     
     // Step 4: Determine which plane to use
@@ -112,22 +138,28 @@ export async function runExample3() {
       feature: {
         name: 'Base Sketch',
         featureType: 'newSketch',
+        suppressed: false,
         parameters: [
           {
+            btType: 'BTMParameterEnum-145',
+            value: sketchPlane.name,
             parameterId: 'sketchPlane',
-            queries: [
-              {
-                queryType: 8,
-                deterministicIds: ["TOP"]
-              }
-            ]
+            enumName: 'SketchPlane'
+          },
+          {
+            btType: 'BTMParameterBoolean-144',
+            value: true,
+            parameterId: 'disableImprinting'
           }
-        ]
+        ],
+        btType: 'BTMSketch-151',
+        constraints: [],
+        entities: []
       }
     };
 
     const baseSketchResponse = await apiCall(
-      `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements/${partStudioId}/features`,
+      `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/features`,
       'POST',
       baseSketchFeature
     );
@@ -419,6 +451,10 @@ export async function runExample3() {
     
   } catch (error) {
     logError(`Error: ${error.message}`);
+    logToTerminal('lamp.js', `Error in lamp example: ${error.message}`, 'error', { 
+      stack: error.stack,
+      requestId
+    });
     console.error('Full error:', error);
   }
 }

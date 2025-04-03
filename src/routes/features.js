@@ -2,16 +2,24 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
+const routeTracker = require('../utils/route-tracker');
 
 const log = logger.scope('Features');
 
+// Export a function that returns the router
 module.exports = function(app, auth) {
-  const { isAuthenticated } = auth;
+  // This is the file and line number that's initializing the route
+  const source = __filename;
   
-   // Delay logging until after configuration is loaded
-   process.nextTick(() => {
-    log.info('Initializing features API routes');
-  });
+  // Check if already initialized with better logging
+  if (routeTracker.isRouteInitialized('features')) {
+    log.debug('Feature routes already initialized, skipping');
+    return router;
+  }
+  
+  log.info('Initializing features API routes');
+  
+  const { isAuthenticated } = auth;
 
   /**
    * @route GET /api/features
@@ -188,5 +196,8 @@ module.exports = function(app, auth) {
     }
   });
 
+  // Mark this route as initialized with source file info
+  routeTracker.markRouteInitialized('features', source);
+  
   return router;
 };
