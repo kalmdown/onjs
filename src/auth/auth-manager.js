@@ -17,8 +17,8 @@ class AuthManager {
     this.baseUrl = options.baseUrl || config.onshape.baseUrl;
     
     // API key credentials
-    this.accessKey = options.accessKey || process.env.ONSHAPE_ACCESS_KEY;
-    this.secretKey = options.secretKey || process.env.ONSHAPE_SECRET_KEY;
+    this.accessKey = (options.accessKey || process.env.ONSHAPE_ACCESS_KEY)?.trim();
+    this.secretKey = (options.secretKey || process.env.ONSHAPE_SECRET_KEY)?.trim();
     
     // OAuth credentials
     this.accessToken = options.accessToken;

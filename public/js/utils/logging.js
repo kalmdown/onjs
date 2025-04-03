@@ -421,5 +421,53 @@ export function logError(message, meta = {}, scope = null) {
   return clientLogger.error(scopedMessage, { ...meta, source: sourceFile }, scope);
 }
 
+/**
+ * Sends a log message to the server to be displayed in the VSCode terminal
+ * 
+ * @param {string} source - Source of the log (file name)
+ * @param {string} message - Log message
+ * @param {string} level - Log level (debug, info, warn, error)
+ * @param {Object} [data] - Optional data to include with the log
+ */
+export function logToTerminal(source, message, level = 'debug', data = null) {
+  // Create a log entry
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    source,
+    message,
+    level,
+    data
+  };
+  
+  // Send the log to the server
+  fetch('/api/logs', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(logEntry),
+    // Don't wait for response
+    keepalive: true
+  }).catch(err => {
+    // Silently fail if server is not available
+    console.warn('Failed to send log to server:', err);
+  });
+  
+  // Also log to browser console
+  switch(level) {
+    case 'error':
+      console.error(`[${source}] ${message}`);
+      break;
+    case 'warn':
+      console.warn(`[${source}] ${message}`);
+      break;
+    case 'info':
+      console.info(`[${source}] ${message}`);
+      break;
+    default:
+      console.debug(`[${source}] ${message}`);
+  }
+}
+
 // Export the logger instance
 export default clientLogger;

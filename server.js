@@ -372,6 +372,43 @@ app.get('/api/documents/d/:documentId/workspaces', async (req, res) => {
   }
 });
 
+// Add this AFTER the existing direct workspaces route handler and BEFORE mounting the routers
+// Direct route handler for document elements
+app.get('/api/documents/d/:documentId/w/:workspaceId/elements', async (req, res) => {
+  const { documentId, workspaceId } = req.params;
+  const requestId = crypto.randomBytes(4).toString('hex');
+  
+  console.log(`[${requestId}] DIRECT HANDLER: Document elements request for doc=${documentId}, workspace=${workspaceId}`);
+  
+  try {
+    const authManager = req.app.get('authManager');
+    if (!authManager) {
+      return res.status(500).json({ error: 'Auth manager not available' });
+    }
+    
+    // Create client
+    const onshapeClient = auth.createClientFromRequest(req);
+    if (!onshapeClient) {
+      return res.status(500).json({ error: 'Failed to create Onshape client' });
+    }
+    
+    // Use the proper API path format
+    const apiPath = `/documents/d/${documentId}/w/${workspaceId}/elements`;
+    console.log(`[${requestId}] Making API call to: ${apiPath}`);
+    
+    const elements = await onshapeClient.get(apiPath);
+    console.log(`[${requestId}] Success! Fetched elements`);
+    
+    return res.json(elements);
+  } catch (error) {
+    console.error(`[${requestId}] ERROR in elements handler: ${error.message}`);
+    return res.status(error.statusCode || 500).json({ 
+      error: error.message,
+      statusCode: error.statusCode || 500
+    });
+  }
+});
+
 // Add this debug endpoint after your other API routes
 // before the catch-all handler for SPA support
 

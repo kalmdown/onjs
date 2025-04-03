@@ -10,6 +10,12 @@ const log = logger.scope('Documents');
 module.exports = function(app, auth) {
   const { isAuthenticated } = auth;
 
+  // Simple logging without verbose debug output
+  router.use((req, res, next) => {
+    log.debug(`Documents route: ${req.method} ${req.path}`);
+    next();
+  });
+
   /**
    * @route GET /api/documents
    * @description Get all documents
@@ -60,30 +66,17 @@ module.exports = function(app, auth) {
    * @access Private
    */
   router.get('/d/:documentId/workspaces', isAuthenticated, async (req, res, next) => {
-    const { documentId } = req.params;
-    console.log(`[ROUTER DEBUG] Document workspaces request for ${documentId}`);
-    
     try {
+      const { documentId } = req.params;
       log.debug(`Fetching workspaces for document ${documentId}`);
       
-      // Get Onshape client - use existing client or create one
-      const onshapeClient = req.onshapeClient || auth.createClientFromRequest(req);
-      if (!onshapeClient) {
-        return res.status(500).json({ error: 'No Onshape client available' });
-      }
-      
       // Make the API call with proper format
-      const apiPath = `/documents/d/${documentId}/workspaces`;
-      console.log(`[ROUTER DEBUG] Calling Onshape API: ${apiPath}`);
+      const path = `/documents/d/${documentId}/workspaces`;
+      const response = await req.onshapeClient.get(path);
       
-      const response = await onshapeClient.get(apiPath);
-      console.log(`[ROUTER DEBUG] Workspace response received`);
-      
-      return res.json(response);
+      res.json(response);
     } catch (error) {
-      // Log error details for debugging
-      console.error(`[ROUTER DEBUG] Workspace error: ${error.message}`);
-      log.error(`Error fetching workspaces for document ${documentId}: ${error.message}`);
+      log.error(`Error fetching workspaces: ${error.message}`);
       next(error);
     }
   });
@@ -106,7 +99,6 @@ module.exports = function(app, auth) {
       
       log.debug(`Fetching elements for document ${documentId} workspace ${workspaceId}`);
 
-      // Use direct client.get instead of elementsApi
       const path = `/documents/d/${documentId}/w/${workspaceId}/elements`;
       const response = await req.onshapeClient.get(path);
       

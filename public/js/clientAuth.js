@@ -1,4 +1,4 @@
-// public/js/ClientAuth.js
+// public/js/clientAuth.js
 // Import the logging utilities
 import { logInfo, logError, logDebug, logWarn } from './utils/logging.js';
 

@@ -228,8 +228,12 @@ export async function fetchDocuments(showLoadingIndicator = true) {
     // Make the actual call
     const response = await apiCall(documentsEndpoint);
     
-    // Log raw response for debugging
-    logDebug(`Documents API raw response: ${JSON.stringify(response)}`, "Documents");
+    // Replace verbose raw response logging with a summary
+    logDebug(`Documents API response received: ${
+      Array.isArray(response) ? response.length + ' documents' :
+      response.items ? response.items.length + ' documents' :
+      'unknown format'
+    }`, "Documents");
     
     // Clear timeout since we got a response
     clearTimeout(fetchTimeout);
@@ -337,18 +341,14 @@ export function getDocuments() {
  */
 export async function getWorkspaces(documentId) {
   try {
-    // Add debug logs to trace the request
-    logInfo(`Fetching workspaces for document ID: ${documentId}`, "Workspaces");
+    // Clean the document ID to ensure consistent format
+    const cleanDocId = documentId.replace(/^d\/|^\/d\//, '');
     
-    // Make sure we're using the correct URL pattern
-    const endpoint = `documents/d/${documentId}/workspaces`;
-    logDebug(`Using endpoint: ${endpoint}`, "Workspaces");
+    // Use the consistent URL pattern with /d/ prefix
+    const endpoint = `documents/d/${cleanDocId}/workspaces`;
     
     // Make the API call
     const response = await apiCall(endpoint);
-    
-    logInfo(`Successfully fetched ${Array.isArray(response) ? response.length : 
-      (response.items ? response.items.length : 'unknown')} workspaces`, "Workspaces");
     
     return response;
   } catch (error) {
@@ -369,12 +369,13 @@ export async function fetchElementsForDocument(documentId) {
   }
   
   try {
-    logDebug(`Fetching elements for document ${documentId}`);
+    // Clean the document ID to ensure consistent format
+    const cleanDocId = documentId.replace(/^d\/|^\/d\//, '');
     
     // Try to get workspaces first
     let workspaces;
     try {
-      workspaces = await getWorkspaces(documentId);
+      workspaces = await getWorkspaces(cleanDocId);
     } catch (wsError) {
       logError(`Failed to fetch workspaces: ${wsError.message}`);
       // Generate a default workspace as fallback
@@ -387,18 +388,16 @@ export async function fetchElementsForDocument(documentId) {
       throw new Error('No workspace found for document');
     }
     
-    // Now get elements
-    try {
-      const response = await apiCall(`documents/d/${documentId}/w/${defaultWorkspace.id}/elements`);
-      const elements = response.elements || response;
-      logDebug(`Retrieved ${elements.length} elements for document ${documentId}`);
-      return elements;
-    } catch (elemError) {
-      logError(`Failed to fetch elements: ${elemError.message}`);
-      throw elemError;
-    }
+    // Use clean ID format for the API call
+    const workspaceId = defaultWorkspace.id.replace(/^w\/|^\/w\//, '');
+    
+    // Make the API call with consistent URL pattern
+    const response = await apiCall(`documents/d/${cleanDocId}/w/${workspaceId}/elements`);
+    const elements = response.elements || response;
+    
+    return elements;
   } catch (error) {
-    logError(`Failed to fetch elements for document ${documentId}: ${error.message}`);
+    logError(`Failed to fetch elements: ${error.message}`);
     return [];
   }
 }
@@ -447,10 +446,13 @@ export async function fetchPlanesForPartStudio(documentId, workspaceId, elementI
     // Explicit debugging of the request
     logDebug(`Fetching planes for document=${documentId}, workspace=${workspaceId}, element=${elementId}`);
     
-    // Use the proper route format for planes
-    // IMPORTANT: The router is mounted at /api/planes, so the correct URL format is:
-    // planes/d/:documentId/w/:workspaceId/e/:elementId
-    const endpoint = `planes/d/${documentId}/w/${workspaceId}/e/${elementId}`;
+    // Clean IDs to ensure consistent format
+    const cleanDocId = documentId.replace(/^d\/|^\/d\//, '');
+    const cleanWsId = workspaceId.replace(/^w\/|^\/w\//, '');
+    const cleanElemId = elementId.replace(/^e\/|^\/e\//, '');
+    
+    // Use the proper route format with clean IDs
+    const endpoint = `planes/d/${cleanDocId}/w/${cleanWsId}/e/${cleanElemId}`;
     
     // Construct query string separately for better clarity and debugging
     const queryParams = new URLSearchParams();

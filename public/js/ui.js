@@ -4,6 +4,7 @@ import { logInfo, logError, logDebug, logWarn } from './utils/logging.js';
 import { runExample1 } from './examples/cylinder.js';
 import { runExample2 } from './examples/cup.js';
 import { runExample3 } from './examples/lamp.js';
+import { testSketchFront } from './examples/simple-test.js';
 import { convertSvg } from './svg-converter.js';
 import { authenticate, getToken, isAuthenticated, debugAuthState } from './clientAuth.js';
 import { exportApiCalls } from './api.js';
@@ -18,7 +19,7 @@ let debugPanelActive = false;
 // DOM elements
 let btnAuthenticate, authStatus, svgFile, svgPreview, 
     documentSelect, documentName, btnRefreshDocuments,
-    btnExample1, btnExample2, btnExample3, btnConvertSvg, logOutput, btnExportApiCalls;
+    btnExample1, btnExample2, btnExample3, btnSketchTest, btnConvertSvg, logOutput, btnExportApiCalls;
 
 export function setupUI() {
   // Initialize DOM elements
@@ -32,6 +33,7 @@ export function setupUI() {
   btnExample1 = document.getElementById('btnExample1');
   btnExample2 = document.getElementById('btnExample2');
   btnExample3 = document.getElementById('btnExample3');
+  btnSketchTest = document.getElementById('btnSketchTest');
   btnConvertSvg = document.getElementById('btnConvertSvg');
   logOutput = document.getElementById('logOutput');
   btnExportApiCalls = document.getElementById('btnExportApiCalls');
@@ -62,6 +64,10 @@ export function registerEventHandlers() {
   
   if (btnExample3) {
     btnExample3.addEventListener('click', runExample3);
+  }
+  
+  if (btnSketchTest) {
+    btnSketchTest.addEventListener('click', testSketchFront);
   }
   
   if (btnConvertSvg) {

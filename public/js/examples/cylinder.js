@@ -2,7 +2,8 @@
 import { apiCall } from '../api.js';
 import { isAuthenticated } from '../clientAuth.js';
 import { getSelectedDocument, getDocumentName, getSelectedPartStudio, getSelectedPlane } from '../ui.js';
-import { logInfo, logError } from '../utils/logging.js';
+import { logInfo, logError, logDebug, logToTerminal } from '../utils/logging.js';
+import { getWorkspaces, fetchElementsForDocument } from '../api.js';
 
 /**
  * Example 1: Create a Cylinder
@@ -10,15 +11,26 @@ import { logInfo, logError } from '../utils/logging.js';
  * This example creates a circle sketch and extrudes it to create a cylinder.
  */
 export async function runExample1() {
+  // Add detailed debug logging when example is clicked
+  logDebug('Cylinder example clicked - starting execution');
+  logToTerminal('cylinder.js', 'Example 1: Create a Cylinder - execution started', 'info');
+  
+  // Additional log data for API tracking
+  const requestId = Math.random().toString(36).substring(2, 8);
+  
   // Replace token check with more robust authentication check
   if (!isAuthenticated()) {
     logError('Please authenticate first');
+    logToTerminal('cylinder.js', 'Authentication check failed - user not authenticated', 'error');
     return;
   }
   
   logInfo('Running Example 1: Create a Cylinder');
   
   try {
+    // Log the beginning of document selection/creation
+    logToTerminal('cylinder.js', `Starting document selection/creation (requestId: ${requestId})`, 'debug');
+    
     // Step 1: Get or create a document
     let onshapeDocument;
     const selectedDocument = getSelectedDocument();
@@ -34,7 +46,7 @@ export async function runExample1() {
     // Step 2: Get workspaces
     logInfo('Accessing part studio...');
     try {
-      const workspaces = await apiCall(`documents/${onshapeDocument.id}/workspaces`);
+      const workspaces = await getWorkspaces(onshapeDocument.id);
       const defaultWorkspace = workspaces[0];
       
       if (!defaultWorkspace) {
@@ -49,13 +61,13 @@ export async function runExample1() {
         partStudioId = selectedPartStudio.id;
         logInfo(`Using selected part studio: ${selectedPartStudio.name}`);
       } else {
-        const elements = await apiCall(`documents/${onshapeDocument.id}/elements`);
+        const elements = await fetchElementsForDocument(onshapeDocument.id);
         partStudioId = elements.find(el => el.type === 'PARTSTUDIO')?.id;
         
         if (!partStudioId) {
           logInfo('Creating new part studio...');
           const newElement = await apiCall(
-            `documents/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
+            `documents/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/elements`, 
             'POST', 
             { name: 'Part Studio', elementType: 'PARTSTUDIO' }
           );
@@ -63,7 +75,7 @@ export async function runExample1() {
         }
       }
       
-      // Step 4: Determine which plane to use
+      // Step 4: Determine which plane to use and get its ID
       let sketchPlane = {
         id: "JHD", // Default to TOP plane
         name: "TOP",
@@ -81,11 +93,11 @@ export async function runExample1() {
           sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
         }
         // Then check by name as a fallback
-        else if (selectedPlane.name === "TOP" || selectedPlane.name.toLowerCase().includes("top plane")) {
+        else if (selectedPlane.name.toUpperCase() === "TOP" || selectedPlane.name.toLowerCase().includes("top plane")) {
           sketchPlane = { id: "JHD", name: "TOP", type: "STANDARD" };
-        } else if (selectedPlane.name === "FRONT" || selectedPlane.name.toLowerCase().includes("front plane")) {
+        } else if (selectedPlane.name.toUpperCase() === "FRONT" || selectedPlane.name.toLowerCase().includes("front plane")) {
           sketchPlane = { id: "JFD", name: "FRONT", type: "STANDARD" };
-        } else if (selectedPlane.name === "RIGHT" || selectedPlane.name.toLowerCase().includes("right plane")) {
+        } else if (selectedPlane.name.toUpperCase() === "RIGHT" || selectedPlane.name.toLowerCase().includes("right plane")) {
           sketchPlane = { id: "JGD", name: "RIGHT", type: "STANDARD" };
         } else {
           // Custom plane
@@ -100,7 +112,7 @@ export async function runExample1() {
       } else {
         logInfo('Using default TOP plane');
       }
-      
+
       // Helper function to log Onshape API calls (for debugging only)
       const logOnshapeApiCall = (endpoint, method, payload) => {
         const onshapeApiUrl = 'https://cad.onshape.com/api/v10';
@@ -115,6 +127,48 @@ export async function runExample1() {
         }
         logInfo(`-----------------------------------`);
       };
+
+      // Get the actual plane ID using featurescript
+      const fsScript = `function(context is Context, queries) { 
+        return transientQueriesToStrings(evaluateQuery(context, qCreatedBy(makeId("${sketchPlane.name}"), EntityType.FACE))); 
+      }`;
+
+      const planeIdEndpoint = `partstudios/d/${onshapeDocument.id}/w/${defaultWorkspace.id}/e/${partStudioId}/featurescript?rollbackBarIndex=-1`;
+      logOnshapeApiCall(planeIdEndpoint, 'POST', { script: fsScript });
+      
+      const fsResponse = await apiCall(
+        planeIdEndpoint,
+        'POST',
+        { script: fsScript }
+      );
+
+      // Log the full response for debugging
+      logInfo('Featurescript response:', JSON.stringify(fsResponse, null, 2));
+
+      // Extract the actual plane ID from the response with proper error handling
+      let actualPlaneId;
+      try {
+        if (!fsResponse || !fsResponse.result || !fsResponse.result.value || !Array.isArray(fsResponse.result.value)) {
+          throw new Error('Invalid response structure from featurescript');
+        }
+        
+        const valueArray = fsResponse.result.value;
+        if (valueArray.length === 0) {
+          throw new Error('No plane ID found in response');
+        }
+        
+        actualPlaneId = valueArray[0].value;
+        if (!actualPlaneId) {
+          throw new Error('Invalid plane ID in response');
+        }
+        
+        logInfo(`Got actual plane ID: ${actualPlaneId}`);
+      } catch (error) {
+        logError(`Failed to get plane ID: ${error.message}`);
+        // Fall back to using the default plane ID if we can't get the actual one
+        actualPlaneId = sketchPlane.id;
+        logInfo(`Using fallback plane ID: ${actualPlaneId}`);
+      }
       
       // Step 5: Create a sketch on the selected plane
       logInfo(`Creating sketch on ${sketchPlane.name} plane...`);
@@ -123,7 +177,7 @@ export async function runExample1() {
       const sketchFeature = {
         feature: {
           name: "New Sketch",
-          featureType: "newSketch",
+          featureType: "newSketch",  // Must be "newSketch" according to docs
           suppressed: false,
           parameters: [
             {
@@ -131,9 +185,7 @@ export async function runExample1() {
               queries: [
                 {
                   btType: "BTMIndividualQuery-138",
-                  deterministicIds: [
-                    sketchPlane.id
-                  ]
+                  deterministicIds: [actualPlaneId]  // Use the actual plane ID from featurescript
                 }
               ],
               parameterId: "sketchPlane"
@@ -144,7 +196,7 @@ export async function runExample1() {
               parameterId: "disableImprinting"
             }
           ],
-          btType: "BTMSketch-151",
+          btType: "BTMSketch-151",  // Must be BTMSketch-151 according to docs
           constraints: [],
           entities: []
         }
@@ -302,6 +354,12 @@ export async function runExample1() {
       linkDiv.innerHTML = `<a href="${onshapeLink}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Open in Onshape</a>`;
       document.getElementById('logOutput').appendChild(linkDiv);
       
+      // After creating features, log success
+      logToTerminal('cylinder.js', 'Successfully created cylinder in Onshape', 'info', {
+        documentId: onshapeDocument.id,
+        link: `https://cad.onshape.com/documents/${onshapeDocument.id}`
+      });
+      
     } catch (error) {
       logError(`Failed to access Onshape document: ${error.message}`);
       throw error; // Rethrow to be caught by the main try/catch
@@ -309,6 +367,24 @@ export async function runExample1() {
     
   } catch (error) {
     logError(`Error: ${error.message}`);
+    logToTerminal('cylinder.js', `Error in cylinder example: ${error.message}`, 'error', { 
+      stack: error.stack,
+      requestId
+    });
     console.error('Full error:', error);
+  }
+}
+
+export async function runCylinderExample() {
+  if (!isAuthenticated()) {
+    logError('Please authenticate first');
+    return;
+  }
+
+  try {
+    // ... rest of existing code ...
+  } catch (error) {
+    logError(`Failed to access Onshape document: ${error.message}`);
+    throw error;
   }
 }

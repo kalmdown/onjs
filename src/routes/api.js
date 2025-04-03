@@ -6,12 +6,21 @@ const logger = require('../utils/logger');
 const log = logger.scope('API');
 
 module.exports = function(app, auth) {
+  // Debug middleware for monitoring routes
+  router.use((req, res, next) => {
+    console.log(`[API Router] Processing: ${req.method} ${req.originalUrl}`);
+    next();
+  });
+
   // Mount auth routes with the correct prefix
   router.use('/auth', require('./apiAuthRoutes')(app, auth));
   
-  // Mount document routes with the correct prefix
+  // Mount document routes with clear logging
   console.log('Mounting document routes at /documents');
-  router.use('/documents', require('./documents')(app, auth));
+  router.use('/documents', function(req, res, next) {
+    console.log(`[Document Router Pre] ${req.method} ${req.originalUrl}`);
+    next();
+  }, require('./documents')(app, auth));
   
   // Mount API-specific routes
   router.use('/partstudios', require('./partstudios')(app, auth));
@@ -47,6 +56,14 @@ module.exports = function(app, auth) {
       uptime: process.uptime(),
       timestamp: Date.now()
     });
+  });
+
+  // Add a catch-all route for debugging unmatched API calls
+  router.use('*', (req, res, next) => {
+    if (req.originalUrl.includes('/documents/')) {
+      console.log(`[API UNMATCHED] ${req.method} ${req.originalUrl}`);
+    }
+    next();
   });
 
   log.info('API routes initialized');
