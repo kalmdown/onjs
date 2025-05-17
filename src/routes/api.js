@@ -6,7 +6,7 @@ const logger = require('../utils/logger');
 const log = logger.scope('API');
 
 module.exports = function(app, auth) {
-  // Debug middleware for monitoring routes
+lin  // Debug middleware for monitoring routes
   router.use((req, res, next) => {
     console.log(`[API Router] Processing: ${req.method} ${req.originalUrl}`);
     next();
