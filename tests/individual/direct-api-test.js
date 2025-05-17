@@ -2,7 +2,7 @@
  * Direct API integration test - bypasses the regular client structure
  */
 require('dotenv').config();
-const SimpleRestApi = require('../src/api/simple-rest-api');
+const SimpleRestApi = require('./simple-rest-api');
 
 async function runDirectTest() {
   console.log('Starting direct API test...');
@@ -16,7 +16,8 @@ async function runDirectTest() {
   // Create API client
   const api = new SimpleRestApi({
     accessKey: process.env.ONSHAPE_ACCESS_KEY,
-    secretKey: process.env.ONSHAPE_SECRET_KEY
+    secretKey: process.env.ONSHAPE_SECRET_KEY,
+    baseUrl: process.env.ONSHAPE_API_URL
   });
   
   try {
@@ -24,11 +25,15 @@ async function runDirectTest() {
     console.log('Testing user info...');
     const userInfo = await api.get('/users/sessioninfo');
     console.log('✅ User info retrieved successfully');
-    console.log(userInfo);
+    console.log('Email:', userInfo.email);
     
     // Create document
     console.log('\nCreating test document...');
-    const doc = await api.post('/documents', { name: 'Direct API Test Document' });
+    const doc = await api.post('/documents', {
+      name: 'Direct API Test Document',
+      ownerType: 0,
+      isPublic: true
+    });
     console.log('✅ Document created successfully');
     console.log('Document ID:', doc.id);
     console.log('Document name:', doc.name);

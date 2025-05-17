@@ -41,8 +41,7 @@ module.exports = function(app, auth) {
         } catch (wsError) {
           log.error(`Failed to get workspaces: ${wsError.message}`);
         }
-      }
-      
+e      
       // Clean the workspace ID to remove any path prefix to avoid duplication
       const cleanWorkspaceId = actualWorkspaceId.replace(/^w\/|^\/w\//, '');
       
