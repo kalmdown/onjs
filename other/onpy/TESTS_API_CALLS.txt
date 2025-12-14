@@ -1,0 +1,4697 @@
+# API CALLS LOG - 2025-03-23 21:09:26.326440
+
+[2025-03-23 21:09:26] TEST: test_api_connection
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:26] TEST: test_api_connection
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:26] TEST: test_lifecycle
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_document_fe9ed4ef-8537-4947-bb74-8a32afc68843",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:26] TEST: test_lifecycle
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:27] TEST: test_lifecycle
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:27] TEST: test_lifecycle
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_document_fe9ed4ef-8537-4947-bb74-8a32afc68843_modified",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:27] TEST: test_lifecycle
+  Delete https://cad.onshape.com/api/v6/documents/2022068a7e8b0ec431d5f2bd
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:27] TEST: test_lifecycle
+  Delete https://cad.onshape.com/api/v6/documents/ac056b9888704012d725a254
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:27] TEST: test_exceptions
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:28] TEST: test_exceptions
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:28] TEST: test_exceptions
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:28] TEST: test_elements
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_documents::test_elements",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:28] TEST: test_elements
+  Get https://cad.onshape.com/api/v6/documents/d/9d34e115bea893d6af896113/w/62150fced51f9e14435908d4/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:28] TEST: test_elements
+  Get https://cad.onshape.com/api/v6/documents/d/9d34e115bea893d6af896113/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:29] TEST: test_elements
+  Post https://cad.onshape.com/api/v6/documents/d/9d34e115bea893d6af896113/versions
+  PAYLOAD: {
+  "documentId": "9d34e115bea893d6af896113",
+  "name": "V1",
+  "workspaceId": "62150fced51f9e14435908d4"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:29] TEST: test_elements
+  Get https://cad.onshape.com/api/v6/partstudios/d/9d34e115bea893d6af896113/w/62150fced51f9e14435908d4/e/aa9ea86a1e2a94ade45a93a6/features
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:29] TEST: test_elements
+  Get https://cad.onshape.com/api/v6/documents/d/9d34e115bea893d6af896113/w/62150fced51f9e14435908d4/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:29] TEST: test_elements
+  Get https://cad.onshape.com/api/v6/documents/d/9d34e115bea893d6af896113/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:29] TEST: test_elements
+  Post https://cad.onshape.com/api/v6/documents/d/9d34e115bea893d6af896113/versions
+  PAYLOAD: {
+  "documentId": "9d34e115bea893d6af896113",
+  "name": "V2",
+  "workspaceId": "62150fced51f9e14435908d4"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:30] TEST: test_elements
+  Get https://cad.onshape.com/api/v6/partstudios/d/9d34e115bea893d6af896113/w/62150fced51f9e14435908d4/e/aa9ea86a1e2a94ade45a93a6/features
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:30] TEST: test_elements
+  Get https://cad.onshape.com/api/v6/documents/d/9d34e115bea893d6af896113/w/62150fced51f9e14435908d4/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:30] TEST: test_elements
+  Delete https://cad.onshape.com/api/v6/documents/9d34e115bea893d6af896113
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:30] TEST: test_versions
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_documents::test_versions",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:31] TEST: test_versions
+  Post https://cad.onshape.com/api/v6/documents/d/3416c415c8709fa45b6c791a/versions
+  PAYLOAD: {
+  "documentId": "3416c415c8709fa45b6c791a",
+  "name": "V33",
+  "workspaceId": "cdf028706fea6df02ceb50a1"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:31] TEST: test_versions
+  Get https://cad.onshape.com/api/v6/documents/d/3416c415c8709fa45b6c791a/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:31] TEST: test_versions
+  Get https://cad.onshape.com/api/v6/documents/d/3416c415c8709fa45b6c791a/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:31] TEST: test_versions
+  Post https://cad.onshape.com/api/v6/documents/d/3416c415c8709fa45b6c791a/versions
+  PAYLOAD: {
+  "documentId": "3416c415c8709fa45b6c791a",
+  "name": "V34",
+  "workspaceId": "cdf028706fea6df02ceb50a1"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:32] TEST: test_versions
+  Get https://cad.onshape.com/api/v6/documents/d/3416c415c8709fa45b6c791a/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:32] TEST: test_versions
+  Delete https://cad.onshape.com/api/v6/documents/3416c415c8709fa45b6c791a
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:32] TEST: test_sketch_extrude
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:32] TEST: test_sketch_extrude
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_features::test_sketch_extrude",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:33] TEST: test_sketch_extrude
+  Get https://cad.onshape.com/api/v6/documents/d/9022fad7fd7bbdc92798cbcf/w/aa9db5be10bdcd0677ed526d/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:33] TEST: test_sketch_extrude
+  Get https://cad.onshape.com/api/v6/documents/d/9022fad7fd7bbdc92798cbcf/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:33] TEST: test_sketch_extrude
+  Post https://cad.onshape.com/api/v6/documents/d/9022fad7fd7bbdc92798cbcf/versions
+  PAYLOAD: {
+  "documentId": "9022fad7fd7bbdc92798cbcf",
+  "name": "V1",
+  "workspaceId": "aa9db5be10bdcd0677ed526d"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:33] TEST: test_sketch_extrude
+  Get https://cad.onshape.com/api/v6/partstudios/d/9022fad7fd7bbdc92798cbcf/w/aa9db5be10bdcd0677ed526d/e/803046127f1346f080e74464/features
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:33] TEST: test_sketch_extrude
+  Post https://cad.onshape.com/api/v6/partstudios/d/9022fad7fd7bbdc92798cbcf/w/aa9db5be10bdcd0677ed526d/e/803046127f1346f080e74464/featurescript
+  PAYLOAD: {
+  "script": "\nfunction(context is Context, queries) {\n    return transientQueriesToStrings(evaluateQuery(context, qCreatedBy(makeId(\"Front\"), EntityType.FACE)));\n}\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:34] TEST: test_sketch_extrude
+  Post https://cad.onshape.com/api/v6/partstudios/d/9022fad7fd7bbdc92798cbcf/w/aa9db5be10bdcd0677ed526d/e/803046127f1346f080e74464/features
+  PAYLOAD: {
+  "feature": {
+    "name": "Base Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JCC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": []
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:35] TEST: test_sketch_extrude
+  Post https://cad.onshape.com/api/v6/partstudios/d/9022fad7fd7bbdc92798cbcf/w/aa9db5be10bdcd0677ed526d/e/803046127f1346f080e74464/features/featureid/FiMNQV49lPyTHfn_0
+  PAYLOAD: {
+  "feature": {
+    "name": "Base Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JCC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FiMNQV49lPyTHfn_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurve-4",
+        "entityId": "5707247031bc4b0f86e145faac576ab1",
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": -0.0254,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0,
+          "clockwise": false
+        },
+        "centerId": "5707247031bc4b0f86e145faac576ab1.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:35] TEST: test_sketch_queries
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:36] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_features::test_sketch_queries",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:36] TEST: test_sketch_queries
+  Get https://cad.onshape.com/api/v6/documents/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:36] TEST: test_sketch_queries
+  Get https://cad.onshape.com/api/v6/documents/d/3bc35d2faa7ac91d33cf6e84/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:36] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/documents/d/3bc35d2faa7ac91d33cf6e84/versions
+  PAYLOAD: {
+  "documentId": "3bc35d2faa7ac91d33cf6e84",
+  "name": "V1",
+  "workspaceId": "67a92911fa89c2fd34b243ea"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:37] TEST: test_sketch_queries
+  Get https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/features
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:37] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/featurescript
+  PAYLOAD: {
+  "script": "\nfunction(context is Context, queries) {\n    return transientQueriesToStrings(evaluateQuery(context, qCreatedBy(makeId(\"Top\"), EntityType.FACE)));\n}\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:37] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/features
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": []
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:38] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/features/featureid/FtdvSKjXW2AvyBS_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FtdvSKjXW2AvyBS_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "07291ecb26de43c3aa785e461b791c3f",
+        "startPointId": "07291ecb26de43c3aa785e461b791c3f.start",
+        "endPointId": "07291ecb26de43c3aa785e461b791c3f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": -0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": 1.0
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:38] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/features/featureid/FtdvSKjXW2AvyBS_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FtdvSKjXW2AvyBS_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "07291ecb26de43c3aa785e461b791c3f",
+        "startPointId": "07291ecb26de43c3aa785e461b791c3f.start",
+        "endPointId": "07291ecb26de43c3aa785e461b791c3f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": -0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": 1.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43c31c821aed4e56ac82a50737a64e58",
+        "startPointId": "43c31c821aed4e56ac82a50737a64e58.start",
+        "endPointId": "43c31c821aed4e56ac82a50737a64e58.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:39] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/features/featureid/FtdvSKjXW2AvyBS_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FtdvSKjXW2AvyBS_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "9f90f4b6f2f64b80b7e716c41f34b68f",
+        "startPointId": "9f90f4b6f2f64b80b7e716c41f34b68f.start",
+        "endPointId": "9f90f4b6f2f64b80b7e716c41f34b68f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0508,
+          "pntY": 0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": -1.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "07291ecb26de43c3aa785e461b791c3f",
+        "startPointId": "07291ecb26de43c3aa785e461b791c3f.start",
+        "endPointId": "07291ecb26de43c3aa785e461b791c3f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": -0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": 1.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43c31c821aed4e56ac82a50737a64e58",
+        "startPointId": "43c31c821aed4e56ac82a50737a64e58.start",
+        "endPointId": "43c31c821aed4e56ac82a50737a64e58.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:39] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/features/featureid/FtdvSKjXW2AvyBS_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FtdvSKjXW2AvyBS_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "99502a24443c4a918b3206f7b55c400c",
+        "startPointId": "99502a24443c4a918b3206f7b55c400c.start",
+        "endPointId": "99502a24443c4a918b3206f7b55c400c.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": -0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "9f90f4b6f2f64b80b7e716c41f34b68f",
+        "startPointId": "9f90f4b6f2f64b80b7e716c41f34b68f.start",
+        "endPointId": "9f90f4b6f2f64b80b7e716c41f34b68f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0508,
+          "pntY": 0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": -1.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "07291ecb26de43c3aa785e461b791c3f",
+        "startPointId": "07291ecb26de43c3aa785e461b791c3f.start",
+        "endPointId": "07291ecb26de43c3aa785e461b791c3f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": -0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": 1.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43c31c821aed4e56ac82a50737a64e58",
+        "startPointId": "43c31c821aed4e56ac82a50737a64e58.start",
+        "endPointId": "43c31c821aed4e56ac82a50737a64e58.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:39] TEST: test_sketch_queries
+  Post https://cad.onshape.com/api/v6/partstudios/d/3bc35d2faa7ac91d33cf6e84/w/67a92911fa89c2fd34b243ea/e/2263b7efda1f2bd89fb6d9ba/features/featureid/FtdvSKjXW2AvyBS_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FtdvSKjXW2AvyBS_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurve-4",
+        "entityId": "b858c655f837416f9724da281ebb3405",
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0,
+          "clockwise": false
+        },
+        "centerId": "b858c655f837416f9724da281ebb3405.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43c31c821aed4e56ac82a50737a64e58",
+        "startPointId": "43c31c821aed4e56ac82a50737a64e58.start",
+        "endPointId": "43c31c821aed4e56ac82a50737a64e58.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "07291ecb26de43c3aa785e461b791c3f",
+        "startPointId": "07291ecb26de43c3aa785e461b791c3f.start",
+        "endPointId": "07291ecb26de43c3aa785e461b791c3f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": -0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": 1.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "99502a24443c4a918b3206f7b55c400c",
+        "startPointId": "99502a24443c4a918b3206f7b55c400c.start",
+        "endPointId": "99502a24443c4a918b3206f7b55c400c.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0508,
+          "pntY": -0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "9f90f4b6f2f64b80b7e716c41f34b68f",
+        "startPointId": "9f90f4b6f2f64b80b7e716c41f34b68f.start",
+        "endPointId": "9f90f4b6f2f64b80b7e716c41f34b68f.end",
+        "startParam": 0.0,
+        "endParam": 0.1016,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0508,
+          "pntY": 0.0508,
+          "dirX": 6.123233995736766e-17,
+          "dirY": -1.0
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:39] TEST: test_feature_wipe
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:40] TEST: test_feature_wipe
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_features::test_feature_wipe",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:40] TEST: test_feature_wipe
+  Get https://cad.onshape.com/api/v6/documents/d/69ee9cd6835a3f3c5d46b156/w/74f6453c8963526884644217/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:40] TEST: test_feature_wipe
+  Post https://cad.onshape.com/api/v6/partstudios/d/69ee9cd6835a3f3c5d46b156/w/74f6453c8963526884644217/e/45cb089111fe83e6f25552f5/featurescript
+  PAYLOAD: {
+  "script": "\nfunction(context is Context, queries) {\n    return transientQueriesToStrings(evaluateQuery(context, qCreatedBy(makeId(\"Top\"), EntityType.FACE)));\n}\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:41] TEST: test_feature_wipe
+  Post https://cad.onshape.com/api/v6/partstudios/d/69ee9cd6835a3f3c5d46b156/w/74f6453c8963526884644217/e/45cb089111fe83e6f25552f5/features
+  PAYLOAD: {
+  "feature": {
+    "name": "Overlapping Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": []
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:41] TEST: test_feature_wipe
+  Post https://cad.onshape.com/api/v6/partstudios/d/69ee9cd6835a3f3c5d46b156/w/74f6453c8963526884644217/e/45cb089111fe83e6f25552f5/features/featureid/FcaU4PHkA0QduQo_0
+  PAYLOAD: {
+  "feature": {
+    "name": "Overlapping Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FcaU4PHkA0QduQo_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurve-4",
+        "entityId": "dd0d082265a3442290be996ea7b9f4e1",
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": -0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0,
+          "clockwise": false
+        },
+        "centerId": "dd0d082265a3442290be996ea7b9f4e1.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:41] TEST: test_pseudo_elements
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:42] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_features::test_pseudo_elements",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:42] TEST: test_pseudo_elements
+  Get https://cad.onshape.com/api/v6/documents/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:42] TEST: test_pseudo_elements
+  Get https://cad.onshape.com/api/v6/documents/d/d3d6828c75b60fde2082e540/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:42] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/documents/d/d3d6828c75b60fde2082e540/versions
+  PAYLOAD: {
+  "documentId": "d3d6828c75b60fde2082e540",
+  "name": "V1",
+  "workspaceId": "7a7385a74abec6be994d56d6"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:43] TEST: test_pseudo_elements
+  Get https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:43] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/featurescript
+  PAYLOAD: {
+  "script": "\nfunction(context is Context, queries) {\n    return transientQueriesToStrings(evaluateQuery(context, qCreatedBy(makeId(\"Top\"), EntityType.FACE)));\n}\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:43] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": []
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:44] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02839806331424733,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.44721359549995804,
+          "dirY": 0.8944271909999159
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:44] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02839806331424733,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.44721359549995804,
+          "dirY": 0.8944271909999159
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.0254,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0127,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:45] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:45] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:45] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:45] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4b08c1f1999e49da9e7b11300b4c7f14",
+        "startPointId": "4b08c1f1999e49da9e7b11300b4c7f14.start",
+        "endPointId": "4b08c1f1999e49da9e7b11300b4c7f14.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": -0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:45] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4b08c1f1999e49da9e7b11300b4c7f14",
+        "startPointId": "4b08c1f1999e49da9e7b11300b4c7f14.start",
+        "endPointId": "4b08c1f1999e49da9e7b11300b4c7f14.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": -0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4237525098f14680a7fdfd3b4cef1411",
+        "startPointId": "4237525098f14680a7fdfd3b4cef1411.start",
+        "endPointId": "4237525098f14680a7fdfd3b4cef1411.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": -0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "4237525098f14680a7fdfd3b4cef1411.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:46] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4b08c1f1999e49da9e7b11300b4c7f14",
+        "startPointId": "4b08c1f1999e49da9e7b11300b4c7f14.start",
+        "endPointId": "4b08c1f1999e49da9e7b11300b4c7f14.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": -0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "8be51255fc384cc19410a109ff59c403",
+        "startPointId": "8be51255fc384cc19410a109ff59c403.start",
+        "endPointId": "8be51255fc384cc19410a109ff59c403.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "8be51255fc384cc19410a109ff59c403.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4237525098f14680a7fdfd3b4cef1411",
+        "startPointId": "4237525098f14680a7fdfd3b4cef1411.start",
+        "endPointId": "4237525098f14680a7fdfd3b4cef1411.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": -0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "4237525098f14680a7fdfd3b4cef1411.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:46] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "b13a9ed4b433472a976ce4f8343e7d6b",
+        "startPointId": "b13a9ed4b433472a976ce4f8343e7d6b.start",
+        "endPointId": "b13a9ed4b433472a976ce4f8343e7d6b.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "b13a9ed4b433472a976ce4f8343e7d6b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "8be51255fc384cc19410a109ff59c403",
+        "startPointId": "8be51255fc384cc19410a109ff59c403.start",
+        "endPointId": "8be51255fc384cc19410a109ff59c403.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "8be51255fc384cc19410a109ff59c403.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4237525098f14680a7fdfd3b4cef1411",
+        "startPointId": "4237525098f14680a7fdfd3b4cef1411.start",
+        "endPointId": "4237525098f14680a7fdfd3b4cef1411.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": -0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "4237525098f14680a7fdfd3b4cef1411.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:46] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "8be51255fc384cc19410a109ff59c403",
+        "startPointId": "8be51255fc384cc19410a109ff59c403.start",
+        "endPointId": "8be51255fc384cc19410a109ff59c403.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0127,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "8be51255fc384cc19410a109ff59c403.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4237525098f14680a7fdfd3b4cef1411",
+        "startPointId": "4237525098f14680a7fdfd3b4cef1411.start",
+        "endPointId": "4237525098f14680a7fdfd3b4cef1411.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": -0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "4237525098f14680a7fdfd3b4cef1411.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:46] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "4237525098f14680a7fdfd3b4cef1411",
+        "startPointId": "4237525098f14680a7fdfd3b4cef1411.start",
+        "endPointId": "4237525098f14680a7fdfd3b4cef1411.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": -0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "4237525098f14680a7fdfd3b4cef1411.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:46] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "52d0cd577ff343dd9e59d1b5bf90fe8f",
+        "startPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.start",
+        "endPointId": "52d0cd577ff343dd9e59d1b5bf90fe8f.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:47] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "afffdbf49baa40f593d399a5aa417b60",
+        "startPointId": "afffdbf49baa40f593d399a5aa417b60.start",
+        "endPointId": "afffdbf49baa40f593d399a5aa417b60.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "0bc89d2723354011a79f8807b23bf54e",
+        "startPointId": "0bc89d2723354011a79f8807b23bf54e.start",
+        "endPointId": "0bc89d2723354011a79f8807b23bf54e.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.009560387337150533,
+          "pntY": 0.0254,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:47] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "afffdbf49baa40f593d399a5aa417b60",
+        "startPointId": "afffdbf49baa40f593d399a5aa417b60.start",
+        "endPointId": "afffdbf49baa40f593d399a5aa417b60.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "de5ecef8a0434461b26548b3589635d0",
+        "startPointId": "de5ecef8a0434461b26548b3589635d0.start",
+        "endPointId": "de5ecef8a0434461b26548b3589635d0.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "65e6a31b44904c08992def75f58e9b56",
+        "startPointId": "65e6a31b44904c08992def75f58e9b56.start",
+        "endPointId": "65e6a31b44904c08992def75f58e9b56.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.009560387337150533,
+          "ycenter": 0.020319999999999998,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "65e6a31b44904c08992def75f58e9b56.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:47] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "afffdbf49baa40f593d399a5aa417b60",
+        "startPointId": "afffdbf49baa40f593d399a5aa417b60.start",
+        "endPointId": "afffdbf49baa40f593d399a5aa417b60.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "de5ecef8a0434461b26548b3589635d0",
+        "startPointId": "de5ecef8a0434461b26548b3589635d0.start",
+        "endPointId": "de5ecef8a0434461b26548b3589635d0.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "1541dbbd355f4399bbf09d67342df0e6",
+        "startPointId": "1541dbbd355f4399bbf09d67342df0e6.start",
+        "endPointId": "1541dbbd355f4399bbf09d67342df0e6.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.0254,
+          "pntY": 0.0,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:47] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "e12779923aa04c1fb27188f89e42396c",
+        "startPointId": "e12779923aa04c1fb27188f89e42396c.start",
+        "endPointId": "e12779923aa04c1fb27188f89e42396c.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "afffdbf49baa40f593d399a5aa417b60",
+        "startPointId": "afffdbf49baa40f593d399a5aa417b60.start",
+        "endPointId": "afffdbf49baa40f593d399a5aa417b60.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "de5ecef8a0434461b26548b3589635d0",
+        "startPointId": "de5ecef8a0434461b26548b3589635d0.start",
+        "endPointId": "de5ecef8a0434461b26548b3589635d0.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "d3c1a3585f044d2bb42a90bc50f494bf",
+        "startPointId": "d3c1a3585f044d2bb42a90bc50f494bf.start",
+        "endPointId": "d3c1a3585f044d2bb42a90bc50f494bf.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:47] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "afffdbf49baa40f593d399a5aa417b60",
+        "startPointId": "afffdbf49baa40f593d399a5aa417b60.start",
+        "endPointId": "afffdbf49baa40f593d399a5aa417b60.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": 0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "de5ecef8a0434461b26548b3589635d0",
+        "startPointId": "de5ecef8a0434461b26548b3589635d0.start",
+        "endPointId": "de5ecef8a0434461b26548b3589635d0.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "d3c1a3585f044d2bb42a90bc50f494bf",
+        "startPointId": "d3c1a3585f044d2bb42a90bc50f494bf.start",
+        "endPointId": "d3c1a3585f044d2bb42a90bc50f494bf.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:48] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "bb7ea897698d4b7fb666d1ea08d26f70",
+        "startPointId": "bb7ea897698d4b7fb666d1ea08d26f70.start",
+        "endPointId": "bb7ea897698d4b7fb666d1ea08d26f70.end",
+        "startParam": 0.0,
+        "endParam": 0.025258450651397868,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999591,
+          "dirY": -0.8944271909999153
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "de5ecef8a0434461b26548b3589635d0",
+        "startPointId": "de5ecef8a0434461b26548b3589635d0.start",
+        "endPointId": "de5ecef8a0434461b26548b3589635d0.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.015839612662849466,
+          "pntY": 0.0508,
+          "dirX": 1.0,
+          "dirY": 0.0
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "d3c1a3585f044d2bb42a90bc50f494bf",
+        "startPointId": "d3c1a3585f044d2bb42a90bc50f494bf.start",
+        "endPointId": "d3c1a3585f044d2bb42a90bc50f494bf.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:48] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "bb7ea897698d4b7fb666d1ea08d26f70",
+        "startPointId": "bb7ea897698d4b7fb666d1ea08d26f70.start",
+        "endPointId": "bb7ea897698d4b7fb666d1ea08d26f70.end",
+        "startParam": 0.0,
+        "endParam": 0.025258450651397868,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999591,
+          "dirY": -0.8944271909999153
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "d3c1a3585f044d2bb42a90bc50f494bf",
+        "startPointId": "d3c1a3585f044d2bb42a90bc50f494bf.start",
+        "endPointId": "d3c1a3585f044d2bb42a90bc50f494bf.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": 0.0,
+          "pntY": 0.0254,
+          "dirX": 0.4472135954999582,
+          "dirY": -0.8944271909999157
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "26e7efe30afd422db96287c74051c7fe",
+        "startPointId": "26e7efe30afd422db96287c74051c7fe.start",
+        "endPointId": "26e7efe30afd422db96287c74051c7fe.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849476,
+          "pntY": -0.05079999999999999,
+          "dirX": -1.0,
+          "dirY": -1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:48] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "bb7ea897698d4b7fb666d1ea08d26f70",
+        "startPointId": "bb7ea897698d4b7fb666d1ea08d26f70.start",
+        "endPointId": "bb7ea897698d4b7fb666d1ea08d26f70.end",
+        "startParam": 0.0,
+        "endParam": 0.025258450651397868,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999591,
+          "dirY": -0.8944271909999153
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3120f25cb9504e26ba9a2ca4768ef005",
+        "startPointId": "3120f25cb9504e26ba9a2ca4768ef005.start",
+        "endPointId": "3120f25cb9504e26ba9a2ca4768ef005.end",
+        "startParam": -2.677945044588987,
+        "endParam": -1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3120f25cb9504e26ba9a2ca4768ef005.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "26e7efe30afd422db96287c74051c7fe",
+        "startPointId": "26e7efe30afd422db96287c74051c7fe.start",
+        "endPointId": "26e7efe30afd422db96287c74051c7fe.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849476,
+          "pntY": -0.05079999999999999,
+          "dirX": -1.0,
+          "dirY": -1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "950be0fcb92848a6a90b89aaa22e41d5",
+        "startPointId": "950be0fcb92848a6a90b89aaa22e41d5.start",
+        "endPointId": "950be0fcb92848a6a90b89aaa22e41d5.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999579,
+          "dirY": 0.8944271909999159
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:48] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "bb7ea897698d4b7fb666d1ea08d26f70",
+        "startPointId": "bb7ea897698d4b7fb666d1ea08d26f70.start",
+        "endPointId": "bb7ea897698d4b7fb666d1ea08d26f70.end",
+        "startParam": 0.0,
+        "endParam": 0.025258450651397868,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999591,
+          "dirY": -0.8944271909999153
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43a11f1ed06a45b396ccb540b026e45b",
+        "startPointId": "43a11f1ed06a45b396ccb540b026e45b.start",
+        "endPointId": "43a11f1ed06a45b396ccb540b026e45b.end",
+        "startParam": 0.4636476090008068,
+        "endParam": 1.5707963267948972,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.015839612662849462,
+          "ycenter": -0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "43a11f1ed06a45b396ccb540b026e45b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "26e7efe30afd422db96287c74051c7fe",
+        "startPointId": "26e7efe30afd422db96287c74051c7fe.start",
+        "endPointId": "26e7efe30afd422db96287c74051c7fe.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849476,
+          "pntY": -0.05079999999999999,
+          "dirX": -1.0,
+          "dirY": -1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "199a396b67be41188e496fabdede2bc6",
+        "startPointId": "199a396b67be41188e496fabdede2bc6.start",
+        "endPointId": "199a396b67be41188e496fabdede2bc6.end",
+        "startParam": -1.5707963267948966,
+        "endParam": 0.0,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "199a396b67be41188e496fabdede2bc6.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "950be0fcb92848a6a90b89aaa22e41d5",
+        "startPointId": "950be0fcb92848a6a90b89aaa22e41d5.start",
+        "endPointId": "950be0fcb92848a6a90b89aaa22e41d5.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999579,
+          "dirY": 0.8944271909999159
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:48] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "bb7ea897698d4b7fb666d1ea08d26f70",
+        "startPointId": "bb7ea897698d4b7fb666d1ea08d26f70.start",
+        "endPointId": "bb7ea897698d4b7fb666d1ea08d26f70.end",
+        "startParam": 0.0,
+        "endParam": 0.025258450651397868,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999591,
+          "dirY": -0.8944271909999153
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "26e7efe30afd422db96287c74051c7fe",
+        "startPointId": "26e7efe30afd422db96287c74051c7fe.start",
+        "endPointId": "26e7efe30afd422db96287c74051c7fe.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849476,
+          "pntY": -0.05079999999999999,
+          "dirX": -1.0,
+          "dirY": -1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "950be0fcb92848a6a90b89aaa22e41d5",
+        "startPointId": "950be0fcb92848a6a90b89aaa22e41d5.start",
+        "endPointId": "950be0fcb92848a6a90b89aaa22e41d5.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999579,
+          "dirY": 0.8944271909999159
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43a11f1ed06a45b396ccb540b026e45b",
+        "startPointId": "43a11f1ed06a45b396ccb540b026e45b.start",
+        "endPointId": "43a11f1ed06a45b396ccb540b026e45b.end",
+        "startParam": 0.4636476090008068,
+        "endParam": 1.5707963267948972,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.015839612662849462,
+          "ycenter": -0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "43a11f1ed06a45b396ccb540b026e45b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "413c2891bcd541c6a290e21f7b385a11",
+        "startPointId": "413c2891bcd541c6a290e21f7b385a11.start",
+        "endPointId": "413c2891bcd541c6a290e21f7b385a11.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 2.677945044588987,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": 0.015839612662849466,
+          "ycenter": 0.04572,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "413c2891bcd541c6a290e21f7b385a11.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3bca4fc723494e6ab2f58f55dadc5d84",
+        "startPointId": "3bca4fc723494e6ab2f58f55dadc5d84.start",
+        "endPointId": "3bca4fc723494e6ab2f58f55dadc5d84.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 3.1415926535897927,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": -0.038099999999999995,
+          "ycenter": -0.025400000000000006,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3bca4fc723494e6ab2f58f55dadc5d84.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:49] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "bb7ea897698d4b7fb666d1ea08d26f70",
+        "startPointId": "bb7ea897698d4b7fb666d1ea08d26f70.start",
+        "endPointId": "bb7ea897698d4b7fb666d1ea08d26f70.end",
+        "startParam": 0.0,
+        "endParam": 0.025258450651397868,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999591,
+          "dirY": -0.8944271909999153
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "26e7efe30afd422db96287c74051c7fe",
+        "startPointId": "26e7efe30afd422db96287c74051c7fe.start",
+        "endPointId": "26e7efe30afd422db96287c74051c7fe.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849476,
+          "pntY": -0.05079999999999999,
+          "dirX": -1.0,
+          "dirY": -1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "950be0fcb92848a6a90b89aaa22e41d5",
+        "startPointId": "950be0fcb92848a6a90b89aaa22e41d5.start",
+        "endPointId": "950be0fcb92848a6a90b89aaa22e41d5.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999579,
+          "dirY": 0.8944271909999159
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43a11f1ed06a45b396ccb540b026e45b",
+        "startPointId": "43a11f1ed06a45b396ccb540b026e45b.start",
+        "endPointId": "43a11f1ed06a45b396ccb540b026e45b.end",
+        "startParam": 0.4636476090008068,
+        "endParam": 1.5707963267948972,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.015839612662849462,
+          "ycenter": -0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "43a11f1ed06a45b396ccb540b026e45b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "f31be42644594235bb60a2a1ae49a3a8",
+        "startPointId": "f31be42644594235bb60a2a1ae49a3a8.start",
+        "endPointId": "f31be42644594235bb60a2a1ae49a3a8.end",
+        "startParam": 4.712388980384692,
+        "endParam": 5.819537698178781,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.01583961266284949,
+          "ycenter": -0.04571999999999999,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "f31be42644594235bb60a2a1ae49a3a8.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3bca4fc723494e6ab2f58f55dadc5d84",
+        "startPointId": "3bca4fc723494e6ab2f58f55dadc5d84.start",
+        "endPointId": "3bca4fc723494e6ab2f58f55dadc5d84.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 3.1415926535897927,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": -0.038099999999999995,
+          "ycenter": -0.025400000000000006,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3bca4fc723494e6ab2f58f55dadc5d84.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "81be2ceebafa4eab895e479af9ce8d2f",
+        "startPointId": "81be2ceebafa4eab895e479af9ce8d2f.start",
+        "endPointId": "81be2ceebafa4eab895e479af9ce8d2f.end",
+        "startParam": 0.0,
+        "endParam": 1.5707963267948966,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.038099999999999995,
+          "ycenter": 0.0254,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "81be2ceebafa4eab895e479af9ce8d2f.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:49] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features/featureid/FickSGPUIZt5Xa8_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "FickSGPUIZt5Xa8_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "bb7ea897698d4b7fb666d1ea08d26f70",
+        "startPointId": "bb7ea897698d4b7fb666d1ea08d26f70.start",
+        "endPointId": "bb7ea897698d4b7fb666d1ea08d26f70.end",
+        "startParam": 0.0,
+        "endParam": 0.025258450651397868,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999591,
+          "dirY": -0.8944271909999153
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "26e7efe30afd422db96287c74051c7fe",
+        "startPointId": "26e7efe30afd422db96287c74051c7fe.start",
+        "endPointId": "26e7efe30afd422db96287c74051c7fe.end",
+        "startParam": 0.0,
+        "endParam": 0.022260387337150533,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849476,
+          "pntY": -0.05079999999999999,
+          "dirX": -1.0,
+          "dirY": -1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "856b917d0e094092bdbee21563233597",
+        "startPointId": "856b917d0e094092bdbee21563233597.start",
+        "endPointId": "856b917d0e094092bdbee21563233597.end",
+        "startParam": 3.1415926535897927,
+        "endParam": 4.712388980384689,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": -0.038099999999999995,
+          "ycenter": -0.025400000000000006,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "856b917d0e094092bdbee21563233597.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "2e319da9affa4aa49d74f9fb52781f36",
+        "startPointId": "2e319da9affa4aa49d74f9fb52781f36.start",
+        "endPointId": "2e319da9affa4aa49d74f9fb52781f36.end",
+        "startParam": 0.0,
+        "endParam": 0.02226038733715053,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -0.015839612662849466,
+          "pntY": 1.939793094729248e-18,
+          "dirX": -1.0,
+          "dirY": 1.2246467991473532e-16
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "950be0fcb92848a6a90b89aaa22e41d5",
+        "startPointId": "950be0fcb92848a6a90b89aaa22e41d5.start",
+        "endPointId": "950be0fcb92848a6a90b89aaa22e41d5.end",
+        "startParam": 0.0,
+        "endParam": 0.02525845065139786,
+        "geometry": {
+          "btType": "BTCurveGeometryLine-117",
+          "pntX": -4.6659043047514156e-18,
+          "pntY": -0.0254,
+          "dirX": -0.4472135954999579,
+          "dirY": 0.8944271909999159
+        }
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "43a11f1ed06a45b396ccb540b026e45b",
+        "startPointId": "43a11f1ed06a45b396ccb540b026e45b.start",
+        "endPointId": "43a11f1ed06a45b396ccb540b026e45b.end",
+        "startParam": 0.4636476090008068,
+        "endParam": 1.5707963267948972,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.015839612662849462,
+          "ycenter": -0.005080000000000001,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "43a11f1ed06a45b396ccb540b026e45b.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "f31be42644594235bb60a2a1ae49a3a8",
+        "startPointId": "f31be42644594235bb60a2a1ae49a3a8.start",
+        "endPointId": "f31be42644594235bb60a2a1ae49a3a8.end",
+        "startParam": 4.712388980384692,
+        "endParam": 5.819537698178781,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.00508,
+          "xcenter": -0.01583961266284949,
+          "ycenter": -0.04571999999999999,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "f31be42644594235bb60a2a1ae49a3a8.center"
+      },
+      {
+        "btType": "BTMSketchCurveSegment-155",
+        "entityId": "3bca4fc723494e6ab2f58f55dadc5d84",
+        "startPointId": "3bca4fc723494e6ab2f58f55dadc5d84.start",
+        "endPointId": "3bca4fc723494e6ab2f58f55dadc5d84.end",
+        "startParam": 1.5707963267948966,
+        "endParam": 3.1415926535897927,
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": -0.038099999999999995,
+          "ycenter": -0.025400000000000006,
+          "xdir": 1,
+          "ydir": 0
+        },
+        "centerId": "3bca4fc723494e6ab2f58f55dadc5d84.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:49] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/featurescript
+  PAYLOAD: {
+  "script": "\nfunction(context is Context, queries) {\n    var feature_id = makeId(\"FickSGPUIZt5Xa8_0\");\n    var faces = evaluateQuery(context, qCreatedBy(feature_id));\n    return transientQueriesToStrings(faces);\n}\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:49] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/featurescript
+  PAYLOAD: {
+  "script": "\n\nfunction(context is Context, queries){\n\n    // Combine all transient ids into one query\n    const transient_ids = ['IF', 'JFE', 'JFI', 'JFM', 'JFQ', 'JFU', 'JFY', 'JFc', 'JFg', 'JFk', 'JFo', 'JFs', 'JFB', 'JFF', 'JFJ', 'JFN', 'JFD', 'JFH', 'JFL', 'JFP', 'JFT', 'JFX', 'JFb', 'JFf'];\n    var element_queries is array = makeArray(size(transient_ids));\n\n    var idx = 0;\n    for (var tid in transient_ids)\n    {\n        var query = { \"queryType\" : QueryType.TRANSIENT, \"transientId\" : tid } as Query;\n        element_queries[idx] = query;\n        idx += 1;\n    }\n\n    var cumulative_query = qUnion(element_queries);\n\n    // Apply specific query\n    var specific_query = qEntityFilter(cumulative_query, EntityType.FACE);\n    var matching_entities = evaluateQuery(context, specific_query);\n    return transientQueriesToStrings(matching_entities);\n\n}\n\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:49] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/featurescript
+  PAYLOAD: {
+  "script": "\n\nfunction(context is Context, queries){\n\n    // Combine all transient ids into one query\n    const transient_ids = [];\n    var element_queries is array = makeArray(size(transient_ids));\n\n    var idx = 0;\n    for (var tid in transient_ids)\n    {\n        var query = { \"queryType\" : QueryType.TRANSIENT, \"transientId\" : tid } as Query;\n        element_queries[idx] = query;\n        idx += 1;\n    }\n\n    var cumulative_query = qUnion(element_queries);\n\n    // Apply specific query\n    var specific_query = qContainsPoint(cumulative_query, (vector([-1, -1, 0]) * inch));\n    var matching_entities = evaluateQuery(context, specific_query);\n    return transientQueriesToStrings(matching_entities);\n\n}\n\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:49] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/featurescript
+  PAYLOAD: {
+  "script": "\n\nfunction(context is Context, queries){\n\n    // Combine all transient ids into one query\n    const transient_ids = [];\n    var element_queries is array = makeArray(size(transient_ids));\n\n    var idx = 0;\n    for (var tid in transient_ids)\n    {\n        var query = { \"queryType\" : QueryType.TRANSIENT, \"transientId\" : tid } as Query;\n        element_queries[idx] = query;\n        idx += 1;\n    }\n\n    var cumulative_query = qUnion(element_queries);\n\n    // Apply specific query\n    var specific_query = qEntityFilter(cumulative_query, EntityType.FACE);\n    var matching_entities = evaluateQuery(context, specific_query);\n    return transientQueriesToStrings(matching_entities);\n\n}\n\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:50] TEST: test_pseudo_elements
+  Post https://cad.onshape.com/api/v6/partstudios/d/d3d6828c75b60fde2082e540/w/7a7385a74abec6be994d56d6/e/56d09ce0669893afcfa749d0/features
+  PAYLOAD: {
+  "feature": {
+    "name": "New Extrude",
+    "featureType": "extrude",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterEnum-145",
+        "parameterId": "bodyType",
+        "value": "SOLID",
+        "enumName": "ExtendedToolBodyType"
+      },
+      {
+        "btType": "BTMParameterEnum-145",
+        "value": "NEW",
+        "enumName": "NewBodyOperationType",
+        "parameterId": "operationType"
+      },
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": []
+          }
+        ],
+        "parameterId": "entities"
+      },
+      {
+        "btType": "BTMParameterEnum-145",
+        "enumName": "BoundingType",
+        "value": "BLIND",
+        "parameterId": "endBound"
+      },
+      {
+        "btType": "BTMParameterQuantity-147",
+        "expression": "1 in",
+        "parameterId": "depth"
+      },
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": []
+          }
+        ],
+        "parameterId": "booleanScope"
+      }
+    ],
+    "btType": "BTMFeature-134"
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:50] TEST: test_part_query
+  Get https://cad.onshape.com/api/v6/documents
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:50] TEST: test_part_query
+  Post https://cad.onshape.com/api/v6/documents
+  PAYLOAD: {
+  "name": "test_features::test_part_query",
+  "description": "Created with onpy",
+  "isPublic": true
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:51] TEST: test_part_query
+  Get https://cad.onshape.com/api/v6/documents/d/92647e436096032ed2038e54/w/cec84797708682d4fe337197/elements
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:51] TEST: test_part_query
+  Get https://cad.onshape.com/api/v6/documents/d/92647e436096032ed2038e54/versions
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:51] TEST: test_part_query
+  Post https://cad.onshape.com/api/v6/documents/d/92647e436096032ed2038e54/versions
+  PAYLOAD: {
+  "documentId": "92647e436096032ed2038e54",
+  "name": "V1",
+  "workspaceId": "cec84797708682d4fe337197"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:51] TEST: test_part_query
+  Get https://cad.onshape.com/api/v6/partstudios/d/92647e436096032ed2038e54/w/cec84797708682d4fe337197/e/889a1f4cdc9dfa0df54b85ba/features
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:51] TEST: test_part_query
+  Post https://cad.onshape.com/api/v6/partstudios/d/92647e436096032ed2038e54/w/cec84797708682d4fe337197/e/889a1f4cdc9dfa0df54b85ba/featurescript
+  PAYLOAD: {
+  "script": "\nfunction(context is Context, queries) {\n    return transientQueriesToStrings(evaluateQuery(context, qCreatedBy(makeId(\"Top\"), EntityType.FACE)));\n}\n"
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:52] TEST: test_part_query
+  Post https://cad.onshape.com/api/v6/partstudios/d/92647e436096032ed2038e54/w/cec84797708682d4fe337197/e/889a1f4cdc9dfa0df54b85ba/features
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": []
+  }
+}
+--------------------------------------------------------------------------------
+
+[2025-03-23 21:09:53] TEST: test_part_query
+  Post https://cad.onshape.com/api/v6/partstudios/d/92647e436096032ed2038e54/w/cec84797708682d4fe337197/e/889a1f4cdc9dfa0df54b85ba/features/featureid/Fhw9UsKrzRZuq7C_0
+  PAYLOAD: {
+  "feature": {
+    "name": "New Sketch",
+    "featureType": "newSketch",
+    "suppressed": false,
+    "parameters": [
+      {
+        "btType": "BTMParameterQueryList-148",
+        "queries": [
+          {
+            "btType": "BTMIndividualQuery-138",
+            "deterministicIds": [
+              "JDC"
+            ]
+          }
+        ],
+        "parameterId": "sketchPlane"
+      },
+      {
+        "btType": "BTMParameterBoolean-144",
+        "value": true,
+        "parameterId": "disableImprinting"
+      }
+    ],
+    "featureId": "Fhw9UsKrzRZuq7C_0",
+    "btType": "BTMSketch-151",
+    "constraints": [],
+    "entities": [
+      {
+        "btType": "BTMSketchCurve-4",
+        "entityId": "98b6b40474974c5da06e842d631cb9d1",
+        "geometry": {
+          "btType": "BTCurveGeometryCircle-115",
+          "radius": 0.0254,
+          "xcenter": 0.0,
+          "ycenter": 0.0,
+          "xdir": 1,
+          "ydir": 0,
+          "clockwise": false
+        },
+        "centerId": "98b6b40474974c5da06e842d631cb9d1.center"
+      }
+    ]
+  }
+}
+--------------------------------------------------------------------------------

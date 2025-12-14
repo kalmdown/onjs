@@ -56,3 +56,11 @@ ignore = [
   "COM812",   # issues with formatter
 ]
 per-file-ignores = {"src/onpy/entities/queries.py" = ["N801"]}
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-v"
