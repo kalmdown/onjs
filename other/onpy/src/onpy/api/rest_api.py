@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+# src/onpy/api/rest_api.py
+
+>>>>>>> 2437b7db25f654d50bed522b39ff61bd6eb53c29
 """RestApi interface to the OnShape server.
 
 The api is built in two parts; a request centric, utility part, and a part
@@ -29,7 +34,7 @@ if TYPE_CHECKING:
 class RestApi:
     """Interface for OnShape API Requests."""
 
-    BASE_URL = "https://cad.onshape.com/api/v6"
+    BASE_URL = "https://cad.onshape.com/api/v10"
 
     def __init__(self, client: "Client") -> None:
         """Construct a new rest api interface instance.
