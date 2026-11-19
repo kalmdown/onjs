@@ -1,0 +1,14 @@
+title = "Project credential scanning"
+[extend]
+useDefault = true
+
+[[rules]]
+id = "onshape-credential"
+description = "Literal Onshape API or OAuth credential"
+regex = '''(?i)(?:ONSHAPE_(?:API_KEY|ACCESS_KEY|SECRET_KEY|SECRET)|OAUTH_CLIENT_SECRET)[ \t]*[:=][ \t]*["']?([A-Za-z0-9_+/=-]{20,})'''
+secretGroup = 1
+keywords = ["ONSHAPE_", "OAUTH_CLIENT_SECRET"]
+
+[[rules.allowlists]]
+regexTarget = "secret"
+regexes = ['''(?i)^(?:REVOKED_EXPOSED_CREDENTIAL$|your_|example_|placeholder|process\.env|op://)''']
